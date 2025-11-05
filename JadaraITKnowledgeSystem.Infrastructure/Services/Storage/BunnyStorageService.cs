@@ -20,11 +20,14 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Services.Storage
         public BunnyStorageService(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
-            _storageZoneName = configuration["BunnyStorage:StorageZoneName"]!;
-            _apiKey = configuration["BunnyStorage:ApiKey"]!;
-            _cdnBaseUrl = configuration["BunnyStorage:CdnBaseUrl"]!;
+
+            var section = configuration.GetSection("Storage");
+            _storageZoneName = section["StorageZoneName"] ?? throw new ArgumentNullException("Storage:StorageZoneName");
+            _apiKey = section["ApiKey"] ?? throw new ArgumentNullException("Storage:ApiKey");
+            _cdnBaseUrl = section["StorageZoneBaseUrl"] ?? throw new ArgumentNullException("Storage:StorageZoneBaseUrl");
 
             _httpClient.BaseAddress = new Uri("https://storage.bunnycdn.com/");
+            _httpClient.DefaultRequestHeaders.Remove("AccessKey");
             _httpClient.DefaultRequestHeaders.Add("AccessKey", _apiKey);
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         }
@@ -73,5 +76,6 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Services.Storage
         }
     }
 }
+
 
 

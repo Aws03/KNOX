@@ -12,6 +12,7 @@ using JadaraITKnowledgeSystem.Infrastructure.Repositories.Generic;
 using JadaraITKnowledgeSystem.Infrastructure.Repositories.UnitOfWork;
 using JadaraITKnowledgeSystem.Infrastructure.Services.JWT;
 using JadaraITKnowledgeSystem.Infrastructure.Services.Password;
+using JadaraITKnowledgeSystem.Infrastructure.Services.Storage;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,6 +20,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Register Storage Service
+builder.Services.AddHttpClient<IStorageService, BunnyStorageService>();
 
 // Register Services
 builder.Services.AddScoped<IChoiceService,ChoiceService>();

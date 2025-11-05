@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace JadaraITKnowledgeSystem.Infrastructure.Services.Storage
 {
@@ -30,18 +31,27 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Services.Storage
 
         public async Task<string> UploadAsync(Stream fileStream, string fileName, string? folder = null)
         {
-            var path = string.IsNullOrEmpty(folder)
+            try
+            {
+                var path = string.IsNullOrEmpty(folder)
                 ? $"{_storageZoneName}/{fileName}"
                 : $"{_storageZoneName}/{folder}/{fileName}";
 
-            using var content = new StreamContent(fileStream);
-            content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                using var content = new StreamContent(fileStream);
+                content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
-            var response = await _httpClient.PutAsync(path, content);
+                var response = await _httpClient.PutAsync(path, content);
 
-            response.EnsureSuccessStatusCode();
+                response.EnsureSuccessStatusCode();
 
-            return GetFileUrl(fileName, folder);
+                return GetFileUrl(fileName, folder);
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions (e.g., log the error)
+                throw new Exception("Error uploading file to BunnyCDN", ex);
+            }
+
         }
 
         public async Task<bool> DeleteAsync(string fileName, string? folder = null)
@@ -63,3 +73,5 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Services.Storage
         }
     }
 }
+
+

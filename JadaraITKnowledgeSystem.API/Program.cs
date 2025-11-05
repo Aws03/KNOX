@@ -13,7 +13,9 @@ using JadaraITKnowledgeSystem.Infrastructure.Repositories.UnitOfWork;
 using JadaraITKnowledgeSystem.Infrastructure.Services.JWT;
 using JadaraITKnowledgeSystem.Infrastructure.Services.Password;
 using JadaraITKnowledgeSystem.Infrastructure.Services.Storage;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,6 +74,28 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    // Check if running in Docker or set environment variable
+    var isDocker = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true"
+                   || Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Docker";
+
+    if (!isDocker)
+    {
+        // HTTPS only when not in Docker
+        serverOptions.Listen(IPAddress.Any, 6001, listenOptions =>
+        {
+            listenOptions.UseHttps(); // Enable HTTPS
+        });
+    }//////
+
+    // HTTP for all environments
+    serverOptions.Listen(IPAddress.Any, 5001, listenOptions =>
+    {
+        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+    });
+});
 
 var app = builder.Build();
 

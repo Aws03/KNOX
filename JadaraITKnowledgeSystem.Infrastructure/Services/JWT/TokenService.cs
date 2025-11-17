@@ -1,5 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Application.Interfaces.Services;
-using JadaraITKnowledgeSystem.Domain.Entities;
+﻿using JadaraITKnowledgeSystem.Domain.Users;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -8,7 +7,7 @@ using System.Text;
 
 namespace JadaraITKnowledgeSystem.Infrastructure.Services.JWT
 {
-    public class JwtTokenService : IJwtTokenService
+    public class JwtTokenService //: IJwtTokenService
     {
         private readonly IConfiguration _configuration;
 

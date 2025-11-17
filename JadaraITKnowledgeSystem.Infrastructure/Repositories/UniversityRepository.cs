@@ -1,5 +1,5 @@
 ﻿using JadaraITKnowledgeSystem.Application.Interfaces.Repositories;
-using JadaraITKnowledgeSystem.Domain.Entities;
+using JadaraITKnowledgeSystem.Domain.Universities;
 using JadaraITKnowledgeSystem.Infrastructure.Persistence.Context;
 using JadaraITKnowledgeSystem.Infrastructure.Repositories.Generic;
 

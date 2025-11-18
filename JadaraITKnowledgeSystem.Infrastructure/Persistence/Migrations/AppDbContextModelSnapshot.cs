@@ -17,52 +17,12 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.10")
+                .HasAnnotation("ProductVersion", "10.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.Choice", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsCorrect")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("QuestionId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("QuestionId");
-
-                    b.ToTable("Choices", (string)null);
-                });
-
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.Course", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Course", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -79,8 +39,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(100)
@@ -93,8 +53,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(100)
@@ -105,7 +65,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.ToTable("Courses", (string)null);
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.CourseMaterial", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entites.CourseMaterial", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -121,8 +81,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .IsRequired()
@@ -137,8 +97,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
 
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
@@ -150,7 +110,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.ToTable("CourseMaterials");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.CourseRequirementMapping", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entites.CourseRequirementMapping", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -161,8 +121,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(100)
@@ -177,8 +137,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.Property<int>("RequirementType")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(100)
@@ -193,7 +153,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.ToTable("CourseRequirementMappings", (string)null);
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.Faculty", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.Choice", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -201,23 +161,26 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("bit");
 
-                    b.Property<int>("UniversityId")
+                    b.Property<int>("QuestionId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(100)
@@ -225,12 +188,12 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UniversityId");
+                    b.HasIndex("QuestionId");
 
-                    b.ToTable("Faculties", (string)null);
+                    b.ToTable("Choices", (string)null);
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.Major", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.Question", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -238,45 +201,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("FacultyId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FacultyId");
-
-                    b.ToTable("Majors", (string)null);
-                });
-
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.Question", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(100)
@@ -292,8 +218,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(100)
@@ -306,7 +232,91 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.ToTable("Questions", (string)null);
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.Quiz", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.QuizAttempt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AttemptDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("QuizId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Score")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuizId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("QuizAttempts", (string)null);
+                });
+
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.UserReaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("QuizId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReactionType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuizId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserReactions", (string)null);
+                });
+
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Quiz", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -341,8 +351,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(100)
@@ -360,7 +370,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.ToTable("Quizzes", (string)null);
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.QuizAttempt", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Universities.Entities.Faculty", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -368,52 +378,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("AttemptDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("QuizId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Score")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("QuizId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("QuizAttempts", (string)null);
-                });
-
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.University", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(100)
@@ -424,8 +390,82 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
 
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<int>("UniversityId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UniversityId");
+
+                    b.ToTable("Faculties", (string)null);
+                });
+
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Universities.Entities.Major", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("FacultyId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FacultyId");
+
+                    b.ToTable("Majors", (string)null);
+                });
+
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Universities.University", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(100)
@@ -436,7 +476,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.ToTable("Universities", (string)null);
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.User", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Users.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -444,8 +484,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(100)
@@ -457,8 +497,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.Property<int>("PermissionLevel")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(100)
@@ -469,60 +509,9 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.UserReaction", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entites.CourseMaterial", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsLike")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("QuizId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("QuizId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserReactions", (string)null);
-                });
-
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.Choice", b =>
-                {
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Entities.Question", "Question")
-                        .WithMany("Choices")
-                        .HasForeignKey("QuestionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Question");
-                });
-
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.CourseMaterial", b =>
-                {
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Entities.Course", "Course")
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Courses.Course", "Course")
                         .WithMany()
                         .HasForeignKey("CourseId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -531,15 +520,15 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.Navigation("Course");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.CourseRequirementMapping", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entites.CourseRequirementMapping", b =>
                 {
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Entities.Course", "Course")
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Courses.Course", "Course")
                         .WithMany("Requirements")
                         .HasForeignKey("CourseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Entities.Major", "Major")
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Universities.Entities.Major", "Major")
                         .WithMany("CourseRequirements")
                         .HasForeignKey("MajorId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -550,31 +539,20 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.Navigation("Major");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.Faculty", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.Choice", b =>
                 {
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Entities.University", "University")
-                        .WithMany("Faculties")
-                        .HasForeignKey("UniversityId")
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.Question", "Question")
+                        .WithMany("Choices")
+                        .HasForeignKey("QuestionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("University");
+                    b.Navigation("Question");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.Major", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.Question", b =>
                 {
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Entities.Faculty", "Faculty")
-                        .WithMany()
-                        .HasForeignKey("FacultyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Faculty");
-                });
-
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.Question", b =>
-                {
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Entities.Quiz", "Quiz")
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Quizzes.Quiz", "Quiz")
                         .WithMany("Questions")
                         .HasForeignKey("QuizId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -583,34 +561,15 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.Navigation("Quiz");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.Quiz", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.QuizAttempt", b =>
                 {
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Entities.Course", "Course")
-                        .WithMany()
-                        .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Entities.User", "Writer")
-                        .WithMany()
-                        .HasForeignKey("WriterId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Course");
-
-                    b.Navigation("Writer");
-                });
-
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.QuizAttempt", b =>
-                {
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Entities.Quiz", "Quiz")
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Quizzes.Quiz", "Quiz")
                         .WithMany("Attempts")
                         .HasForeignKey("QuizId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Entities.User", "User")
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Users.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -621,9 +580,69 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.User", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.UserReaction", b =>
                 {
-                    b.OwnsOne("JadaraITKnowledgeSystem.Domain.ValueObjects.Email", "Email", b1 =>
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Quizzes.Quiz", "Quiz")
+                        .WithMany("Reactions")
+                        .HasForeignKey("QuizId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Users.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Quiz");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Quiz", b =>
+                {
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Courses.Course", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Users.User", "Writer")
+                        .WithMany()
+                        .HasForeignKey("WriterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Writer");
+                });
+
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Universities.Entities.Faculty", b =>
+                {
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Universities.University", "University")
+                        .WithMany("Faculties")
+                        .HasForeignKey("UniversityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("University");
+                });
+
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Universities.Entities.Major", b =>
+                {
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Universities.Entities.Faculty", "Faculty")
+                        .WithMany()
+                        .HasForeignKey("FacultyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Faculty");
+                });
+
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Users.User", b =>
+                {
+                    b.OwnsOne("JadaraITKnowledgeSystem.Domain.Users.ValueObjects.Email", "Email", b1 =>
                         {
                             b1.Property<int>("UserId")
                                 .HasColumnType("int");
@@ -642,7 +661,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                                 .HasForeignKey("UserId");
                         });
 
-                    b.OwnsOne("JadaraITKnowledgeSystem.Domain.ValueObjects.FullName", "Name", b1 =>
+                    b.OwnsOne("JadaraITKnowledgeSystem.Domain.Users.ValueObjects.FullName", "Name", b1 =>
                         {
                             b1.Property<int>("UserId")
                                 .HasColumnType("int");
@@ -668,41 +687,17 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.UserReaction", b =>
-                {
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Entities.Quiz", "Quiz")
-                        .WithMany("Reactions")
-                        .HasForeignKey("QuizId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Quiz");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.Course", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Course", b =>
                 {
                     b.Navigation("Requirements");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.Major", b =>
-                {
-                    b.Navigation("CourseRequirements");
-                });
-
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.Question", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.Question", b =>
                 {
                     b.Navigation("Choices");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.Quiz", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Quiz", b =>
                 {
                     b.Navigation("Attempts");
 
@@ -711,7 +706,12 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.Navigation("Reactions");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Entities.University", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Universities.Entities.Major", b =>
+                {
+                    b.Navigation("CourseRequirements");
+                });
+
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Universities.University", b =>
                 {
                     b.Navigation("Faculties");
                 });

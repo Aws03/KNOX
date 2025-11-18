@@ -1,5 +1,5 @@
 ﻿using JadaraITKnowledgeSystem.Application.Interfaces.Repositories.Generic;
-using JadaraITKnowledgeSystem.Domain.Entities;
+using JadaraITKnowledgeSystem.Domain.Quizzes;
 using System;
 using System.Collections.Generic;
 using System.Linq;

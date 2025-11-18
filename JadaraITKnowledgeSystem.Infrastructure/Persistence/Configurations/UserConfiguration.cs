@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Domain.Entities;
+﻿using JadaraITKnowledgeSystem.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -35,10 +35,19 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
                 .IsRequired();
 
             // Auditable fields inherited (if used separately)
-            builder.Property<DateTime>("CreatedAt").IsRequired();
-            builder.Property<string>("CreatedBy").HasMaxLength(100).IsRequired(false);
-            builder.Property<DateTime?>("UpdatedAt").IsRequired(false);
-            builder.Property<string?>("UpdatedBy").HasMaxLength(100).IsRequired(false);
+            builder.Property(c => c.CreatedAt)
+                    .IsRequired();
+
+            builder.Property(c => c.CreatedBy)
+                   .HasMaxLength(100)
+                   .IsRequired(false);
+
+            builder.Property(c => c.UpdatedAt)
+                   .IsRequired(false);
+
+            builder.Property(c => c.UpdatedBy)
+                   .HasMaxLength(100)
+                   .IsRequired(false);
         }
     }
 }

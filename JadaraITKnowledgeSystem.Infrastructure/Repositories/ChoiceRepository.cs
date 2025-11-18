@@ -1,6 +1,6 @@
 ﻿using JadaraITKnowledgeSystem.Application.Interfaces.Repositories;
 using JadaraITKnowledgeSystem.Application.Interfaces.Repositories.Generic;
-using JadaraITKnowledgeSystem.Domain.Entities;
+using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
 using JadaraITKnowledgeSystem.Infrastructure.Persistence.Context;
 using JadaraITKnowledgeSystem.Infrastructure.Repositories.Generic;
 using System;

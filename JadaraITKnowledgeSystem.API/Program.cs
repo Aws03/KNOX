@@ -1,12 +1,16 @@
 using AutoMapper;
 using JadaraITKnowledgeSystem.API.Middlewares;
 using JadaraITKnowledgeSystem.Application;
+using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Application.Interfaces.Repositories.Generic;
 using JadaraITKnowledgeSystem.Application.Interfaces.Repositories.UnitOfWrok;
+using JadaraITKnowledgeSystem.Application.Interfaces.Services;
 using JadaraITKnowledgeSystem.Infrastructure;
 using JadaraITKnowledgeSystem.Infrastructure.Persistence.Context;
 using JadaraITKnowledgeSystem.Infrastructure.Repositories.Generic;
 using JadaraITKnowledgeSystem.Infrastructure.Repositories.UnitOfWork;
+using JadaraITKnowledgeSystem.Infrastructure.Services.FileMangment;
+using JadaraITKnowledgeSystem.Infrastructure.Services.Storage;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -22,6 +26,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Register Storage Service
 //builder.Services.AddHttpClient<IStorageService, BunnyStorageService>();
+
+builder.Services.AddScoped<IStorageService, BunnyStorageService>();
+builder.Services.AddScoped<IFileManager, FileManager>();
+
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);

@@ -11,7 +11,7 @@ namespace JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Commands.CreateQui
 {
     public sealed record CreateQuizCommand(string Title,
         int WriterId,
-        int MaterialId,
+        int CourseId,
         string? Description,
         List<CreateQuestionDto> Questions
     ) : IRequest<Result<QuizDto>>;

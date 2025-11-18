@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace JadaraITKnowledgeSystem.Application.Interfaces.Services
+namespace JadaraITKnowledgeSystem.Application.Interfaces
 {
     public interface IFileManager
     {

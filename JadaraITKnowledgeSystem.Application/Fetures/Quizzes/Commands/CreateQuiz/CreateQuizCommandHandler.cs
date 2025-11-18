@@ -4,7 +4,6 @@ using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Quizzes;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
-using JadaraITKnowledgeSystem.Domain.Quizzes.Enums;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -24,11 +23,8 @@ namespace JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Commands.CreateQui
         {
             _logger.LogInformation("Creating quiz: {Title}", command.Title);
 
-            // -------------------------
-            // 1. Create the Quiz root
-            // -------------------------
             var quizResult = Quiz.Create(
-                courseId : command.MaterialId,
+                courseId: command.CourseId,
                 writerId: command.WriterId,
                 title: command.Title,
                 description: command.Description
@@ -39,9 +35,6 @@ namespace JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Commands.CreateQui
 
             var quiz = quizResult.Value;
 
-            // -------------------------
-            // 2. Add questions + choices
-            // -------------------------
             foreach (var q in command.Questions)
             {
                 var questionResult = Question.Create(
@@ -68,15 +61,9 @@ namespace JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Commands.CreateQui
                 }
             }
 
-            // -------------------------
-            // 3. Save to DB
-            // -------------------------
             await _context.Quizzes.AddAsync(quiz, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
-            // -------------------------
-            // 4. Return DTO
-            // -------------------------
             return quiz.ToDto();
         }
     }

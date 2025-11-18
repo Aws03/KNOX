@@ -12,7 +12,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Services.FileMangment
 
         private static readonly HashSet<string> _allowedExtensions =
         [
-            ".jpg", ".jpeg", ".png", ".webp", ".pdf", ".mp4" , ".docx" , ".pptx" , ".pptm"
+            ".jpg", ".jpeg", ".png", ".webp", ".pdf", ".mp4" , ".docx" , ".pptx" , ".pptm",".xlsx", ".xlsm"
         ];
 
         public FileManager(IStorageService storage)

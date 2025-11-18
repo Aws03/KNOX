@@ -4,10 +4,10 @@ using System.Text;
 
 namespace JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CreateCourseMaterial
 {
-    public sealed class CreateCourseMaterialHandler(
+    public sealed class CreateCourseMaterialCommandHandler(
     IApplicationDbContext context,
     IStorageService storage,
-    ILogger<CreateCourseMaterialHandler> logger)
+    ILogger<CreateCourseMaterialCommandHandler> logger)
     : IRequestHandler<CreateCourseMaterialCommand, Result<int>>
     {
         public async Task<Result<int>> Handle(

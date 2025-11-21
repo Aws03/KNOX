@@ -19,6 +19,9 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
             builder.Property(c => c.IsCorrect)
                 .IsRequired();
 
+            builder.Property(c => c.ImageUrl)
+                .IsRequired(false);
+
             builder.HasOne(c => c.Question)
                 .WithMany(q => q.Choices)
                 .HasForeignKey(c => c.QuestionId)

@@ -11,8 +11,6 @@ using JadaraITKnowledgeSystem.Infrastructure.Repositories.Generic;
 using JadaraITKnowledgeSystem.Infrastructure.Repositories.UnitOfWork;
 using JadaraITKnowledgeSystem.Infrastructure.Services.FileMangment;
 using JadaraITKnowledgeSystem.Infrastructure.Services.Storage;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
@@ -21,15 +19,14 @@ using System.Text.Json.Serialization;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("SecondConnection")));
+//builder.Services.AddDbContext<AppDbContext>(options =>
+//    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Register Storage Service
 //builder.Services.AddHttpClient<IStorageService, BunnyStorageService>();
 
-builder.Services.AddScoped<IStorageService, BunnyStorageService>();
+builder.Services.AddHttpClient<IStorageService, BunnyStorageService>();
 builder.Services.AddScoped<IFileManager, FileManager>();
-
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);

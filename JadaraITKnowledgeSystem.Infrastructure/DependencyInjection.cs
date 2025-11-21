@@ -1,6 +1,7 @@
 ﻿using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Infrastructure.Interceptors;
 using JadaraITKnowledgeSystem.Infrastructure.Persistence.Context;
+using JadaraITKnowledgeSystem.Infrastructure.Services.FileManagement;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure
                 options.UseSqlServer(connectionString));
 
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());
+            services.AddHostedService<TempFileCleanupJob>();
 
             //services.AddScoped<AuditableEntityInterceptor>();
 

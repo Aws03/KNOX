@@ -1,51 +1,49 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using JadaraITKnowledgeSystem.Application.DTOs;
+using JadaraITKnowledgeSystem.Application.Fetures.Courses.Mappers;
+using JadaraITKnowledgeSystem.Application.Interfaces;
+using JadaraITKnowledgeSystem.Application.Interfaces.Services;
+using JadaraITKnowledgeSystem.Domain.Common.Results;
+using JadaraITKnowledgeSystem.Domain.Courses.Entites;
+using MediatR;
+using Microsoft.Extensions.Logging;
+
 
 namespace JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CreateCourseMaterial
 {
     public sealed class CreateCourseMaterialCommandHandler(
-    IApplicationDbContext context,
-    IStorageService storage,
-    ILogger<CreateCourseMaterialCommandHandler> logger)
-    : IRequestHandler<CreateCourseMaterialCommand, Result<int>>
+    IApplicationDbContext context,ILogger<CreateCourseMaterialCommandHandler> logger)
+    : IRequestHandler<CreateCourseMaterialCommand, Result<CourseMaterialDto>>
     {
-        public async Task<Result<int>> Handle(
+
+        private readonly ILogger<CreateCourseMaterialCommandHandler> _logger = logger;
+        private readonly IApplicationDbContext _context = context;
+        public async Task<Result<CourseMaterialDto>> Handle(
             CreateCourseMaterialCommand request,
             CancellationToken cancellationToken)
         {
-            // 1️⃣ Create path
-            string path = $"course-materials/{request.CourseId}";
+            _logger.LogInformation(
+                "Adding Course material -> courseId : {courseId}",
+                request.CourseId);
 
-            // 2️⃣ Upload file
-            string uniqueName = $"{Guid.NewGuid()}-{request.File.FileName}";
-            string url;
-
-            using (var stream = request.File.OpenReadStream())
-            {
-                url = await storage.UploadAsync(stream, uniqueName, path, cancellationToken);
-            }
-
-            // 3️⃣ Create entity
-            var materialResult = CourseMaterial.Create(
+            var entityResult = CourseMaterial.Create(
                 request.Title,
-                url,
+                request.ContemtUrl,
                 request.CourseId,
                 request.Description);
 
-            if (materialResult.IsFailure)
-                return Result.Failure<int>(materialResult.Error);
+            if (entityResult.IsError)
+            {
+                _logger.LogWarning("Error happen while attempt to adding course material --> courseId : {courseId}, errors : {Errors}",
+                    request.CourseId, entityResult.Errors);
+                return entityResult.Errors;
+            }
 
-            var entity = materialResult.Value;
+            var entity = entityResult.Value;
 
-            // 4️⃣ Save to DB
-            context.CourseMaterials.Add(entity);
-            await context.SaveChangesAsync(cancellationToken);
+            _context.CourseMaterials.Add(entity);
+            await _context.SaveChangesAsync(cancellationToken);
 
-            logger.LogInformation("Course material {Id} created for course {CourseId}.", entity.Id, request.CourseId);
-
-            return Result.Success(entity.Id);
+            return entity.ToDto();
         }
     }
-
 }

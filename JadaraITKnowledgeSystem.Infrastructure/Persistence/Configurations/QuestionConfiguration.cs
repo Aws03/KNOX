@@ -17,6 +17,9 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
             builder.Property(q => q.Type)
                 .IsRequired();
 
+            builder.Property(q => q.ImageUrl)
+                .IsRequired(false);
+
             // Relations
             builder.HasOne(q => q.Quiz)
                 .WithMany(qz => qz.Questions)

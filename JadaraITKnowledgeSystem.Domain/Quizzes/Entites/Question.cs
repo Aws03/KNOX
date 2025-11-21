@@ -19,16 +19,18 @@ namespace JadaraITKnowledgeSystem.Domain.Quizzes.Entites
 
         public QuestionType Type { get; private set; }
         public string Text { get; private set; }
+        public string? ImageUrl { get; private set; }
 
         private readonly List<Choice> _choices = new();
         public IReadOnlyCollection<Choice> Choices => _choices.AsReadOnly();
         private Question() { }
 
-        private Question(int quizId, QuestionType type, string text)
+        private Question(int quizId, QuestionType type, string text,string? imageUrl)
         {
             QuizId = quizId;
             Type = type;
             Text = text ?? throw new ArgumentNullException(nameof(text));
+            ImageUrl = imageUrl;
         }
 
         public void AddChoice(Choice choice)
@@ -37,14 +39,14 @@ namespace JadaraITKnowledgeSystem.Domain.Quizzes.Entites
             _choices.Add(choice);
         }
 
-        public static Result<Question> Create(int quizId, QuestionType type, string text)
+        public static Result<Question> Create(int quizId, QuestionType type, string text,string? imageUrl = null)
         {
             //if (string.IsNullOrWhiteSpace(text))
             //{
             //    return 
             //}
 
-            var question = new Question(quizId, type, text);
+            var question = new Question(quizId, type, text,imageUrl);
             return question;
         }
 

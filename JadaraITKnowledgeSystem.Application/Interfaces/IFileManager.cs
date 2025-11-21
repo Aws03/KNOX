@@ -22,5 +22,14 @@ namespace JadaraITKnowledgeSystem.Application.Interfaces
         Task<bool> DeleteAsync(
             string? fileUrl,
             CancellationToken cancellationToken = default);
+
+        Task<string> MoveFromTempToPermanentAsync(
+            string tempFileUrl,
+            string permanentFolder,
+            CancellationToken cancellationToken = default);
+
+        Task<int> DeleteOldTempFilesAsync(
+        TimeSpan olderThan,
+        CancellationToken cancellationToken = default);
     }
 }

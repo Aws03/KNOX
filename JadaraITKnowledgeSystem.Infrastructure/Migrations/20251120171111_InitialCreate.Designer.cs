@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
+namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251114175435_fix_auditable_proparities")]
-    partial class fix_auditable_proparities
+    [Migration("20251120171111_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -171,6 +171,9 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsCorrect")
                         .HasColumnType("bit");
 
@@ -210,6 +213,9 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("QuizId")
                         .HasColumnType("int");
@@ -294,10 +300,10 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<bool>("IsLike")
-                        .HasColumnType("bit");
-
                     b.Property<int>("QuizId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReactionType")
                         .HasColumnType("int");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")

@@ -7,30 +7,26 @@ using JadaraITKnowledgeSystem.Domain.Universities.Entities;
 using JadaraITKnowledgeSystem.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace JadaraITKnowledgeSystem.Application.Interfaces
+namespace JadaraITKnowledgeSystem.Application.Interfaces;
+
+public interface IApplicationDbContext
 {
-    public interface IApplicationDbContext
-    {
-        public DbSet<Quiz> Quizzes { get; set; }
-        public DbSet<Question> Questions { get; set; }
-        public DbSet<QuizAttempt> QuizAttempts { get; set; }
-        public DbSet<Choice> Choices { get; set; }
-        public DbSet<User> Users { get; set; }
-        public DbSet<UserReaction> UserReactions { get; set; }
-        public DbSet<Course> Courses { get; set; }
-        // mapping table (major - course) 
-        public DbSet<CourseRequirementMapping> MajorCourses { get; set; }
-        public DbSet<Faculty> Faculties { get; set; }
-        public DbSet<Major> Majors { get; set; }
-        public DbSet<University> Universities { get; set; }
-        // mapping table (material - course)
-        public DbSet<CourseMaterial> CourseMaterials { get; set; }
+    public DbSet<Quiz> Quizzes { get; set; }
+    public DbSet<Question> Questions { get; set; }
+    public DbSet<QuizAttempt> QuizAttempts { get; set; }
+    public DbSet<Choice> Choices { get; set; }
+    public DbSet<User> Users { get; set; }
+    public DbSet<UserReaction> UserReactions { get; set; }
+    public DbSet<Course> Courses { get; set; }
+    // mapping table (major - course) 
+    public DbSet<CourseRequirementMapping> MajorCourses { get; set; }
+    public DbSet<Faculty> Faculties { get; set; }
+    public DbSet<Major> Majors { get; set; }
+    public DbSet<University> Universities { get; set; }
+    // mapping table (material - course)
+    public DbSet<CourseMaterial> CourseMaterials { get; set; }
 
-        DatabaseFacade Database { get; } // For transactions
-        Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
-    }
+    DatabaseFacade Database { get; } // For transactions
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -1,19 +1,17 @@
 ﻿using FluentValidation;
 
 
-namespace JadaraITKnowledgeSystem.Application.Fetures.Faculties.Commands.CreateFaculty
+namespace JadaraITKnowledgeSystem.Application.Fetures.Faculties.Commands.CreateFaculty;
+
+public sealed class CreateFacultyCommandValidator : AbstractValidator<CreateFacultyCommand>
 {
-    public sealed class CreateFacultyCommandValidator : AbstractValidator<CreateFacultyCommand>
+    public CreateFacultyCommandValidator()
     {
-        public CreateFacultyCommandValidator()
-        {
-            RuleFor(x => x.Name)
-                .NotEmpty().WithMessage("Faculty name is required.")
-                .MaximumLength(100).WithMessage("Faculty name must not exceed 100 characters.");
+        RuleFor(x => x.Name)
+            .NotEmpty().WithMessage("Faculty name is required.")
+            .MaximumLength(100).WithMessage("Faculty name must not exceed 100 characters.");
 
-            RuleFor(x => x.UniversityId)
-                .NotNull().WithMessage("University ID is required.");
-        }
+        RuleFor(x => x.UniversityId)
+            .NotNull().WithMessage("University ID is required.");
     }
-
 }

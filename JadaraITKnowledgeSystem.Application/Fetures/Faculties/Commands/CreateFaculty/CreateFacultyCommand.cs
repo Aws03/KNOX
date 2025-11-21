@@ -3,8 +3,7 @@ using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
 
 
-namespace JadaraITKnowledgeSystem.Application.Fetures.Faculties.Commands.CreateFaculty
-{
-    public sealed record CreateFacultyCommand(string Name, int UniversityId) : IRequest<Result<FacultyDto>>;
-    
-}
+namespace JadaraITKnowledgeSystem.Application.Fetures.Faculties.Commands.CreateFaculty;
+
+public sealed record CreateFacultyCommand(string Name, int UniversityId) : IRequest<Result<FacultyDto>>;
+

@@ -6,13 +6,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Dtos
+namespace JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Dtos;
+
+public sealed record UserReactionDto
 {
-    public sealed record UserReactionDto
-    {
-        public int Id { get; init; }
-        public int UserId { get; init; }
-        public int QuizId { get; init; }
-        public ReactionType ReactionType { get; init; }
-    }
+    public int Id { get; init; }
+    public int UserId { get; init; }
+    public int QuizId { get; init; }
+    public ReactionType ReactionType { get; init; }
 }

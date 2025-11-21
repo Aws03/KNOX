@@ -1,43 +1,39 @@
 ﻿using JadaraITKnowledgeSystem.Application.DTOs;
 using JadaraITKnowledgeSystem.Domain.Courses.Entites;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace JadaraITKnowledgeSystem.Application.Fetures.Courses.Mappers
+namespace JadaraITKnowledgeSystem.Application.Fetures.Courses.Mappers;
+
+public static class CourseRequirementMappingMapper
 {
-    public static class CourseRequirementMappingMapper
+    public static CourseRequirementMappingDto ToDto(this CourseRequirementMapping crm)
     {
-        public static CourseRequirementMappingDto ToDto(this CourseRequirementMapping crm)
+        ArgumentNullException.ThrowIfNull(crm);
+
+        return new CourseRequirementMappingDto
         {
-            ArgumentNullException.ThrowIfNull(crm);
+            Id = crm.Id,
+            RequirementType = crm.RequirementType,
+            CourseId = crm.CourseId,
+            MajorId = crm.MajorId,
+            RequirementNature = crm.RequirementNature
+        };
 
-            return new CourseRequirementMappingDto
-            {
-                Id = crm.Id,
-                RequirementType = crm.RequirementType,
-                CourseId = crm.CourseId,
-                MajorId = crm.MajorId,
-                RequirementNature = crm.RequirementNature
-            };
+    }
 
-        }
+    public static List<CourseRequirementMappingDto> ToDtos(this IEnumerable<CourseRequirementMapping> crms)
+    {
+        return crms.Select(crm => crm.ToDto()).ToList();
+    }
 
-        public static List<CourseRequirementMappingDto> ToDtos(this IEnumerable<CourseRequirementMapping> crms)
-        {
-            return crms.Select(crm => crm.ToDto()).ToList();
-        }
+    public static CourseRequirementMapping ToEntity(this CourseRequirementMappingDto crmd)
+    {
+        ArgumentNullException.ThrowIfNull(crmd);
 
-        public static CourseRequirementMapping ToEntity(this CourseRequirementMappingDto crmd)
-        {
-            ArgumentNullException.ThrowIfNull(crmd);
+        return CourseRequirementMapping.Create(crmd.CourseId, crmd.MajorId, crmd.RequirementType, crmd.RequirementNature).Value;
+    }
 
-            return CourseRequirementMapping.Create(crmd.CourseId, crmd.MajorId, crmd.RequirementType, crmd.RequirementNature).Value;
-        }
-
-        public static List<CourseRequirementMapping> ToEntities(this IEnumerable<CourseRequirementMappingDto> crmds)
-        {
-            return crmds.Select(crmd => crmd.ToEntity()).ToList();
-        }
+    public static List<CourseRequirementMapping> ToEntities(this IEnumerable<CourseRequirementMappingDto> crmds)
+    {
+        return crmds.Select(crmd => crmd.ToEntity()).ToList();
     }
 }

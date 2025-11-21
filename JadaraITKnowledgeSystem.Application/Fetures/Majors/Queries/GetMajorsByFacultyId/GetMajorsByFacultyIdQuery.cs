@@ -4,10 +4,9 @@ using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
 
 
-namespace JadaraITKnowledgeSystem.Application.Fetures.Majors.Queries.GetMajorByFacultyId
-{
-    public sealed record GetMajorsByFacultyIdQuery(int FacultyId
-        ,int PageNumber
-        ,int PageSize) : IRequest<Result<PaginatedList<MajorDto>>>;
-    
-}
+namespace JadaraITKnowledgeSystem.Application.Fetures.Majors.Queries.GetMajorByFacultyId;
+
+public sealed record GetMajorsByFacultyIdQuery(int FacultyId
+    ,int PageNumber
+    ,int PageSize) : IRequest<Result<PaginatedList<MajorDto>>>;
+

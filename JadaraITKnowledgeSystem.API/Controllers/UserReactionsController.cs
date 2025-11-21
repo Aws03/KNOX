@@ -1,11 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace JadaraITKnowledgeSystem.API.Controllers
+namespace JadaraITKnowledgeSystem.API.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class UserReactionsController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class UserReactionsController : ControllerBase
-    {
-    }
 }

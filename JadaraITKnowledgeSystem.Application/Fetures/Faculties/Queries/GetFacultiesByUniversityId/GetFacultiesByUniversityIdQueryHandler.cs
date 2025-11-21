@@ -1,51 +1,45 @@
 ﻿using JadaraITKnowledgeSystem.Application.Common.Models;
 using JadaraITKnowledgeSystem.Application.Fetures.Faculties.Dtos;
 using JadaraITKnowledgeSystem.Application.Fetures.Faculties.Mappers;
-using JadaraITKnowledgeSystem.Application.Fetures.Universities.Dtos;
-using JadaraITKnowledgeSystem.Application.Fetures.Universities.Queries.GetUniversities;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace JadaraITKnowledgeSystem.Application.Fetures.Faculties.Queries.GetFacultiesByUniversityId
+namespace JadaraITKnowledgeSystem.Application.Fetures.Faculties.Queries.GetFacultiesByUniversityId;
+
+public sealed class GetFacultiesByUniversityIdQueryHandler
+    (IApplicationDbContext context, ILogger<GetFacultiesByUniversityIdQueryHandler> logger)
+    : IRequestHandler<GetFacultiesByUniversityIdQuery, Result<PaginatedList<FacultyDto>>>
 {
-    public sealed class GetFacultiesByUniversityIdQueryHandler
-        (IApplicationDbContext context, ILogger<GetFacultiesByUniversityIdQueryHandler> logger)
-        : IRequestHandler<GetFacultiesByUniversityIdQuery, Result<PaginatedList<FacultyDto>>>
+    private readonly IApplicationDbContext _context = context;
+    private readonly ILogger<GetFacultiesByUniversityIdQueryHandler> _logger = logger;
+
+    public async Task<Result<PaginatedList<FacultyDto>>> 
+        Handle(GetFacultiesByUniversityIdQuery request, CancellationToken cancellationToken)
     {
-        private readonly IApplicationDbContext _context = context;
-        private readonly ILogger<GetFacultiesByUniversityIdQueryHandler> _logger = logger;
+        _logger.LogInformation(
+           "Handling GetFacultiesByUniversityIdQuery: Page {Page}, PageSize {PageSize}",
+           request.PageNumber, request.PageSize);
 
-        public async Task<Result<PaginatedList<FacultyDto>>> 
-            Handle(GetFacultiesByUniversityIdQuery request, CancellationToken cancellationToken)
-        {
-            _logger.LogInformation(
-               "Handling GetFacultiesByUniversityIdQuery: Page {Page}, PageSize {PageSize}",
-               request.PageNumber, request.PageSize);
+        // Project the query to FacultyDto before pagination
+        var query = _context.Faculties
+            .AsNoTracking()
+            .OrderBy(u => u.Name)
+            .Select(u => u.ToDto());
 
-            // Project the query to FacultyDto before pagination
-            var query = _context.Faculties
-                .AsNoTracking()
-                .OrderBy(u => u.Name)
-                .Select(u => u.ToDto());
+        // Use the factory method to create the paginated list
+        var paginatedList = await PaginatedList<FacultyDto>.CreateAsync(
+            query,
+            request.PageNumber,
+            request.PageSize,
+            cancellationToken);
 
-            // Use the factory method to create the paginated list
-            var paginatedList = await PaginatedList<FacultyDto>.CreateAsync(
-                query,
-                request.PageNumber,
-                request.PageSize,
-                cancellationToken);
+        _logger.LogInformation(
+            "Retrieved {Count} Faculties for Page {Page}",
+            paginatedList.Items.Count, request.PageNumber);
 
-            _logger.LogInformation(
-                "Retrieved {Count} Faculties for Page {Page}",
-                paginatedList.Items.Count, request.PageNumber);
-
-            return paginatedList;
-        }
+        return paginatedList;
     }
 }

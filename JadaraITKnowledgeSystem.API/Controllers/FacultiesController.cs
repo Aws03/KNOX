@@ -1,70 +1,67 @@
 ﻿using JadaraITKnowledgeSystem.Application.Fetures.Faculties.Commands.CreateFaculty;
 using JadaraITKnowledgeSystem.Application.Fetures.Faculties.Queries.GetFacultiesByUniversityId;
 using JadaraITKnowledgeSystem.Application.Fetures.Faculties.Queries.GetFacultyById;
-using JadaraITKnowledgeSystem.Application.Fetures.Universities.Commands.CreateUniversity;
-using JadaraITKnowledgeSystem.Application.Fetures.Universities.Queries.GetUniversities;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
-namespace JadaraITKnowledgeSystem.API.Controllers
+namespace JadaraITKnowledgeSystem.API.Controllers;
+
+[Route("api/faculties")]
+[ApiController]
+[Produces("application/json")]
+public class FacultiesController(IMediator mediator) : ControllerBase
 {
-    [Route("api/faculties")]
-    [ApiController]
-    [Produces("application/json")]
-    public class FacultiesController(IMediator mediator) : ControllerBase
+    private readonly IMediator _mediator = mediator;
+
+    [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create(
+        CreateFacultyCommand command,
+        CancellationToken cancellationToken)
     {
-        private readonly IMediator _mediator = mediator;
+        var result = await _mediator.Send(command, cancellationToken);
 
-        [HttpPost]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> Create(
-            CreateFacultyCommand command,
-            CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(command, cancellationToken);
-
-            return result.Match<IActionResult>(
-                onValue: id => CreatedAtAction(nameof(GetById), new { id }, new { id }),
-                onError: errors => BadRequest(new { errors })
-            );
-        }
-
-        [HttpGet("{id}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetById(
-            int id,
-            CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(
-                new GetFacultyByIdQuery(id),
-                cancellationToken);
-
-            return result.Match<IActionResult>(
-                onValue: faculty => Ok(faculty),
-                onError: errors => NotFound(new { errors })
-            );
-        }
-
-        [HttpGet("by-university/{universityId}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> GetByUniversityId(
-            int universityId,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10,
-            CancellationToken cancellationToken = default)
-        {
-            var result = await _mediator.Send(
-                new GetFacultiesByUniversityIdQuery(universityId, pageNumber, pageSize),
-                cancellationToken);
-
-            return result.Match<IActionResult>(
-                onValue: faculties => Ok(faculties),
-                onError: errors => BadRequest(new { errors })
-            );
-        }
-
+        return result.Match<IActionResult>(
+            onValue: id => CreatedAtAction(nameof(GetById), new { id }, new { id }),
+            onError: errors => BadRequest(new { errors })
+        );
     }
+
+    [HttpGet("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new GetFacultyByIdQuery(id),
+            cancellationToken);
+
+        return result.Match<IActionResult>(
+            onValue: faculty => Ok(faculty),
+            onError: errors => NotFound(new { errors })
+        );
+    }
+
+    [HttpGet("by-university/{universityId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetByUniversityId(
+        int universityId,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new GetFacultiesByUniversityIdQuery(universityId, pageNumber, pageSize),
+            cancellationToken);
+
+        return result.Match<IActionResult>(
+            onValue: faculties => Ok(faculties),
+            onError: errors => BadRequest(new { errors })
+        );
+    }
+
 }

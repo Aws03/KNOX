@@ -6,39 +6,38 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace JadaraITKnowledgeSystem.Application.Fetures.Universities.Queries.GetUniversityById
+namespace JadaraITKnowledgeSystem.Application.Fetures.Universities.Queries.GetUniversityById;
+
+public sealed class GetUniversityByIdQueryHandler
+    (IApplicationDbContext context, ILogger<GetUniversityByIdQueryHandler> logger)
+    : IRequestHandler<GetUniversityByIdQuery, Result<UniversityDto>>
 {
-    public sealed class GetUniversityByIdQueryHandler
-        (IApplicationDbContext context, ILogger<GetUniversityByIdQueryHandler> logger)
-        : IRequestHandler<GetUniversityByIdQuery, Result<UniversityDto>>
+    private readonly ILogger<GetUniversityByIdQueryHandler> _logger = logger;
+    private readonly IApplicationDbContext _context = context;
+
+    public async Task<Result<UniversityDto>> Handle(
+        GetUniversityByIdQuery request,
+        CancellationToken cancellationToken)
     {
-        private readonly ILogger<GetUniversityByIdQueryHandler> _logger = logger;
-        private readonly IApplicationDbContext _context = context;
+        _logger.LogInformation("Handling GetUniversityByIdQuery for UniversityId: {UniversityId}", request.UniversityId);
 
-        public async Task<Result<UniversityDto>> Handle(
-            GetUniversityByIdQuery request,
-            CancellationToken cancellationToken)
+        var university = await _context.Universities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == request.UniversityId, cancellationToken);
+
+        if (university == null)
         {
-            _logger.LogInformation("Handling GetUniversityByIdQuery for UniversityId: {UniversityId}", request.UniversityId);
-
-            var university = await _context.Universities
-                .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == request.UniversityId, cancellationToken);
-
-            if (university == null)
-            {
-                // TODO : use application error insted of domain error later ...
-                _logger.LogWarning("University with ID {UniversityId} not found.", request.UniversityId);
-                return Error.NotFound(
-                    "University.NotFound",
-                    $"University with ID {request.UniversityId} was not found.");
-            }
-
-            var dto = university.ToDto();
-
-            _logger.LogInformation("University with ID {UniversityId} retrieved successfully.", request.UniversityId);
-
-            return dto;
+            // TODO : use application error insted of domain error later ...
+            _logger.LogWarning("University with ID {UniversityId} not found.", request.UniversityId);
+            return Error.NotFound(
+                "University.NotFound",
+                $"University with ID {request.UniversityId} was not found.");
         }
+
+        var dto = university.ToDto();
+
+        _logger.LogInformation("University with ID {UniversityId} retrieved successfully.", request.UniversityId);
+
+        return dto;
     }
 }

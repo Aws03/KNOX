@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿
 
-namespace JadaraITKnowledgeSystem.Application.Fetures.Files.Dtos
-{
-    public sealed record UploadedFileDto(
-        string FileName,
-        string Url,
-        string? Path
-    );
-}
+namespace JadaraITKnowledgeSystem.Application.Fetures.Files.Dtos;
+
+public sealed record UploadedFileDto(
+    string FileName,
+    string Url,
+    string? Path
+);

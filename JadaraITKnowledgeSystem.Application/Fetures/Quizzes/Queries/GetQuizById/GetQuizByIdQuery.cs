@@ -2,9 +2,7 @@
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
 
-namespace JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Queries.GetQuizById
-{
-    public sealed record GetQuizByIdQuery(int QuizId)
-    : IRequest<Result<QuizDto>>;
+namespace JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Queries.GetQuizById;
 
-}
+public sealed record GetQuizByIdQuery(int QuizId)
+: IRequest<Result<QuizDto>>;

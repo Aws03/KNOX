@@ -1,56 +1,50 @@
 ﻿using JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Dtos;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Mappers
+namespace JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Mappers;
+
+public static class QuestionMapper
 {
-    public static class QuestionMapper
+    public static QuestionDto ToDto(this Question question)
     {
-        public static QuestionDto ToDto(this Question question)
-        {
-            ArgumentNullException.ThrowIfNull(question);
+        ArgumentNullException.ThrowIfNull(question);
 
-            return new QuestionDto
-            {
-                Id = question.Id,
-                QuizId = question.QuizId,
-                Type = question.Type,
-                Text = question.Text,
-                Choices = question.Choices.ToDtos() ?? new List<ChoiceDto>()
-            };
+        return new QuestionDto
+        {
+            Id = question.Id,
+            QuizId = question.QuizId,
+            Type = question.Type,
+            Text = question.Text,
+            Choices = question.Choices.ToDtos() ?? new List<ChoiceDto>()
+        };
+    }
+
+    public static List<QuestionDto> ToDtos(this IEnumerable<Question> questions)
+    {
+        return [.. questions.Select(q => q.ToDto())];
+    }
+
+    public static Question ToEntity(this QuestionDto questionDto)
+    {
+        ArgumentNullException.ThrowIfNull(questionDto);
+
+        var question = Question.Create(
+            questionDto.QuizId,
+            (Domain.Quizzes.Enums.QuestionType)questionDto.Type,
+            questionDto.Text
+        ).Value;
+
+        foreach (var choiceDto in questionDto.Choices)
+        {
+            var choice = choiceDto.ToEntity();
+            question.AddChoice(choice);
         }
 
-        public static List<QuestionDto> ToDtos(this IEnumerable<Question> questions)
-        {
-            return [.. questions.Select(q => q.ToDto())];
-        }
+        return question;
+    }
 
-        public static Question ToEntity(this QuestionDto questionDto)
-        {
-            ArgumentNullException.ThrowIfNull(questionDto);
-
-            var question = Question.Create(
-                questionDto.QuizId,
-                (Domain.Quizzes.Enums.QuestionType)questionDto.Type,
-                questionDto.Text
-            ).Value;
-
-            foreach (var choiceDto in questionDto.Choices)
-            {
-                var choice = choiceDto.ToEntity();
-                question.AddChoice(choice);
-            }
-
-            return question;
-        }
-
-        public static List<Question> ToEntities(this IEnumerable<QuestionDto> questionDtos)
-        {
-            return [.. questionDtos.Select(q => q.ToEntity())];
-        }
+    public static List<Question> ToEntities(this IEnumerable<QuestionDto> questionDtos)
+    {
+        return [.. questionDtos.Select(q => q.ToEntity())];
     }
 }

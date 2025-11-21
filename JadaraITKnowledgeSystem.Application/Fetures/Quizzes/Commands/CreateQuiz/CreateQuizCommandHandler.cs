@@ -8,6 +8,8 @@ using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
+namespace JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Commands.CreateQuiz;
+
 public sealed class CreateQuizCommandHandler
     (IApplicationDbContext context,IFileManager fileManger,ILogger<CreateQuizCommandHandler> logger)
     : IRequestHandler<CreateQuizCommand, Result<QuizDto>>

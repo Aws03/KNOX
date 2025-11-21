@@ -3,14 +3,13 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace JadaraITKnowledgeSystem.Application.Fetures.Faculties.Queries.GetFacultyById
+namespace JadaraITKnowledgeSystem.Application.Fetures.Faculties.Queries.GetFacultyById;
+
+public sealed class GetQeuryByIdQueryValidator : AbstractValidator<GetFacultyByIdQuery>
 {
-    public sealed class GetQeuryByIdQueryValidator : AbstractValidator<GetFacultyByIdQuery>
+    public GetQeuryByIdQueryValidator()
     {
-        public GetQeuryByIdQueryValidator()
-        {
-            RuleFor(x => x.facultyId)
-                .GreaterThan(0).WithMessage("Faculty Id must be greater than zero.");
-        }
+        RuleFor(x => x.facultyId)
+            .GreaterThan(0).WithMessage("Faculty Id must be greater than zero.");
     }
 }

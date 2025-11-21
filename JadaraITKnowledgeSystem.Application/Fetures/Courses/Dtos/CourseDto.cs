@@ -1,22 +1,15 @@
 ﻿using JadaraITKnowledgeSystem.Application.DTOs;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace JadaraITKnowledgeSystem.Application.Fetures.Courses.Dtos
+namespace JadaraITKnowledgeSystem.Application.Fetures.Courses.Dtos;
+
+public sealed record CourseDto
 {
-    public sealed record CourseDto
-    {
-        public int Id { get; init; }
-        public string CourseName { get; init; } = String.Empty;
-        public string? Description { get; init; }
-        public string? CourseCode { get; init; }
-        public int? Credits { get; init; }
+    public int Id { get; init; }
+    public string CourseName { get; init; } = String.Empty;
+    public string? Description { get; init; }
+    public string? CourseCode { get; init; }
+    public int? Credits { get; init; }
 
-        public List<CourseRequirementMappingDto> CourseRequirementMappings { get; init; } = new();
+    public List<CourseRequirementMappingDto> CourseRequirementMappings { get; init; } = new();
 
-    }
 }

@@ -1,4 +1,5 @@
 ﻿using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CreateCourse;
+using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CreateCourseMaterial;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Queries.GetCourseById;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Queries.GetCoursesByMajorId;
 using MediatR;
@@ -61,6 +62,21 @@ public class CoursesController(IMediator mediator) : ControllerBase
 
         return result.Match<IActionResult>(
             onValue: courses => Ok(courses),
+            onError: errors => BadRequest(new { errors })
+        );
+    }
+
+    [HttpPost("{courseId}/materials")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateMaterial(
+        CreateCourseMaterialCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
+
+        return result.Match<IActionResult>(
+            onValue: id => Ok(), //TODO : later created at action
             onError: errors => BadRequest(new { errors })
         );
     }

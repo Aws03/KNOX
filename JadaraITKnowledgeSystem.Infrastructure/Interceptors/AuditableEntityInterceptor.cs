@@ -42,15 +42,16 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Interceptors
 
             foreach (var entry in entries)
             {
-                var userId = /* _currentUserService.UserId.ToString() ?? */ "System";
+                //TODO : later /* _currentUserService.UserId.ToString() ?? */ is the user id
+                var user =  "System";
 
                 if (entry.State == EntityState.Added)
                 {
-                    entry.Entity.SetCreated(userId);
+                    entry.Entity.SetCreated(user);
                 }
                 else if (entry.State == EntityState.Modified)
                 {
-                    entry.Entity.SetUpdated(userId);
+                    entry.Entity.SetUpdated(user);
                 }
             }
         }

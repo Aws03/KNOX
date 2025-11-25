@@ -8,5 +8,6 @@ public sealed record CreateCourseMaterialCommand(
 string Title,
 string ContemtUrl,
 int CourseId,
+int? FolderId,
 string? Description
 ) : IRequest<Result<CourseMaterialDto>>;

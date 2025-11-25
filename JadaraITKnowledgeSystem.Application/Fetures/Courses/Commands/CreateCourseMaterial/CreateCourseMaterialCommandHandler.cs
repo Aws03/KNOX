@@ -28,6 +28,7 @@ IApplicationDbContext context,ILogger<CreateCourseMaterialCommandHandler> logger
             request.Title,
             request.ContemtUrl,
             request.CourseId,
+            request.FolderId,
             request.Description);
 
         if (entityResult.IsError)

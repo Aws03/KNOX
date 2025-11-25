@@ -29,6 +29,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Context
         public virtual DbSet<University> Universities { get; set; }
         // mapping table (material - course)
         public virtual DbSet<CourseMaterial> CourseMaterials { get; set; }
+        public virtual DbSet<Folder> Folders { get; set; }
 
         public AppDbContext()
         {

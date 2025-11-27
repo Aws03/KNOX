@@ -743,7 +743,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
 
                             b1.HasKey("UserId");
 
-                            b1.ToTable("Users");
+                            b1.ToTable("Users", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("UserId");
@@ -762,7 +762,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
 
                             b1.HasKey("UserId");
 
-                            b1.ToTable("Users");
+                            b1.ToTable("Users", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("UserId");

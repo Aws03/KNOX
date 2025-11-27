@@ -5,6 +5,7 @@ public sealed record QuizDto
     public int Id { get; init; }
     public int CourseId { get; init; }
     public int WriterId { get; init; }
+    public string? WriterName { get; init; } = "Unknown";
     public string Title { get; init; } = String.Empty;
     public string? Description { get; init; }
     public int Likes { get; init; }

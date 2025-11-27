@@ -28,12 +28,27 @@ public sealed class GetQuizzesByCourseIdQueryHandler
     {
         _logger.LogInformation("Getting quizzes for Course {CourseId}", request.CourseId);
 
+        var userId = request.UserId; // capture for EF translation
+
         var query = _context.Quizzes
             .AsNoTracking()
             .Where(q => q.CourseId == request.CourseId)
-            .Include(q => q.Writer) // to get WriterName
             .OrderByDescending(q => q.CreatedAt)
-            .Select(q => q.ToSummaryDto());
+            .Select(q => new QuizSummaryDto //TODO : Use local mapper later (edit to toSummaryDto())
+            {
+                Id = q.Id,
+                Title = q.Title,
+                Likes = q.Likes,
+                WriterName = q.Writer.Name.Value,
+                CreatedAt = q.CreatedAt,
+                LastAttemptScore = userId == null
+                    ? (decimal?)null
+                    : q.Attempts
+                        .Where(a => a.UserId == userId)
+                        .OrderByDescending(a => a.AttemptDate)
+                        .Select(a => (decimal?)a.Score)
+                        .FirstOrDefault()
+            });
 
         var paginated = await PaginatedList<QuizSummaryDto>.CreateAsync(
             query,

@@ -14,6 +14,7 @@ public static class QuizMapper
             Id = quiz.Id,
             CourseId = quiz.CourseId,
             WriterId = quiz.WriterId,
+            WriterName = quiz.Writer?.Name.Value ?? "Unknown",
             Title = quiz.Title,
             Description = quiz.Description,
             Likes = quiz.Likes,
@@ -38,7 +39,8 @@ public static class QuizMapper
             Title = quiz.Title,
             Likes = quiz.Likes,
             WriterName = quiz.Writer?.Name.Value ?? "Unknown",
-            CreatedAt = quiz.CreatedAt
+            CreatedAt = quiz.CreatedAt,
+            LastAttemptScore = null // mapper version doesn't include user context
         };
     }
 

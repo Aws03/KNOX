@@ -26,6 +26,8 @@ public interface IApplicationDbContext
     public DbSet<University> Universities { get; set; }
     // mapping table (material - course)
     public DbSet<CourseMaterial> CourseMaterials { get; set; }
+    // hierarchical folders
+    public DbSet<Folder> Folders { get; set; }
 
     DatabaseFacade Database { get; } // For transactions
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

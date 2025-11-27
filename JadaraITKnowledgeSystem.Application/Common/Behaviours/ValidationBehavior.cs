@@ -4,8 +4,9 @@ using MediatR;
 
 namespace JadaraITKnowledgeSystem.Application.Common.Behaviours;
 
-public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
-    where TRequest : IRequest<TResponse>
+// TResponse is now always Result<TValue> via IRequest<Result<TValue>>
+public class ValidationBehavior<TRequest, TValue> : IPipelineBehavior<TRequest, Result<TValue>>
+    where TRequest : IRequest<Result<TValue>>
 {
     private readonly IEnumerable<IValidator<TRequest>> _validators;
 
@@ -14,9 +15,9 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
         _validators = validators;
     }
 
-    public async Task<TResponse> Handle(
+    public async Task<Result<TValue>> Handle(
         TRequest request,
-        RequestHandlerDelegate<TResponse> next,
+        RequestHandlerDelegate<Result<TValue>> next,
         CancellationToken cancellationToken)
     {
         if (!_validators.Any())
@@ -31,7 +32,7 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
 
         var failures = validationResults
             .SelectMany(r => r.Errors)
-            .Where(f => f != null)
+            .Where(f => f is not null)
             .ToList();
 
         if (failures.Any())
@@ -40,7 +41,8 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
                 .Select(f => Error.Validation(f.PropertyName, f.ErrorMessage))
                 .ToList();
 
-            return (TResponse)(object)errors;
+            // Implicit conversion List<Error> -> Result<TValue>
+            return errors;
         }
 
         return await next();

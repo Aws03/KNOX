@@ -28,11 +28,27 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
                     .HasMaxLength(254);
             });
 
-            builder.Property(u => u.PermissionLevel)
+            builder.Property(u => u.MajorId)
                 .IsRequired();
 
-            builder.Property(u => u.DateJoined)
+            builder.Property(u => u.IsActive)
+                .HasDefaultValue(true)
                 .IsRequired();
+
+            builder.Property(u => u.ProfilePictureUrl)
+                .HasDefaultValue(null);
+                
+
+            builder.HasOne(u => u.Major)
+                .WithMany()
+                .HasForeignKey(u => u.MajorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Property(u => u.IsVerfied)
+                .IsRequired();
+
+            builder.Property(u => u.VerficationDate)
+                .IsRequired(false);
 
             // Auditable fields inherited (if used separately)
             builder.Property(c => c.CreatedAt)

@@ -139,7 +139,7 @@ public class CoursesController(IMediator mediator) : ControllerBase
             onError: errors =>
             {
                 var top = errors.FirstOrDefault();
-                if (top != null && top.Code == "Course.NotFound")
+                if (top.Code == "Course.NotFound")
                     return NotFound(new { errors });
                 return BadRequest(new { errors });
             });

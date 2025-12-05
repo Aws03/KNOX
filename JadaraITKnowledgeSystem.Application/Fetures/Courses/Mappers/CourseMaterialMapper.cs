@@ -16,6 +16,7 @@ public static class CourseMaterialMapper
             Title = courseMaterial.Title,
             Description = courseMaterial.Description,
             CourseId = courseMaterial.CourseId,
+            FolderId = courseMaterial.FolderId,
         };
     }
 
@@ -28,7 +29,7 @@ public static class CourseMaterialMapper
     {
         ArgumentNullException.ThrowIfNull(courseMaterialDto);
 
-        return CourseMaterial.Create(courseMaterialDto.Title, courseMaterialDto.ContentUrl, courseMaterialDto.CourseId, courseMaterialDto.Description).Value;
+        return CourseMaterial.Create(courseMaterialDto.Title, courseMaterialDto.ContentUrl, courseMaterialDto.CourseId,courseMaterialDto.FolderId, courseMaterialDto.Description).Value;
     }
 
     public static List<CourseMaterial> ToEntities(this IEnumerable<CourseMaterialDto> courseMaterialDtos)

@@ -23,8 +23,6 @@
     <Folder Include="Fetures\Files\Mappers\" />
     <Folder Include="Fetures\Files\Queries\" />
     <Folder Include="Fetures\Majors\Queries\GetMajors\" />
-    <Folder Include="Fetures\Users\Commands\" />
-    <Folder Include="Fetures\Users\Queries\" />
   </ItemGroup>
 
 </Project>

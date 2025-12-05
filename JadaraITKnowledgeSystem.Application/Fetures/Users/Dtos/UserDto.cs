@@ -7,6 +7,7 @@ public sealed record UserDto
 {
     public int Id { get; init; }
     public required FullName Name { get; init; } 
-    public required Email Email { get; init; } 
-    public PermissionLevel PermissionLevel { get; init; }
-}
+    public required Email Email { get; init; }
+    public string? ProfilePictureUrl { get; init; }
+    public int MajorId { get; init; }
+    }

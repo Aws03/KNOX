@@ -54,11 +54,16 @@ public class QuizzesController(IMediator mediator) : ControllerBase
         int courseId,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
+        [FromQuery] int? userId = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(
-            new GetQuizzesByCourseIdQuery(courseId, pageNumber, pageSize),
-            cancellationToken);
+        var query = new GetQuizzesByCourseIdQuery(
+            CourseId: courseId,
+            UserId: userId,
+            PageNumber: pageNumber,
+            PageSize: pageSize);
+
+        var result = await _mediator.Send(query, cancellationToken);
 
         return result.Match<IActionResult>(
             onValue: quizzes => Ok(quizzes),

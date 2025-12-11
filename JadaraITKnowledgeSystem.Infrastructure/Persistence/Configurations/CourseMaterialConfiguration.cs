@@ -1,5 +1,10 @@
-﻿using JadaraITKnowledgeSystem.Domain.Courses.Entites;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using JadaraITKnowledgeSystem.Domain.Courses.Entites;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
@@ -22,6 +27,23 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
             builder.Property(m => m.Description)
                    .HasMaxLength(500)
                    .IsRequired(false);
+
+            var tagsComparer = new ValueComparer<List<string>>(
+                (c1, c2) => c1.SequenceEqual(c2, StringComparer.OrdinalIgnoreCase),
+                c => c.Aggregate(0, (a, v) => HashCode.Combine(a, StringComparer.OrdinalIgnoreCase.GetHashCode(v))),
+                c => c.ToList());
+
+            builder.Property<List<string>>("_tags")
+                   .HasField("_tags")
+                   .UsePropertyAccessMode(PropertyAccessMode.Field)
+                   .HasColumnName("Tags")
+                   .HasColumnType("nvarchar(max)")
+                   .HasConversion(
+                       v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                       v => string.IsNullOrWhiteSpace(v)
+                            ? new List<string>()
+                            : JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default) ?? new List<string>())
+                   .Metadata.SetValueComparer(tagsComparer);
 
             // Auditable fields
             builder.Property(m => m.CreatedAt)

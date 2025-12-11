@@ -1,12 +1,15 @@
-﻿namespace JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Dtos;
+﻿using System;
+using System.Collections.Generic;
+
+namespace JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Dtos;
 
 public sealed record QuizSummaryDto
 {
     public int Id { get; init; }
-    public string Title { get; init; } = String.Empty;
+    public string Title { get; init; } = string.Empty;
     public int Likes { get; init; }
-    public string WriterName { get; init; } = String.Empty;
+    public string WriterName { get; init; } = string.Empty;
     public DateTime CreatedAt { get; init; }
-    // Nullable last attempt score for a specific user if requested
     public decimal? LastAttemptScore { get; init; }
+    public List<string> Tags { get; init; } = new();
 }

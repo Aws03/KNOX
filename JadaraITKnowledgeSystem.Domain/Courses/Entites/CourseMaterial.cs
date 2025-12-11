@@ -1,8 +1,10 @@
 ﻿using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 
 namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
 {
@@ -28,6 +30,9 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
         [MaxLength(500)]
         public string? Description { get; private set; }
 
+        private readonly List<string> _tags = new();
+        public IReadOnlyCollection<string> Tags => _tags.AsReadOnly();
+
         private CourseMaterial() { }
 
         private CourseMaterial(string title, string contentUrl, int courseId, int? folderId = null, string? description = null)
@@ -39,7 +44,7 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
             SetDescription(description);
         }
 
-        public static Result<CourseMaterial> Create(string title, string contentUrl, int courseId, int? folderId = null, string? description = null)
+        public static Result<CourseMaterial> Create(string title, string contentUrl, int courseId, int? folderId = null, string? description = null, IEnumerable<string>? tags = null)
         {
             // Validate title
             if (string.IsNullOrWhiteSpace(title))
@@ -63,7 +68,12 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
             if (folderId.HasValue && folderId.Value <= 0)
                 return Error.Validation("CourseMaterial.FolderId.Invalid", "FolderId must be a positive integer.");
 
-            return new CourseMaterial(title, contentUrl, courseId, folderId, description);
+            var material = new CourseMaterial(title, contentUrl, courseId, folderId, description);
+            var tagResult = material.UpdateTags(tags);
+            if (tagResult.IsError)
+                return tagResult.Errors;
+
+            return material;
         }
 
         public void SetTitle(string title)
@@ -124,6 +134,35 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
         public Result<Success> MoveToRoot()
         {
             SetFolderId(null);
+            return Result.Success;
+        }
+
+        public Result<Success> UpdateTags(IEnumerable<string>? tags)
+        {
+            _tags.Clear();
+            if (tags is null)
+                return Result.Success;
+
+            var normalized = new List<string>();
+            foreach (var tag in tags)
+            {
+                if (string.IsNullOrWhiteSpace(tag))
+                    return Error.Validation("CourseMaterial.Tag.Invalid", "Tag cannot be empty.");
+
+                var trimmed = tag.Trim();
+                if (trimmed.Length > 50)
+                    return Error.Validation("CourseMaterial.Tag.TooLong", "Tag cannot exceed 50 characters.");
+
+                if (normalized.Any(t => string.Equals(t, trimmed, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+
+                if (normalized.Count >= 10)
+                    return Error.Validation("CourseMaterial.Tag.Limit", "A course material can have at most 10 tags.");
+
+                normalized.Add(trimmed);
+            }
+
+            _tags.AddRange(normalized);
             return Result.Success;
         }
 

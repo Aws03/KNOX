@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Application.DTOs;
+﻿using JadaraITKnowledgeSystem.Application.Fetures.Courses.Dtos;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Mappers;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
@@ -58,7 +58,8 @@ public sealed class CreateCourseMaterialCommandHandler(
             request.ContemtUrl,
             request.CourseId,
             request.FolderId,
-            request.Description);
+            request.Description,
+            request.Tags);
 
         if (materialResult.IsError)
         {

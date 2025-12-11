@@ -1,4 +1,5 @@
-﻿using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CreateCourse;
+﻿using System.Collections.Generic;
+using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CreateCourse;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CreateCourseMaterial;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CreateFolder;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Queries.GetCourseById;
@@ -71,7 +72,7 @@ public class CoursesController(IMediator mediator) : ControllerBase
     }
 
     // ===== Course Materials =====
-    public sealed record CreateMaterialRequest(string Title, string ContemtUrl, int? FolderId, string? Description);
+    public sealed record CreateMaterialRequest(string Title, string ContemtUrl, int? FolderId, string? Description, List<string>? Tags);
 
     [HttpPost("{courseId}/materials")]
     [ProducesResponseType(StatusCodes.Status201Created)]
@@ -86,7 +87,8 @@ public class CoursesController(IMediator mediator) : ControllerBase
             request.ContemtUrl,
             courseId,
             request.FolderId,
-            request.Description);
+            request.Description,
+            request.Tags);
 
         var result = await _mediator.Send(command, cancellationToken);
 

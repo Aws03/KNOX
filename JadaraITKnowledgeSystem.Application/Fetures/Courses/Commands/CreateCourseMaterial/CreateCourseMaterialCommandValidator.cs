@@ -1,4 +1,6 @@
-﻿using FluentValidation;
+﻿using System;
+using FluentValidation;
+using System.Linq;
 
 namespace JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CreateCourseMaterial;
 
@@ -22,5 +24,13 @@ public sealed class CreateCourseMaterialCommandValidator : AbstractValidator<Cre
 
         RuleFor(x => x.Description)
             .MaximumLength(500).WithMessage("Description must not exceed 500 characters.");
+
+        RuleForEach(x => x.Tags)
+            .NotEmpty().WithMessage("Tag cannot be empty.")
+            .MaximumLength(50).WithMessage("Tag cannot exceed 50 characters.");
+
+        RuleFor(x => x.Tags)
+            .Must(tags => tags == null || tags.Count() <= 10)
+            .WithMessage("A maximum of 10 tags is allowed per material.");
     }
 }

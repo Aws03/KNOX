@@ -28,7 +28,8 @@ public sealed class CreateQuizCommandHandler
             courseId: command.CourseId,
             writerId: command.WriterId,
             title: command.Title,
-            description: command.Description
+            description: command.Description,
+            tags: command.Tags
         );
 
         if (!quizResult.IsSuccess)

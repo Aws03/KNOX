@@ -1,4 +1,7 @@
-﻿using JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Dtos;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Dtos;
 using JadaraITKnowledgeSystem.Domain.Quizzes;
 
 namespace JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Mappers;
@@ -19,7 +22,8 @@ public static class QuizMapper
             Description = quiz.Description,
             Likes = quiz.Likes,
             Dislikes = quiz.Dislikes,
-            Questions = quiz.Questions?.ToDtos() ?? new List<QuestionDto>()
+            Questions = quiz.Questions?.ToDtos() ?? new List<QuestionDto>(),
+            Tags = quiz.Tags.ToList()
         };
     }
 
@@ -40,7 +44,8 @@ public static class QuizMapper
             Likes = quiz.Likes,
             WriterName = quiz.Writer?.Name.Value ?? "Unknown",
             CreatedAt = quiz.CreatedAt,
-            LastAttemptScore = null // mapper version doesn't include user context
+            LastAttemptScore = null,
+            Tags = quiz.Tags.ToList()
         };
     }
 
@@ -53,9 +58,9 @@ public static class QuizMapper
     {
         ArgumentNullException.ThrowIfNull(dto);
 
-        var quiz =  Quiz.Create(dto.CourseId,dto.WriterId, dto.Title, dto.Description).Value;
+        var quiz = Quiz.Create(dto.CourseId, dto.WriterId, dto.Title, dto.Description, dto.Tags).Value;
 
-        if(dto.Questions is not null && dto.Questions.Any())
+        if (dto.Questions is not null && dto.Questions.Any())
         {
             foreach (var questionDto in dto.Questions)
             {
@@ -65,7 +70,6 @@ public static class QuizMapper
         }
 
         return quiz;
-
     }
 
     public static List<Quiz> ToEntities(this IEnumerable<QuizDto> dtos)

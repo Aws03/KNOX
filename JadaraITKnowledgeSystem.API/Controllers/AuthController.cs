@@ -10,6 +10,7 @@ using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.ResetPassword;
 using Microsoft.Extensions.Logging;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Application.Fetures.Users.Queries.GetUserVerificationStatus;
+using JadaraITKnowledgeSystem.Application.Common.Models;
 
 namespace JadaraITKnowledgeSystem.API.Controllers;
 
@@ -25,6 +26,8 @@ public class AuthController : ControllerBase
     private readonly ILogger<AuthController> _logger;
     private readonly IOTPService _otpService;
     private readonly IConfiguration _configuration;
+
+    private string GetRequestIpAddress() => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
@@ -106,14 +109,15 @@ public class AuthController : ControllerBase
                     }
 
                     var roles = await _userManager.GetRolesAsync(identityUser);
+                    var highestRole = roles.OrderBy(r => r).LastOrDefault() ?? "User"; // placeholder, will rely on hierarchy later
                     var accessToken = await _tokenService.GenerateJwtTokenAsync(
                         identityUser.Id,
                         identityUser.FullName,
                         identityUser.Email,
-                        roles
+                        new[] { highestRole }
                     );
 
-                    var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                    var ipAddress = GetRequestIpAddress();
                     var refreshTokenResult = await _refreshTokenService.GenerateRefreshTokenAsync(identityUser.Id, ipAddress);
 
                     if (!refreshTokenResult.IsSuccess)
@@ -183,9 +187,10 @@ public class AuthController : ControllerBase
         }
 
         var roles = await _userManager.GetRolesAsync(user);
-        var accessToken = await _tokenService.GenerateJwtTokenAsync(user.Id, user.FullName, user.Email, roles);
+        var highestRole = roles.OrderBy(r => r).LastOrDefault() ?? "User"; // placeholder
+        var accessToken = await _tokenService.GenerateJwtTokenAsync(user.Id, user.FullName, user.Email, new[] { highestRole });
 
-        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var ipAddress = GetRequestIpAddress();
         var refreshTokenResult = await _refreshTokenService.GenerateRefreshTokenAsync(user.Id, ipAddress);
 
         if (!refreshTokenResult.IsSuccess)
@@ -228,11 +233,12 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "User not found" });
         }
 
-        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var ipAddress = GetRequestIpAddress();
         await _refreshTokenService.RevokeTokenAsync(oldToken.Token, ipAddress);
 
         var roles = await _userManager.GetRolesAsync(user);
-        var accessToken = await _tokenService.GenerateJwtTokenAsync(user.Id, user.FullName, user.Email, roles);
+        var highestRole = roles.OrderBy(r => r).LastOrDefault() ?? "User"; // placeholder
+        var accessToken = await _tokenService.GenerateJwtTokenAsync(user.Id, user.FullName, user.Email, new[] { highestRole });
         var newRefreshTokenResult = await _refreshTokenService.GenerateRefreshTokenAsync(user.Id, ipAddress);
 
         if (!newRefreshTokenResult.IsSuccess)
@@ -266,7 +272,7 @@ public class AuthController : ControllerBase
 
         _logger.LogInformation("[Logout] Logout for UserId={UserId}", userId);
 
-        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var ipAddress = GetRequestIpAddress();
 
         if (!string.IsNullOrEmpty(request.RefreshToken))
         {
@@ -297,11 +303,15 @@ public class AuthController : ControllerBase
             return NotFound(new { message = "User not found" });
         }
 
-        var roleExists = await _userManager.GetRolesAsync(user);
-        if (roleExists.Contains(request.Role))
+        // Enforce single role on assignment
+        var currentRoles = await _userManager.GetRolesAsync(user);
+        if (currentRoles.Any())
         {
-            _logger.LogWarning("[AssignRole] User already has role {Role}", request.Role);
-            return BadRequest(new { message = "User already has this role" });
+            var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+            if (!removeResult.Succeeded)
+            {
+                return BadRequest(new { errors = removeResult.Errors.Select(e => e.Description) });
+            }
         }
 
         var result = await _userManager.AddToRoleAsync(user, request.Role);
@@ -370,14 +380,15 @@ public class AuthController : ControllerBase
         }
 
         var roles = await _userManager.GetRolesAsync(identityUser);
+        var highestRole = roles.OrderBy(r => r).LastOrDefault() ?? "User"; // placeholder
         var accessToken = await _tokenService.GenerateJwtTokenAsync(
             identityUser.Id,
             identityUser.FullName,
             identityUser.Email,
-            roles
+            new[] { highestRole }
         );
 
-        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var ipAddress = GetRequestIpAddress();
         var refreshTokenResult = await _refreshTokenService.GenerateRefreshTokenAsync(identityUser.Id, ipAddress);
 
         if (!refreshTokenResult.IsSuccess)
@@ -418,13 +429,4 @@ public class AuthController : ControllerBase
         _logger.LogInformation("[ResetPassword] Password reset successfully for {Email}", request.Email);
         return Ok(new { message = "Password reset successfully" });
     }
-
-    public sealed record RegisterRequest(string Email, string Password, string FullName, int MajorId, string? Role);
-    public sealed record LoginRequest(string Email, string Password);
-    public sealed record RefreshTokenRequest(string RefreshToken);
-    public sealed record LogoutRequest(string? RefreshToken);
-    public sealed record AssignRoleRequest(int UserId, string Role);
-    public sealed record SendOtpRequest(string Email);
-    public sealed record VerifyOtpRequest(string Email, string Otp);
-    public sealed record ResetPasswordRequest(string Email, string Otp, string NewPassword);
 }

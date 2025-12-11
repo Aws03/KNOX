@@ -11,6 +11,7 @@ public static class ChoiceMapper
         {
             Id = choice.Id,
             Text = choice.Text,
+            ImageUrl = choice.ImageUrl,
             IsCorrect = choice.IsCorrect
         };
     }
@@ -23,7 +24,7 @@ public static class ChoiceMapper
     public static Choice ToEntity(this ChoiceDto choiceDto)
     {
         ArgumentNullException.ThrowIfNull(choiceDto);
-        return Choice.Create(choiceDto.QuestionId, choiceDto.Text, choiceDto.IsCorrect).Value;
+        return Choice.Create(choiceDto.QuestionId, choiceDto.Text, choiceDto.IsCorrect, choiceDto.ImageUrl).Value;
         
     }
 

@@ -23,17 +23,12 @@ public sealed class AssignRoleToUserCommandHandler
         if (domainUser is null)
             return Error.NotFound("Users.NotFound", $"User {request.UserId} not found.");
 
-        var identityUser = await _context.RefreshTokens
-            .Where(rt => rt.UserId == domainUser.Id) // ensure identity exists by any related record; fallback to identity service requires mapping
-            .Select(rt => rt.UserId)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        // We don't have identity Id directly; use IdentityUserService to add role by email
-        var res = await _identityUserService.AddToRoleAsync(identityUserId: domainUser.Id, role: request.RoleName);
+        // Enforce single role: remove all existing, add the requested role
+        var res = await _identityUserService.SetSingleRoleAsync(identityUserId: domainUser.Id, role: request.RoleName);
         if (!res.IsSuccess)
             return res.Errors;
 
-        _logger.LogInformation("Assigned role {Role} to user {UserId}", request.RoleName, request.UserId);
+        _logger.LogInformation("Assigned single role {Role} to user {UserId}", request.RoleName, request.UserId);
         return Result.Success;
     }
 }

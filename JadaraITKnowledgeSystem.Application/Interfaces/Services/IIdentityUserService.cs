@@ -6,6 +6,7 @@ namespace JadaraITKnowledgeSystem.Application.Interfaces.Services
     {
         Task<Result<(int identityUserId, IEnumerable<Error> errors)>> CreateAsync(string email, string fullName, int domainUserId, string? password);
         Task<Result<Success>> AddToRoleAsync(int identityUserId, string role);
+        Task<Result<Success>> SetSingleRoleAsync(int identityUserId, string role);
         Task<Result<Success>> ResetPasswordAsync(string email, string newPassword);
     }
 }

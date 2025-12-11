@@ -38,9 +38,11 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Services.JWT
                 new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString())
             };
 
-            foreach (var role in roles)
+            // Emit only one role claim (highest role provided)
+            var singleRole = roles.FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(singleRole))
             {
-                claims.Add(new Claim(ClaimTypes.Role, role));
+                claims.Add(new Claim(ClaimTypes.Role, singleRole));
             }
 
             var tokenDescriptor = new SecurityTokenDescriptor

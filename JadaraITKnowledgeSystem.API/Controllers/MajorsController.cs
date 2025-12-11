@@ -24,7 +24,7 @@ public class MajorsController(IMediator mediator) : ControllerBase
         var result = await _mediator.Send(command, cancellationToken);
 
         return result.Match<IActionResult>(
-            onValue: id => CreatedAtAction(nameof(GetById), new { id }, new { id }),
+            onValue: major => CreatedAtAction(nameof(GetById), new { id = major.Id }, major),
             onError: errors => BadRequest(new { errors })
         );
     }

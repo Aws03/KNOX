@@ -15,6 +15,7 @@ public static class QuestionMapper
             QuizId = question.QuizId,
             Type = question.Type,
             Text = question.Text,
+            ImageUrl = question.ImageUrl,
             Choices = question.Choices.ToDtos() ?? new List<ChoiceDto>()
         };
     }

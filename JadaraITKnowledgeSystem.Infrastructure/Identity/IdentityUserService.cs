@@ -8,10 +8,12 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Identity
     public class IdentityUserService : IIdentityUserService
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<ApplicationRole> _roleManager;
 
-        public IdentityUserService(UserManager<ApplicationUser> userManager)
+        public IdentityUserService(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager)
         {
             _userManager = userManager;
+            _roleManager = roleManager;
         }
 
         public async Task<Result<(int identityUserId, IEnumerable<Error> errors)>> CreateAsync(string email, string fullName, int domainUserId, string? password)
@@ -45,6 +47,39 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Identity
             if (!result.Succeeded)
             {
                 var errors = result.Errors.Select(e => Error.Validation(e.Code, e.Description)).ToList();
+                return errors;
+            }
+
+            return Result.Success;
+        }
+
+        public async Task<Result<Success>> SetSingleRoleAsync(int identityUserId, string role)
+        {
+            var user = await _userManager.FindByIdAsync(identityUserId.ToString());
+            if (user is null) return Error.NotFound(description: "Identity user not found");
+
+            // Validate role exists
+            var roleExists = await _roleManager.RoleExistsAsync(role);
+            if (!roleExists)
+            {
+                return Error.Validation("Role.Invalid", $"Role '{role}' does not exist.");
+            }
+
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            if (currentRoles.Any())
+            {
+                var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                if (!removeResult.Succeeded)
+                {
+                    var errors = removeResult.Errors.Select(e => Error.Validation(e.Code, e.Description)).ToList();
+                    return errors;
+                }
+            }
+
+            var addResult = await _userManager.AddToRoleAsync(user, role);
+            if (!addResult.Succeeded)
+            {
+                var errors = addResult.Errors.Select(e => Error.Validation(e.Code, e.Description)).ToList();
                 return errors;
             }
 

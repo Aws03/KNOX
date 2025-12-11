@@ -25,7 +25,7 @@ public class QuizzesController(IMediator mediator) : ControllerBase
         var result = await _mediator.Send(command, cancellationToken);
 
         return result.Match<IActionResult>(
-            onValue: id => CreatedAtAction(nameof(GetById), new { id }, new { id }),
+            onValue: quiz => CreatedAtAction(nameof(GetById), new { id = quiz.Id }, quiz),
             onError: errors => BadRequest(new { errors })
         );
     }

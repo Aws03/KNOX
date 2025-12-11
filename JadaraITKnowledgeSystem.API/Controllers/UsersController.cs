@@ -6,7 +6,9 @@ using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.BlockUser;
 using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.ActivateUser;
 using JadaraITKnowledgeSystem.Application.Fetures.Identity.Queries.GetRoles;
 using JadaraITKnowledgeSystem.Application.Fetures.Identity.Commands.AssignRole;
+using JadaraITKnowledgeSystem.Application.Fetures.Users.Queries.GetCurrentUserProfile;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JadaraITKnowledgeSystem.API.Controllers;
@@ -17,6 +19,27 @@ namespace JadaraITKnowledgeSystem.API.Controllers;
 public class UsersController(IMediator mediator) : ControllerBase
 {
     private readonly IMediator _mediator = mediator;
+
+    /// <summary>
+    /// Returns the current authenticated user's full profile.
+    /// </summary>
+    [HttpGet("me")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMe(CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetCurrentUserProfileQuery(), cancellationToken);
+        return result.Match<IActionResult>(
+            onValue: profile => Ok(profile),
+            onError: errors =>
+            {
+                var top = errors.FirstOrDefault();
+                if (top != null && top.Code == "Auth.Unauthorized") return Unauthorized(new { message = top.Description });
+                return BadRequest(new { errors });
+            }
+        );
+    }
 
     /// <summary>
     /// Retrieves a paginated list of users with optional filters.

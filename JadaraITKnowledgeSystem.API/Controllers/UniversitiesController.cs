@@ -23,7 +23,7 @@ public class UniversitiesController(IMediator mediator) : ControllerBase
         var result = await _mediator.Send(command, cancellationToken);
 
         return result.Match<IActionResult>(
-            onValue: id => CreatedAtAction(nameof(GetById), new { id }, new { id }),
+            onValue: university => CreatedAtAction(nameof(GetById), new { id = university.Id }, university),
             onError: errors => BadRequest(new { errors })
         );
     }

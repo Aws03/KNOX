@@ -1,5 +1,6 @@
 ﻿using JadaraITKnowledgeSystem.Domain.Courses;
 using JadaraITKnowledgeSystem.Domain.Courses.Entites;
+using JadaraITKnowledgeSystem.Domain.Courses.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -41,6 +42,13 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
             builder.Property(c => c.UpdatedBy)
                    .HasMaxLength(100)
                    .IsRequired(false);
+
+            // Relationships
+            // One-to-One with CourseInfo
+            builder.HasOne(c => c.CourseInfo)
+                   .WithOne(ci => ci.Course)
+                   .HasForeignKey<CourseInfo>(ci => ci.CourseId)
+                   .OnDelete(DeleteBehavior.Cascade);
 
             // Requirements navigation
             builder.HasMany(c => c.Requirements)

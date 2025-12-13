@@ -2,6 +2,7 @@
 using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Courses;
 using JadaraITKnowledgeSystem.Domain.Courses.Entites;
+using JadaraITKnowledgeSystem.Domain.Courses.Entities;
 using JadaraITKnowledgeSystem.Domain.Identity;
 using JadaraITKnowledgeSystem.Domain.Quizzes;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
@@ -31,6 +32,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Context
         public virtual DbSet<University> Universities { get; set; }
         public virtual DbSet<CourseMaterial> CourseMaterials { get; set; }
         public virtual DbSet<Folder> Folders { get; set; }
+        public virtual DbSet<CourseInfo> CourseInfos { get; set; }
+        public virtual DbSet<CourseResource> CourseResources { get; set; }
         public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
         public virtual DbSet<VerificationOTP> VerificationOTPs { get; set; }
 

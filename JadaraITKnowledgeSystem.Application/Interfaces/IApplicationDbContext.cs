@@ -1,5 +1,6 @@
 ﻿using JadaraITKnowledgeSystem.Domain.Courses;
 using JadaraITKnowledgeSystem.Domain.Courses.Entites;
+using JadaraITKnowledgeSystem.Domain.Courses.Entities;
 using JadaraITKnowledgeSystem.Domain.Identity;
 using JadaraITKnowledgeSystem.Domain.Quizzes;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
@@ -30,6 +31,9 @@ public interface IApplicationDbContext
     public DbSet<CourseMaterial> CourseMaterials { get; set; }
     // hierarchical folders
     public DbSet<Folder> Folders { get; set; }
+    // course detailed information
+    public DbSet<CourseInfo> CourseInfos { get; set; }
+    public DbSet<CourseResource> CourseResources { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<VerificationOTP> VerificationOTPs { get; set; }
 

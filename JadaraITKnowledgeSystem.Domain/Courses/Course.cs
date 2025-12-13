@@ -1,6 +1,8 @@
 ﻿using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Courses.Entites;
+using JadaraITKnowledgeSystem.Domain.Courses.Entities;
+using JadaraITKnowledgeSystem.Domain.Courses.Enums;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -21,14 +23,17 @@ namespace JadaraITKnowledgeSystem.Domain.Courses
 
         public int? Credits { get; private set; }
 
+        // One-to-One relationship with CourseInfo
+        public CourseInfo? CourseInfo { get; private set; }
+
         private readonly List<CourseRequirementMapping> _requirements = new();
         public IReadOnlyCollection<CourseRequirementMapping> Requirements => _requirements.AsReadOnly();
 
-        // New: Folders collection
+        // Folders collection
         private readonly List<Folder> _folders = new();
         public IReadOnlyCollection<Folder> Folders => _folders.AsReadOnly();
 
-        // Materials collection (optional - if you want to track them at course level)
+        // Materials collection
         private readonly List<CourseMaterial> _materials = new();
         public IReadOnlyCollection<CourseMaterial> Materials => _materials.AsReadOnly();
 
@@ -101,6 +106,86 @@ namespace JadaraITKnowledgeSystem.Domain.Courses
             SetCredits(newCredits);
         }
 
+        // ============ CourseInfo Management ============
+
+        public Result<CourseInfo> SetCourseInfo(
+            DifficultyLevel difficultyLevel,
+            string? description = null,
+            string? demonstrationVideoUrl = null,
+            string? demonstrationVideoTitle = null)
+        {
+            // Validate that Course has been persisted
+            if (this.Id <= 0)
+                return Error.Validation("Course.NotPersisted", "Course must be saved before adding course info.");
+
+            // Check if CourseInfo already exists
+            if (CourseInfo != null)
+                return Error.Conflict("CourseInfo.AlreadyExists", "Course already has course info. Use update methods instead.");
+
+            // Create CourseInfo
+            var courseInfoResult = Entities.CourseInfo.Create(
+                this.Id,
+                difficultyLevel,
+                description,
+                demonstrationVideoUrl,
+                demonstrationVideoTitle);
+
+            if (courseInfoResult.IsError)
+                return courseInfoResult.Errors;
+
+            CourseInfo = courseInfoResult.Value;
+            return courseInfoResult.Value;
+        }
+
+        public Result<Success> UpdateCourseInfo(
+            DifficultyLevel? difficultyLevel = null,
+            string? description = null,
+            string? demonstrationVideoUrl = null,
+            string? demonstrationVideoTitle = null)
+        {
+            if (CourseInfo == null)
+                return Error.NotFound("CourseInfo.NotFound", "Course info does not exist. Create it first.");
+
+            // Update difficulty level if provided
+            if (difficultyLevel.HasValue)
+                CourseInfo.UpdateDifficultyLevel(difficultyLevel.Value);
+
+            // Update description if provided
+            if (description != null)
+            {
+                var descResult = CourseInfo.UpdateDescription(description);
+                if (descResult.IsError)
+                    return descResult;
+            }
+
+            // Update demonstration video if provided
+            if (demonstrationVideoUrl != null || demonstrationVideoTitle != null)
+            {
+                var videoResult = CourseInfo.SetDemonstrationVideo(demonstrationVideoUrl, demonstrationVideoTitle);
+                if (videoResult.IsError)
+                    return videoResult;
+            }
+
+            return Result.Success;
+        }
+
+        public Result<Success> RemoveCourseInfo()
+        {
+            if (CourseInfo == null)
+                return Error.NotFound("CourseInfo.NotFound", "Course info does not exist.");
+
+            // Check if there are resources
+            if (CourseInfo.HasResources())
+                return Error.Validation("CourseInfo.HasResources", "Cannot remove course info with existing resources. Remove resources first.");
+
+            CourseInfo = null;
+            return Result.Success;
+        }
+
+        public bool HasCourseInfo() => CourseInfo != null;
+
+        // ============ Major Assignment ============
+
         public Result<CourseRequirementMapping> AssignToMajor(int majorId, Domain.Courses.Enums.RequirementType requirementType, Domain.Courses.Enums.RequirementNature requirementNature)
         {
             if (majorId <= 0)
@@ -118,7 +203,6 @@ namespace JadaraITKnowledgeSystem.Domain.Courses
             return mappingResult;
         }
 
-        // Helper to check if already assigned (used by handlers before Attach)
         public bool IsAssignedToMajor(int majorId) => _requirements.Any(r => r.MajorId == majorId);
 
         // ============ Folder Management Methods ============

@@ -36,6 +36,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Context
         public virtual DbSet<CourseResource> CourseResources { get; set; }
         public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
         public virtual DbSet<VerificationOTP> VerificationOTPs { get; set; }
+        public virtual DbSet<WriterApplication> WriterApplications { get; set; }
 
         private readonly IMediator _mediator;
 

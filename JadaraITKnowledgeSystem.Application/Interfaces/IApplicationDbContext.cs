@@ -36,6 +36,7 @@ public interface IApplicationDbContext
     public DbSet<CourseResource> CourseResources { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<VerificationOTP> VerificationOTPs { get; set; }
+    public DbSet<WriterApplication> WriterApplications { get; set; }
 
     DatabaseFacade Database { get; } // For transactions
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

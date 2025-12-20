@@ -27,7 +27,7 @@ namespace JadaraITKnowledgeSystem.Domain.Users
             ArgumentNullException.ThrowIfNull(name);
             ArgumentNullException.ThrowIfNull(email);
             if (majorId <= 0) throw new ArgumentException("MajorId must be a positive integer.", nameof(majorId));
-
+            
             Name = name;
             Email = email;
             MajorId = majorId;
@@ -62,6 +62,33 @@ namespace JadaraITKnowledgeSystem.Domain.Users
                 IsActive = true;
 
             return Result.Success;
+        }
+
+        public void UpdateName(FullName newName)
+        {
+            ArgumentNullException.ThrowIfNull(newName);
+            Name = newName;
+        }
+
+        public void UpdateMajor(int newMajorId)
+        {
+            if (newMajorId <= 0)
+                throw new ArgumentException("MajorId must be a positive integer.", nameof(newMajorId));
+            
+            MajorId = newMajorId;
+        }
+
+        public void SetProfilePicture(string pictureUrl)
+        {
+            if (string.IsNullOrWhiteSpace(pictureUrl))
+                throw new ArgumentException("Profile picture URL cannot be empty.", nameof(pictureUrl));
+            
+            ProfilePictureUrl = pictureUrl;
+        }
+
+        public void RemoveProfilePicture()
+        {
+            ProfilePictureUrl = null;
         }
     }
 }

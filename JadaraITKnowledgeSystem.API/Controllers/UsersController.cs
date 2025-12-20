@@ -4,6 +4,9 @@ using JadaraITKnowledgeSystem.Application.Fetures.Users.Queries.GetUsers;
 using JadaraITKnowledgeSystem.Application.Fetures.Users.Queries.GetUsersWithDetails;
 using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.BlockUser;
 using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.ActivateUser;
+using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.UpdateUserProfile;
+using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.UpdateProfilePicture;
+using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.DeleteProfilePicture;
 using JadaraITKnowledgeSystem.Application.Fetures.Identity.Queries.GetRoles;
 using JadaraITKnowledgeSystem.Application.Fetures.Identity.Commands.AssignRole;
 using JadaraITKnowledgeSystem.Application.Fetures.Users.Queries.GetCurrentUserProfile;
@@ -37,6 +40,102 @@ public class UsersController(IMediator mediator) : ControllerBase
                 var top = errors.FirstOrDefault();
                 if (top != null && top.Code == "Auth.Unauthorized") return Unauthorized(new { message = top.Description });
                 return BadRequest(new { errors });
+            }
+        );
+    }
+
+    /// <summary>
+    /// Updates the current authenticated user's profile (full name and/or major).
+    /// </summary>
+    [HttpPut("me")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateProfile(
+        [FromBody] UpdateProfileRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new UpdateUserProfileCommand(request.FullName, request.MajorId);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        return result.Match<IActionResult>(
+            onValue: profile => Ok(profile),
+            onError: errors =>
+            {
+                var top = errors.FirstOrDefault();
+                if (top == null) return BadRequest(new { errors });
+                
+                return top.Code switch
+                {
+                    "User.NotAuthenticated" => Unauthorized(new { errors }),
+                    "User.NotFound" or "Major.NotFound" => NotFound(new { errors }),
+                    _ => BadRequest(new { errors })
+                };
+            }
+        );
+    }
+
+    /// <summary>
+    /// Uploads or updates the current user's profile picture.
+    /// </summary>
+    [HttpPost("me/profile-picture")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> UpdateProfilePicture(
+        IFormFile image,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new UpdateProfilePictureCommand(image);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        return result.Match<IActionResult>(
+            onValue: profile => Ok(profile),
+            onError: errors =>
+            {
+                var top = errors.FirstOrDefault();
+                if (top == null) return BadRequest(new { errors });
+                
+                return top.Code switch
+                {
+                    "User.NotAuthenticated" => Unauthorized(new { errors }),
+                    "User.NotFound" => NotFound(new { errors }),
+                    _ => BadRequest(new { errors })
+                };
+            }
+        );
+    }
+
+    /// <summary>
+    /// Deletes the current user's profile picture.
+    /// </summary>
+    [HttpDelete("me/profile-picture")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteProfilePicture(CancellationToken cancellationToken = default)
+    {
+        var command = new DeleteProfilePictureCommand();
+        var result = await _mediator.Send(command, cancellationToken);
+
+        return result.Match<IActionResult>(
+            onValue: _ => NoContent(),
+            onError: errors =>
+            {
+                var top = errors.FirstOrDefault();
+                if (top == null) return BadRequest(new { errors });
+                
+                return top.Code switch
+                {
+                    "User.NotAuthenticated" => Unauthorized(new { errors }),
+                    "User.NotFound" or "ProfilePicture.NotFound" => NotFound(new { errors }),
+                    _ => BadRequest(new { errors })
+                };
             }
         );
     }
@@ -153,4 +252,6 @@ public class UsersController(IMediator mediator) : ControllerBase
             onError: errors => NotFound(new { errors })
         );
     }
+
+    public sealed record UpdateProfileRequest(string? FullName = null, int? MajorId = null);
 }

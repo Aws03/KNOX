@@ -3,7 +3,9 @@ using JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Commands.CreateQuiz;
 using JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Dtos;
 using JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Queries.GetQuizById;
 using JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Queries.GetQuizzes;
+using JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Queries.GetQuizzesByWriterId;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JadaraITKnowledgeSystem.API.Controllers;
@@ -71,6 +73,40 @@ public class QuizzesController(IMediator mediator) : ControllerBase
         );
     }
 
+    /// <summary>
+    /// Get quizzes created by the current writer for a specific course.
+    /// Only accessible to writers, admins, and superadmins.
+    /// </summary>
+    [HttpGet("by-course/{courseId}/my-quizzes")]
+    [Authorize(Roles = "Writer,Admin,SuperAdmin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetByCourseIdAndWriter(
+        int courseId,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetQuizzesByWriterIdQuery(
+            CourseId: courseId,
+            PageNumber: pageNumber,
+            PageSize: pageSize);
+
+        var result = await _mediator.Send(query, cancellationToken);
+
+        return result.Match<IActionResult>(
+            onValue: quizzes => Ok(quizzes),
+            onError: errors =>
+            {
+                var top = errors.FirstOrDefault();
+                return top.Code switch
+                {
+                    "User.NotAuthenticated" => Unauthorized(new { errors }),
+                    _ => BadRequest(new { errors })
+                };
+            });
+    }
 
     [HttpPost("{quizId}/reactions")]
     [ProducesResponseType(StatusCodes.Status200OK)]

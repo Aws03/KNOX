@@ -8,15 +8,14 @@ using System.Threading.Tasks;
 
 namespace JadaraITKnowledgeSystem.Infrastructure.Interceptors
 {
-    // when user service added (enable the interceptor)
     public class AuditableEntityInterceptor : SaveChangesInterceptor
     {
-        //private readonly ICurrentUserService _currentUserService;
+        private readonly ICurrentUserService _currentUserService;
         private readonly TimeProvider _timeProvider;
 
-        public AuditableEntityInterceptor(/* ICurrentUserService currentUserService,*/ TimeProvider timeProvider)
+        public AuditableEntityInterceptor(ICurrentUserService currentUserService, TimeProvider timeProvider)
         {
-            //_currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+            _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
             _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
         }
 
@@ -40,11 +39,12 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Interceptors
 
             var entries = context.ChangeTracker.Entries<AuditableEntity>();
 
+            // Get user email from current user service, fallback to "System" for background jobs/seeds
+            var userEmail = _currentUserService.Email;
+            var user = !string.IsNullOrWhiteSpace(userEmail) ? userEmail : "System";
+
             foreach (var entry in entries)
             {
-                //TODO : later /* _currentUserService.UserId.ToString() ?? */ is the user id
-                var user =  "System";
-
                 if (entry.State == EntityState.Added)
                 {
                     entry.Entity.SetCreated(user);

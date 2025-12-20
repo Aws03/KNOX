@@ -1,5 +1,6 @@
 ﻿using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
+using JadaraITKnowledgeSystem.Infrastructure.Interceptors;
 using JadaraITKnowledgeSystem.Infrastructure.Persistence.Context;
 using JadaraITKnowledgeSystem.Infrastructure.Services.FileManagement;
 using JadaraITKnowledgeSystem.Infrastructure.Services.FileMangment;
@@ -21,7 +22,16 @@ namespace JadaraITKnowledgeSystem.Infrastructure
             var connectionString = configuration.GetConnectionString("DefaultConnection");
             ArgumentNullException.ThrowIfNullOrEmpty(connectionString);
 
-            services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
+            // Register the AuditableEntityInterceptor as scoped
+            services.AddScoped<AuditableEntityInterceptor>();
+
+            // Register DbContext with interceptor
+            services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+            {
+                var interceptor = serviceProvider.GetRequiredService<AuditableEntityInterceptor>();
+                options.UseSqlServer(connectionString)
+                       .AddInterceptors(interceptor);
+            });
 
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());
             services.AddHostedService<TempFileCleanupJob>();

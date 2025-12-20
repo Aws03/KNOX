@@ -168,6 +168,60 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.ToTable("CourseRequirementMappings", (string)null);
                 });
 
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entites.Enrollment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsFinished")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("IsFinished");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "CourseId")
+                        .IsUnique();
+
+                    b.ToTable("Enrollments", (string)null);
+                });
+
             modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entites.Folder", b =>
                 {
                     b.Property<int>("Id")
@@ -1073,6 +1127,25 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.Navigation("Course");
 
                     b.Navigation("Major");
+                });
+
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entites.Enrollment", b =>
+                {
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Courses.Course", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Users.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entites.Folder", b =>

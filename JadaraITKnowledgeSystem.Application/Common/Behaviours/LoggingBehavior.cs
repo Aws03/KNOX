@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using JadaraITKnowledgeSystem.Application.Interfaces;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
@@ -8,15 +9,14 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
     where TRequest : IRequest<TResponse>
 {
     private readonly ILogger<LoggingBehavior<TRequest, TResponse>> _logger;
-    //private readonly ICurrentUserService _currentUser;
+    private readonly ICurrentUserService _currentUser;
 
     public LoggingBehavior(
-        ILogger<LoggingBehavior<TRequest, TResponse>> logger
-        //ICurrentUserService currentUser
-        )
+        ILogger<LoggingBehavior<TRequest, TResponse>> logger,
+        ICurrentUserService currentUser)
     {
         _logger = logger;
-        //_currentUser = currentUser;
+        _currentUser = currentUser;
     }
 
     public async Task<TResponse> Handle(
@@ -25,12 +25,15 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
         CancellationToken cancellationToken)
     {
         var requestName = typeof(TRequest).Name;
-        //var userId = _currentUser.UserId ?? 0;
-        //var userName = _currentUser.UserName ?? "Anonymous";
+        var userId = _currentUser.UserId ?? 0;
+        var userEmail = _currentUser.Email ?? "Anonymous";
+        var userRoles = _currentUser.Roles != null && _currentUser.Roles.Any() 
+            ? string.Join(", ", _currentUser.Roles) 
+            : "None";
 
         _logger.LogInformation(
-            "Handling {RequestName} for User {UserId} ({UserName})",
-            requestName, 0, 0); //TODO : change later when implement user service
+            "Handling {RequestName} for User {UserId} ({UserEmail}) with Roles [{UserRoles}]",
+            requestName, userId, userEmail, userRoles);
 
         var stopwatch = Stopwatch.StartNew();
 
@@ -40,8 +43,8 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
             stopwatch.Stop();
 
             _logger.LogInformation(
-                "Handled {RequestName} in {ElapsedMs}ms",
-                requestName, stopwatch.ElapsedMilliseconds);
+                "Handled {RequestName} successfully in {ElapsedMs}ms for User {UserId}",
+                requestName, stopwatch.ElapsedMilliseconds, userId);
 
             return response;
         }
@@ -50,8 +53,8 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
             stopwatch.Stop();
 
             _logger.LogError(ex,
-                "Error handling {RequestName} after {ElapsedMs}ms",
-                requestName, stopwatch.ElapsedMilliseconds);
+                "Error handling {RequestName} after {ElapsedMs}ms for User {UserId} ({UserEmail}): {ErrorMessage}",
+                requestName, stopwatch.ElapsedMilliseconds, userId, userEmail, ex.Message);
 
             throw;
         }

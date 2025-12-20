@@ -15,7 +15,7 @@ namespace JadaraITKnowledgeSystem.Domain.Users.ValueObjects
             if (string.IsNullOrWhiteSpace(address) || !address.Contains("@"))
                 throw new ArgumentException("Invalid email address");
 
-            Address = address;
+            Address = address.ToUpper();
         }
 
         public override string ToString() => Address;

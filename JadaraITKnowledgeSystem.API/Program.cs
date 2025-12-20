@@ -1,10 +1,12 @@
 using AutoMapper;
 using JadaraITKnowledgeSystem.API.Middlewares;
 using JadaraITKnowledgeSystem.Application;
+using JadaraITKnowledgeSystem.Application.Interfaces.Repositories;
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
 using JadaraITKnowledgeSystem.Infrastructure;
 using JadaraITKnowledgeSystem.Infrastructure.Identity;
 using JadaraITKnowledgeSystem.Infrastructure.Persistence.Context;
+using JadaraITKnowledgeSystem.Infrastructure.Repositories;
 using JadaraITKnowledgeSystem.Infrastructure.Services.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;

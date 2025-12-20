@@ -48,7 +48,8 @@ public class GetCoursesByMajorIdQueryHandler
                 RequirementType: mc.RequirementType,
                 RequirementNature: mc.RequirementNature,
                 NumberOfMaterials: _context.CourseMaterials.Count(m => m.CourseId == mc.CourseId),
-                NumberOfQuizzes: _context.Quizzes.Count(q => q.CourseId == mc.CourseId)
+                NumberOfQuizzes: _context.Quizzes.Count(q => q.CourseId == mc.CourseId),
+                HasCourseInfo: mc.Course.CourseInfo != null
             ));
 
         var paginated = await PaginatedList<CourseSummaryDto>.CreateAsync(

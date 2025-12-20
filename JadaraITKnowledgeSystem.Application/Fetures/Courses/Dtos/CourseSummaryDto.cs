@@ -11,5 +11,6 @@ public sealed record CourseSummaryDto(
     RequirementType RequirementType,
     RequirementNature RequirementNature,
     int NumberOfMaterials,
-    int NumberOfQuizzes
+    int NumberOfQuizzes,
+    bool HasCourseInfo
 );

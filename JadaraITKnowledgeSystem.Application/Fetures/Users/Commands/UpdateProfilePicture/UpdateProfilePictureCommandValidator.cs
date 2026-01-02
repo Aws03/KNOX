@@ -9,18 +9,19 @@ public sealed class UpdateProfilePictureCommandValidator : AbstractValidator<Upd
 
     public UpdateProfilePictureCommandValidator()
     {
-        RuleFor(x => x.Image)
+        RuleFor(x => x.ImageStream)
             .NotNull()
-            .WithMessage("Image file is required.");
+            .WithMessage("Image stream is required.");
 
-        RuleFor(x => x.Image.Length)
+        RuleFor(x => x.ImageStream.Length)
             .LessThanOrEqualTo(MaxFileSize)
-            .When(x => x.Image != null)
+            .When(x => x.ImageStream != null && x.ImageStream.CanSeek)
             .WithMessage($"Image file size must not exceed {MaxFileSize / (1024 * 1024)} MB.");
 
-        RuleFor(x => x.Image.FileName)
+        RuleFor(x => x.FileName)
+            .NotEmpty()
+            .WithMessage("File name is required.")
             .Must(fileName => AllowedExtensions.Any(ext => fileName.EndsWith(ext, StringComparison.OrdinalIgnoreCase)))
-            .When(x => x.Image != null)
             .WithMessage($"Only image files ({string.Join(", ", AllowedExtensions)}) are allowed.");
     }
 }

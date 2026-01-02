@@ -89,7 +89,11 @@ public class UsersController(IMediator mediator) : ControllerBase
         IFormFile image,
         CancellationToken cancellationToken = default)
     {
-        var command = new UpdateProfilePictureCommand(image);
+        if (image == null || image.Length == 0)
+            return BadRequest(new { errors = new[] { new { code = "Image.Required", description = "Image file is required." } } });
+
+        using var stream = image.OpenReadStream();
+        var command = new UpdateProfilePictureCommand(stream, image.FileName);
         var result = await _mediator.Send(command, cancellationToken);
 
         return result.Match<IActionResult>(
@@ -251,6 +255,20 @@ public class UsersController(IMediator mediator) : ControllerBase
             onValue: _ => Ok(new { success = true }),
             onError: errors => NotFound(new { errors })
         );
+    }
+
+    /// <summary>
+    /// Returns statistics for a writer (for dashboard).
+    /// </summary>
+    [HttpGet("{id}/writer-statistics")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetWriterStatistics(int id, CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new Application.Fetures.Users.Queries.GetWriterStatistics.GetWriterStatisticsQuery(id), cancellationToken);
+        if (result == null)
+            return NotFound();
+        return Ok(result);
     }
 
     public sealed record UpdateProfileRequest(string? FullName = null, int? MajorId = null);

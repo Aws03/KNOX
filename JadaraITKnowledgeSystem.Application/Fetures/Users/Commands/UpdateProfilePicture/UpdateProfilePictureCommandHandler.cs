@@ -8,8 +8,8 @@ using Microsoft.Extensions.Logging;
 namespace JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.UpdateProfilePicture;
 
 public sealed class UpdateProfilePictureCommandHandler
-    (IApplicationDbContext context, 
-     ICurrentUserService currentUser, 
+    (IApplicationDbContext context,
+     ICurrentUserService currentUser,
      IFileManager fileManager,
      ILogger<UpdateProfilePictureCommandHandler> logger)
     : IRequestHandler<UpdateProfilePictureCommand, Result<UserProfileDto>>
@@ -43,21 +43,17 @@ public sealed class UpdateProfilePictureCommandHandler
             return Error.NotFound("User.NotFound", "User not found.");
 
         // Get file extension
-        var extension = Path.GetExtension(request.Image.FileName);
+        var extension = Path.GetExtension(request.FileName);
         if (string.IsNullOrWhiteSpace(extension))
             return Error.Validation("Image.InvalidExtension", "File must have a valid extension.");
 
         // Upload new profile picture (UpdateAsync handles deleting old file if exists)
-        string newImageUrl;
-        using (var stream = request.Image.OpenReadStream())
-        {
-            newImageUrl = await _fileManager.UpdateAsync(
-                user.ProfilePictureUrl,
-                stream,
-                extension,
-                $"profile-pictures/{userId}",
-                cancellationToken);
-        }
+        var newImageUrl = await _fileManager.UpdateAsync(
+            user.ProfilePictureUrl,
+            request.ImageStream,
+            extension,
+            $"profile-pictures/{userId}",
+            cancellationToken);
 
         // Update user with new profile picture URL
         user.SetProfilePicture(newImageUrl);

@@ -1,27 +1,30 @@
-﻿using System.Collections.Generic;
+﻿using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.AddCourseResource;
+using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.AssignCourseToMajor;
+using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CompleteCourse;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CreateCourse;
+using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CreateCourseInfo;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CreateCourseMaterial;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CreateFolder;
-using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CreateCourseInfo;
-using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.UpdateCourseInfo;
-using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.AddCourseResource;
-using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.UpdateCourseResource;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.DeleteCourseResource;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.EnrollCourse;
-using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.CompleteCourse;
+using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.UpdateCourseInfo;
+using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.UpdateCourseResource;
+using JadaraITKnowledgeSystem.Application.Fetures.Courses.Models;
 // TODO: Grade functionality is temporarily disabled.
 // using JadaraITKnowledgeSystem.Application.Fetures.Courses.Commands.AddGrade;
+using JadaraITKnowledgeSystem.Application.Fetures.Courses.Queries.GetCourseByCode;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Queries.GetCourseById;
-using JadaraITKnowledgeSystem.Application.Fetures.Courses.Queries.GetCoursesByMajorId;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Queries.GetCourseContentByFolder;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Queries.GetCourseContentsByWriterId;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Queries.GetCourseInfoByCourseId;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Queries.GetCourseInfoByWriterId;
+using JadaraITKnowledgeSystem.Application.Fetures.Courses.Queries.GetCoursesByMajorId;
 using JadaraITKnowledgeSystem.Application.Fetures.Courses.Queries.GetEnrolledCourses;
 using JadaraITKnowledgeSystem.Domain.Courses.Enums; // added for enums
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 
 namespace JadaraITKnowledgeSystem.API.Controllers;
 
@@ -64,6 +67,23 @@ public class CoursesController(IMediator mediator) : ControllerBase
         );
     }
 
+    [HttpGet("by-code/{courseCode}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetByCode(
+        string courseCode,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new GetCourseByCodeQuery(courseCode),
+            cancellationToken);
+
+        return result.Match<IActionResult>(
+            onValue: course => Ok(course),
+            onError: errors => NotFound(new { errors })
+        );
+    }
+
     [HttpGet("by-major/{majorId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -83,6 +103,42 @@ public class CoursesController(IMediator mediator) : ControllerBase
             onValue: summaries => Ok(summaries),
             onError: errors => BadRequest(new { errors })
         );
+    }
+
+
+    /// <summary>
+    /// Assign an existing course to a major with requirement type and nature.
+    /// </summary>
+    [HttpPost("{courseId}/assign-to-major")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AssignCourseToMajor(
+        int courseId,
+        [FromBody] AssignCourseToMajorRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new AssignCourseToMajorCommand(
+            courseId,
+            request.MajorId,
+            request.RequirementType,
+            request.RequirementNature);
+
+        var result = await _mediator.Send(command, cancellationToken);
+
+        return result.Match<IActionResult>(
+            onValue: mapping => Created($"api/courses/{courseId}", mapping),
+            onError: errors =>
+            {
+                var top = errors.FirstOrDefault();
+                return top.Code switch
+                {
+                    "Course.NotFound" or "Major.NotFound" => NotFound(new { errors }),
+                    "Course.AlreadyAssigned" => Conflict(new { errors }),
+                    _ => BadRequest(new { errors })
+                };
+            });
     }
 
     // ===== Course Info =====
@@ -470,47 +526,7 @@ public class CoursesController(IMediator mediator) : ControllerBase
             });
     }
 
-    // TODO: Grade functionality is temporarily disabled.
-    // Universities may have different grading systems (A, A+, B, etc.)
-    // public sealed record CompleteCourseRequest(decimal? Grade = null);
-    public sealed record CompleteCourseRequest();
-
-    /// <summary>
-    /// Mark a course enrollment as completed/finished.
-    /// </summary>
-    [HttpPost("{courseId}/complete")]
-    [Authorize]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> CompleteCourse(
-        int courseId,
-        [FromBody] CompleteCourseRequest? request,
-        CancellationToken cancellationToken = default)
-    {
-        // TODO: Grade functionality is temporarily disabled.
-        // var command = new CompleteCourseCommand(courseId, request?.Grade);
-        var command = new CompleteCourseCommand(courseId);
-        var result = await _mediator.Send(command, cancellationToken);
-
-        return result.Match<IActionResult>(
-            onValue: enrollment => Ok(enrollment),
-            onError: errors =>
-            {
-                var top = errors.FirstOrDefault();
-                return top.Code switch
-                {
-                    "User.NotAuthenticated" => Unauthorized(new { errors }),
-                    "Enrollment.NotFound" => NotFound(new { errors }),
-                    "Enrollment.AlreadyFinished" => Conflict(new { errors }),
-                    _ => BadRequest(new { errors })
-                };
-            });
-    }
-
-    // TODO: Grade functionality is temporarily disabled.
+    // TODO: Grade functionality is temporarly disabled.
     // Universities may have different grading systems (A, A+, B, etc.)
     // This needs to be redesigned to support flexible grading systems.
     // public sealed record AddGradeRequest(decimal Grade);

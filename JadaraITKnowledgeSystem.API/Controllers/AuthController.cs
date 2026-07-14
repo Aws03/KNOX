@@ -30,6 +30,20 @@ public class AuthController : ControllerBase
 
     private string GetRequestIpAddress() => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
+    // Explicit privilege order (highest first) - a user's JWT "role" claim is the
+    // single highest role they hold, not whichever role sorts last alphabetically.
+    private static readonly string[] RoleHierarchy = { "SuperAdmin", "Admin", "Writer", "User" };
+
+    private static string GetHighestRole(IList<string> roles)
+    {
+        foreach (var role in RoleHierarchy)
+        {
+            if (roles.Contains(role))
+                return role;
+        }
+        return "User";
+    }
+
     public AuthController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
@@ -110,7 +124,7 @@ public class AuthController : ControllerBase
                     }
 
                     var roles = await _userManager.GetRolesAsync(identityUser);
-                    var highestRole = roles.OrderBy(r => r).LastOrDefault() ?? "User"; // placeholder, will rely on hierarchy later
+                    var highestRole = GetHighestRole(roles);
                     var accessToken = await _tokenService.GenerateJwtTokenAsync(
                         identityUser.Id,
                         identityUser.FullName,
@@ -188,7 +202,7 @@ public class AuthController : ControllerBase
         }
 
         var roles = await _userManager.GetRolesAsync(user);
-        var highestRole = roles.OrderBy(r => r).LastOrDefault() ?? "User"; // placeholder
+        var highestRole = GetHighestRole(roles);
         var accessToken = await _tokenService.GenerateJwtTokenAsync(user.Id, user.FullName, user.Email, new[] { highestRole });
 
         var ipAddress = GetRequestIpAddress();
@@ -238,7 +252,7 @@ public class AuthController : ControllerBase
         await _refreshTokenService.RevokeTokenAsync(oldToken.Token, ipAddress);
 
         var roles = await _userManager.GetRolesAsync(user);
-        var highestRole = roles.OrderBy(r => r).LastOrDefault() ?? "User"; // placeholder
+        var highestRole = GetHighestRole(roles);
         var accessToken = await _tokenService.GenerateJwtTokenAsync(user.Id, user.FullName, user.Email, new[] { highestRole });
         var newRefreshTokenResult = await _refreshTokenService.GenerateRefreshTokenAsync(user.Id, ipAddress);
 
@@ -383,7 +397,7 @@ public class AuthController : ControllerBase
         }
 
         var roles = await _userManager.GetRolesAsync(identityUser);
-        var highestRole = roles.OrderBy(r => r).LastOrDefault() ?? "User"; // placeholder
+        var highestRole = GetHighestRole(roles);
         var accessToken = await _tokenService.GenerateJwtTokenAsync(
             identityUser.Id,
             identityUser.FullName,

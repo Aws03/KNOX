@@ -1,9 +1,6 @@
 {
   "Storage": {
-    "ApiKey": "REPLACE_WITH_USER_SECRET",
-    "StorageZoneName": "jadara-hub",
-    "StorageZoneBaseUrl": "https://jadara-hub.b-cdn.net"
-
+    "BaseUrl": "http://localhost:5001"
   },
   "JwtSettings": {
     "Secret": "REPLACE_WITH_USER_SECRET",

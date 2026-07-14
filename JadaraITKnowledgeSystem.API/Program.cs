@@ -1,13 +1,9 @@
 using AutoMapper;
 using JadaraITKnowledgeSystem.API.Middlewares;
 using JadaraITKnowledgeSystem.Application;
-using JadaraITKnowledgeSystem.Application.Interfaces.Repositories;
-using JadaraITKnowledgeSystem.Application.Interfaces.Services;
 using JadaraITKnowledgeSystem.Infrastructure;
 using JadaraITKnowledgeSystem.Infrastructure.Identity;
 using JadaraITKnowledgeSystem.Infrastructure.Persistence.Context;
-using JadaraITKnowledgeSystem.Infrastructure.Repositories;
-using JadaraITKnowledgeSystem.Infrastructure.Services.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
@@ -20,8 +16,6 @@ using System.Text;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddHttpClient<IStorageService, BunnyStorageService>();
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -184,6 +178,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseCors("AllowFrontend");
 
 app.UseRateLimiter();

@@ -1,6 +1,5 @@
 ﻿using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -15,9 +14,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Services.FileMangment;
 public class FileManager : IFileManager
 {
     private readonly IStorageService _storage;
-    //private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<FileManager> _logger;
-    private readonly string _zoneName;
 
     private static readonly HashSet<string> _allowedExtensions = new()
     {
@@ -27,17 +24,10 @@ public class FileManager : IFileManager
 
     public FileManager(
         IStorageService storage,
-        //IHttpClientFactory httpClientFactory,
-        ILogger<FileManager> logger,
-        IConfiguration config)
+        ILogger<FileManager> logger)
     {
         _storage = storage;
-        //_httpClientFactory = httpClientFactory;
         _logger = logger;
-        
-        var section = config.GetSection("Storage");
-        _zoneName = section["StorageZoneName"]
-            ?? throw new ArgumentNullException("Storage:StorageZoneName");
     }
 
     public async Task<string> UploadAsync(
@@ -169,7 +159,7 @@ public class FileManager : IFileManager
         }
 
         // Download file from Bunny.net temp storage
-        using var tempStream = await DownloadFileFromBunnyAsync(
+        using var tempStream = await DownloadFileFromStorageAsync(
             tempFileName,
             tempFolder,
             cancellationToken);
@@ -270,18 +260,18 @@ public class FileManager : IFileManager
     // Private Helper Methods
     // =============================
 
-    private async Task<Stream> DownloadFileFromBunnyAsync(
+    private async Task<Stream> DownloadFileFromStorageAsync(
         string fileName,
         string? folder,
         CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Downloading file from Bunny: {Folder}/{FileName}", folder, fileName);
+        _logger.LogInformation("Downloading file from storage: {Folder}/{FileName}", folder, fileName);
 
         var stream = await _storage.DownloadAsync(fileName, folder, cancellationToken);
 
         if (stream == null)
         {
-            _logger.LogWarning("File not found in Bunny storage: {Folder}/{FileName}", folder, fileName);
+            _logger.LogWarning("File not found in storage: {Folder}/{FileName}", folder, fileName);
                 throw new FileNotFoundException($"File '{fileName}' not found in folder '{folder}'.");
         }
 
@@ -291,21 +281,6 @@ public class FileManager : IFileManager
         memory.Position = 0; // reset pointer
 
         return memory;
-    }
-
-
-    private string BuildBunnyStorageUrl(string fileName, string? folder)
-    {
-        // This should come from configuration via IOptions<BunnySettings>
-        var storageZoneName = "your-storage-zone"; // TODO: Inject from configuration
-        var baseUrl = $"https://storage.bunnycdn.com/{storageZoneName}";
-
-        if (!string.IsNullOrEmpty(folder))
-        {
-            return $"{baseUrl}/{folder.TrimStart('/')}/{fileName}";
-        }
-
-        return $"{baseUrl}/{fileName}";
     }
 
     private (string fileName, string? folder) ExtractFileNameAndFolder(string fileUrl)
@@ -318,10 +293,9 @@ public class FileManager : IFileManager
 
         var fileName = segments[^1];
 
-        // If the URL contains the storage zone name → STORAGE URL
-        if (segments[0].Equals(_zoneName, StringComparison.OrdinalIgnoreCase))
+        // Local storage URL format: /uploads/folder.../file
+        if (segments.Length > 1 && segments[0].Equals("uploads", StringComparison.OrdinalIgnoreCase))
         {
-            // STORAGE URL format: /zone/folder.../file
             if (segments.Length > 2)
             {
                 var folderSegments = segments[1..^1];
@@ -330,17 +304,8 @@ public class FileManager : IFileManager
 
             return (fileName, null);
         }
-        else
-        {
-            // CDN URL format: /folder.../file
-            if (segments.Length > 1)
-            {
-                var folderSegments = segments[..^1];
-                return (fileName, string.Join("/", folderSegments));
-            }
 
-            return (fileName, null);
-        }
+        return (fileName, null);
     }
 
 

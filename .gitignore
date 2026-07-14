@@ -367,3 +367,7 @@ JadaraITKnowledgeSystem.API/appsettings.json
 JadaraITKnowledgeSystem.API/appsettings.Development.json
 JadaraITKnowledgeSystem.API/appsettings.*.json
 !JadaraITKnowledgeSystem.API/appsettings.json.example
+
+# Locally-stored uploads (local file storage backend) - keep the folder, not its contents
+JadaraITKnowledgeSystem.API/wwwroot/uploads/*
+!JadaraITKnowledgeSystem.API/wwwroot/uploads/.gitkeep

@@ -7,6 +7,7 @@ using JadaraITKnowledgeSystem.Infrastructure.Services.FileMangment;
 using JadaraITKnowledgeSystem.Infrastructure.Services.JWT;
 using JadaraITKnowledgeSystem.Infrastructure.Services.Security;
 using JadaraITKnowledgeSystem.Infrastructure.Services.Email;
+using JadaraITKnowledgeSystem.Infrastructure.Services.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,6 +38,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure
             services.AddHostedService<TempFileCleanupJob>();
 
             services.AddScoped<IFileManager, FileManager>();
+            services.AddScoped<IStorageService, LocalFileStorage>();
             services.AddScoped<IJwtTokenService, JwtTokenService>();
             services.AddScoped<IIdentityUserService, Identity.IdentityUserService>();
             services.AddScoped<IRefreshTokenService, RefreshTokenService>();

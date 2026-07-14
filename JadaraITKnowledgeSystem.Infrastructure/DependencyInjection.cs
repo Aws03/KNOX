@@ -40,7 +40,13 @@ namespace JadaraITKnowledgeSystem.Infrastructure
             services.AddScoped<IJwtTokenService, JwtTokenService>();
             services.AddScoped<IIdentityUserService, Identity.IdentityUserService>();
             services.AddScoped<IRefreshTokenService, RefreshTokenService>();
-            services.AddHttpClient<IEmailService, EmailService>();
+
+            // Brevo is the primary email provider; fall back to AhaSend if Brevo isn't configured.
+            if (!string.IsNullOrWhiteSpace(configuration["Brevo:ApiKey"]))
+                services.AddHttpClient<IEmailService, BrevoEmailService>();
+            else
+                services.AddHttpClient<IEmailService, EmailService>();
+
             services.AddScoped<IOTPService, OTPService>();
             services.AddScoped<IIdentityRoleService, Identity.IdentityRoleService>();
 

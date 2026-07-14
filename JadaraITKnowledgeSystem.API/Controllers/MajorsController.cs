@@ -2,6 +2,7 @@
 using JadaraITKnowledgeSystem.Application.Fetures.Majors.Queries.GetMajorByFacultyId;
 using JadaraITKnowledgeSystem.Application.Fetures.Majors.Queries.GetMajorById;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JadaraITKnowledgeSystem.API.Controllers;
@@ -15,6 +16,7 @@ public class MajorsController(IMediator mediator) : ControllerBase
     private readonly IMediator _mediator = mediator;
 
     [HttpPost]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create(

@@ -1,10 +1,12 @@
 ﻿using JadaraITKnowledgeSystem.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JadaraITKnowledgeSystem.API.Controllers;
 
 [ApiController]
 [Route("api/files")]
+[Authorize]
 public class FilesController : ControllerBase
 {
     private readonly IFileManager _fileManager;

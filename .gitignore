@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Secrets - never commit real app settings
+JadaraITKnowledgeSystem.API/appsettings.json
+JadaraITKnowledgeSystem.API/appsettings.Development.json
+JadaraITKnowledgeSystem.API/appsettings.*.json
+!JadaraITKnowledgeSystem.API/appsettings.json.example

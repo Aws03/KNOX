@@ -36,6 +36,7 @@ public class CoursesController(IMediator mediator) : ControllerBase
     private readonly IMediator _mediator = mediator;
 
     [HttpPost]
+    [Authorize(Roles = "Writer,Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create(
@@ -110,6 +111,7 @@ public class CoursesController(IMediator mediator) : ControllerBase
     /// Assign an existing course to a major with requirement type and nature.
     /// </summary>
     [HttpPost("{courseId}/assign-to-major")]
+    [Authorize(Roles = "Writer,Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -197,6 +199,7 @@ public class CoursesController(IMediator mediator) : ControllerBase
         string? DemonstrationVideoTitle = null);
 
     [HttpPost("{courseId}/info")]
+    [Authorize(Roles = "Writer,Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateCourseInfo(
@@ -226,6 +229,7 @@ public class CoursesController(IMediator mediator) : ControllerBase
         string? DemonstrationVideoTitle = null);
 
     [HttpPut("{courseId}/info")]
+    [Authorize(Roles = "Writer,Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -263,6 +267,7 @@ public class CoursesController(IMediator mediator) : ControllerBase
         string? DemonstrationVideoUrl = null);
 
     [HttpPost("{courseId}/resources")]
+    [Authorize(Roles = "Writer,Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -300,6 +305,7 @@ public class CoursesController(IMediator mediator) : ControllerBase
         string? DemonstrationVideoUrl = null);
 
     [HttpPut("{courseId}/resources/{resourceId}")]
+    [Authorize(Roles = "Writer,Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -332,6 +338,7 @@ public class CoursesController(IMediator mediator) : ControllerBase
     }
 
     [HttpDelete("{courseId}/resources/{resourceId}")]
+    [Authorize(Roles = "Writer,Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -358,6 +365,7 @@ public class CoursesController(IMediator mediator) : ControllerBase
     public sealed record CreateMaterialRequest(string Title, string ContemtUrl, int? FolderId, string? Description, List<string>? Tags);
 
     [HttpPost("{courseId}/materials")]
+    [Authorize(Roles = "Writer,Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateMaterial(
@@ -385,6 +393,7 @@ public class CoursesController(IMediator mediator) : ControllerBase
     public sealed record CreateFolderRequest(string Name, int? ParentFolderId, string? Description);
 
     [HttpPost("{courseId}/folders")]
+    [Authorize(Roles = "Writer,Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateFolder(

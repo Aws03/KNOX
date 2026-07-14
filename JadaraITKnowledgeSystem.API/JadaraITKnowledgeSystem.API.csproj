@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Optional: lock language temporarily if you want to avoid new features initially -->
     <!-- <LangVersion>12</LangVersion> -->
+    <UserSecretsId>cf4e254b-2192-4d3d-9a6d-fabec537c6fb</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

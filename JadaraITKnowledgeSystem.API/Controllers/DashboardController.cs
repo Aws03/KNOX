@@ -10,7 +10,7 @@ namespace JadaraITKnowledgeSystem.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-//[Authorize(Roles = "SuperAdmin")] 
+[Authorize(Roles = "SuperAdmin")]
 public class DashboardController : ControllerBase
 {
     private readonly IMediator _mediator;

@@ -1,18 +1,25 @@
 {
   "Storage": {
-    "ApiKey": "a67ab3f4-d55e-4d62-923fbe4a296c-53f9-456b",
+    "ApiKey": "REPLACE_WITH_USER_SECRET",
     "StorageZoneName": "jadara-hub",
     "StorageZoneBaseUrl": "https://jadara-hub.b-cdn.net"
 
   },
   "JwtSettings": {
-    "Secret": "HiThereThisIsMySuperStrongKey@#$%^&*74555jl.",
+    "Secret": "REPLACE_WITH_USER_SECRET",
     "Issuer": "https://localhost:7012",
     "Audience": "https://localhost:7012/swagger/",
     "ExpirationMinutes": 30
   },
+  "OpenAI": {
+    "ApiKey": "REPLACE_WITH_USER_SECRET",
+    "Model": "gpt-4.1-mini",
+    "MaxTokens": 4000,
+    "Temperature": 0.7,
+    "Enabled": true
+  },
   "ConnectionStrings": {
-    "DefaultConnection": "Server=DESKTOP-OINSVUL\\SQLSERVER;Database=JadaraITKnowledgeSystemDB;User ID=sa;Password=123456;TrustServerCertificate=True;"
+    "DefaultConnection": "REPLACE_WITH_USER_SECRET"
   },
   "Logging": {
     "LogLevel": {
@@ -21,13 +28,13 @@
     }
   },
   "AhaSend": {
-    "AccountId": "d71ff83c-973d-4330-b790-03355be33655",
-    "ApiKey": "aha-sk-QsrPCRbNRmyL2laQ0eLGr_k7Q1RDVFOtIIP4Zc1gVXVfV0bBHl1g0p8Wh1ZnFtv7", // this is provide by ahasend under (support@ecampusjo.com)
+    "AccountId": "REPLACE_WITH_USER_SECRET",
+    "ApiKey": "REPLACE_WITH_USER_SECRET",
     "FromEmail": "no-repley@ecampusjo.com",
     "FromName": "Uni-Hub"
   },
   "AuthSettings": {
-    "RequireEmailVerificationOnRegisteration": false,  
+    "RequireEmailVerificationOnRegisteration": false,
     "OTPExpiryMinutes": 10,
     "MaxOTPResendAttempts": 3
   },

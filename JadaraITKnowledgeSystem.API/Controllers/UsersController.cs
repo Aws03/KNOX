@@ -148,6 +148,7 @@ public class UsersController(IMediator mediator) : ControllerBase
     /// Retrieves a paginated list of users with optional filters.
     /// </summary>
     [HttpGet]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetUsers(
@@ -174,6 +175,7 @@ public class UsersController(IMediator mediator) : ControllerBase
     /// Retrieves a paginated list of users with detailed info and optional filters.
     /// </summary>
     [HttpGet("details")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetUsersWithDetails(
@@ -202,6 +204,7 @@ public class UsersController(IMediator mediator) : ControllerBase
     /// Suspends (blocks) a user.
     /// </summary>
     [HttpPost("{id}/block")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> BlockUser(int id, CancellationToken cancellationToken)
@@ -217,6 +220,7 @@ public class UsersController(IMediator mediator) : ControllerBase
     /// Activates a user.
     /// </summary>
     [HttpPost("{id}/activate")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ActivateUser(int id, CancellationToken cancellationToken)
@@ -232,6 +236,7 @@ public class UsersController(IMediator mediator) : ControllerBase
     /// Gets available user roles.
     /// </summary>
     [HttpGet("roles")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetRoles(CancellationToken cancellationToken = default)
     {
@@ -246,6 +251,7 @@ public class UsersController(IMediator mediator) : ControllerBase
     /// Assigns a role to a user by domain user id.
     /// </summary>
     [HttpPost("{id}/assign-role")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AssignRole(int id, [FromBody] string roleName, CancellationToken cancellationToken)
@@ -261,6 +267,7 @@ public class UsersController(IMediator mediator) : ControllerBase
     /// Returns statistics for a writer (for dashboard).
     /// </summary>
     [HttpGet("{id}/writer-statistics")]
+    [Authorize(Roles = "Writer,Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetWriterStatistics(int id, CancellationToken cancellationToken = default)

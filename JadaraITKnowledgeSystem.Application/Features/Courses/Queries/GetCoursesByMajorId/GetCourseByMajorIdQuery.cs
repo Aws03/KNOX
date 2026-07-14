@@ -1,0 +1,15 @@
+﻿using JadaraITKnowledgeSystem.Application.Common.Models;
+using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
+using JadaraITKnowledgeSystem.Domain.Common.Results;
+using JadaraITKnowledgeSystem.Domain.Courses.Enums;
+using MediatR;
+
+namespace JadaraITKnowledgeSystem.Application.Features.Courses.Queries.GetCoursesByMajorId;
+
+public record GetCoursesByMajorIdQuery(
+    int MajorId,
+    int PageNumber = 1,
+    int PageSize = 10,
+    RequirementNature? RequirementNature = null,
+    RequirementType? RequirementType = null
+) : IRequest<Result<PaginatedList<CourseSummaryDto>>>;

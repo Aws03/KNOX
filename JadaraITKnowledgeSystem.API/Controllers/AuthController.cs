@@ -5,12 +5,12 @@ using Microsoft.AspNetCore.RateLimiting;
 using JadaraITKnowledgeSystem.Infrastructure.Identity;
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
 using MediatR;
-using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.CreateUser;
-using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.VerifyAccount;
-using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.ResetPassword;
+using JadaraITKnowledgeSystem.Application.Features.Users.Commands.CreateUser;
+using JadaraITKnowledgeSystem.Application.Features.Users.Commands.VerifyAccount;
+using JadaraITKnowledgeSystem.Application.Features.Users.Commands.ResetPassword;
 using Microsoft.Extensions.Logging;
 using JadaraITKnowledgeSystem.Application.Interfaces;
-using JadaraITKnowledgeSystem.Application.Fetures.Users.Queries.GetUserVerificationStatus;
+using JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetUserVerificationStatus;
 using JadaraITKnowledgeSystem.Application.Common.Models;
 
 namespace JadaraITKnowledgeSystem.API.Controllers;

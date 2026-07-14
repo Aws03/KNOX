@@ -4,6 +4,7 @@ using JadaraITKnowledgeSystem.Application;
 using JadaraITKnowledgeSystem.Infrastructure;
 using JadaraITKnowledgeSystem.Infrastructure.Identity;
 using JadaraITKnowledgeSystem.Infrastructure.Persistence.Context;
+using JadaraITKnowledgeSystem.Infrastructure.Persistence.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
@@ -142,6 +143,9 @@ builder.Services.AddCors(options =>
 // Role seeding
 builder.Services.AddScoped<RoleSeeder>();
 
+// Bootstrap data seeding (university/faculty/majors/SuperAdmin)
+builder.Services.AddScoped<DataSeeder>();
+
 // Rate limiting for brute-force-prone auth endpoints (keyed by client IP)
 builder.Services.AddRateLimiter(options =>
 {
@@ -186,11 +190,15 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// seed roles
+// seed roles, then bootstrap data (must run after roles exist, since the
+// SuperAdmin account seeded below needs the "SuperAdmin" role to already be there)
 using (var scope = app.Services.CreateScope())
 {
     var seeder = scope.ServiceProvider.GetRequiredService<RoleSeeder>();
     await seeder.SeedAsync();
+
+    var dataSeeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
+    await dataSeeder.SeedAsync();
 }
 
 app.MapControllers();

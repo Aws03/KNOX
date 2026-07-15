@@ -1,5 +1,6 @@
 ﻿using JadaraITKnowledgeSystem.Application.Features.Quizzes.Commands.AddReaction;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Commands.CreateQuiz;
+using JadaraITKnowledgeSystem.Application.Features.Quizzes.Commands.SubmitQuizAttempt;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Queries.GetQuizById;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Queries.GetQuizzes;
@@ -133,6 +134,39 @@ public class QuizzesController(IMediator mediator) : ControllerBase
                 return top.Code switch
                 {
                     "User.NotAuthenticated" => Unauthorized(new { errors }),
+                    _ => BadRequest(new { errors })
+                };
+            }
+        );
+    }
+
+    /// <summary>
+    /// Records (or updates) the current user's score for a quiz attempt.
+    /// Tracking is best-effort from the client's perspective, but the endpoint
+    /// itself must exist and succeed for that tracking to mean anything.
+    /// </summary>
+    [HttpPost("{quizId}/attempts")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> SubmitAttempt(
+        int quizId,
+        [FromBody] SubmitQuizAttemptDto dto,
+        CancellationToken cancellationToken)
+    {
+        var command = new SubmitQuizAttemptCommand(quizId, dto.Score);
+
+        var result = await _mediator.Send(command, cancellationToken);
+
+        return result.Match<IActionResult>(
+            onValue: attempt => Ok(attempt),
+            onError: errors =>
+            {
+                var top = errors.FirstOrDefault();
+                return top.Code switch
+                {
+                    "User.NotAuthenticated" => Unauthorized(new { errors }),
+                    "Quiz.NotFound" => NotFound(new { errors }),
                     _ => BadRequest(new { errors })
                 };
             }

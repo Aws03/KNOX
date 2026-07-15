@@ -1,0 +1,570 @@
+{
+  "common": {
+    "appName": "Uni-Hub",
+    "buttons": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "edit": "Edit",
+      "add": "Add",
+      "back": "Back",
+      "submit": "Submit",
+      "search": "Search",
+      "filter": "Filter",
+      "close": "Close",
+      "confirm": "Confirm",
+      "upload": "Upload",
+      "download": "Download",
+      "share": "Share",
+      "viewDetails": "View Details",
+      "loadMore": "Load More",
+      "refresh": "Refresh",
+      "clearFilters": "Clear Filters",
+      "apply": "Apply",
+      "next": "Next",
+      "previous": "Previous"
+    },
+    "actions": {
+      "loading": "Loading...",
+      "saving": "Saving...",
+      "deleting": "Deleting...",
+      "uploading": "Uploading...",
+      "processing": "Processing..."
+    },
+    "messages": {
+      "success": "Operation successful",
+      "error": "Something went wrong",
+      "noData": "No data available",
+      "noResults": "No results found",
+      "confirmDelete": "Are you sure you want to delete?",
+      "unsavedChanges": "You have unsaved changes"
+    },
+    "labels": {
+      "name": "Name",
+      "description": "Description",
+      "date": "Date",
+      "status": "Status",
+      "actions": "Actions",
+      "search": "Search",
+      "filter": "Filter",
+      "sort": "Sort"
+    },
+    "placeholders": {
+      "search": "Search...",
+      "enterText": "Enter text...",
+      "selectOption": "Select an option..."
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in to Uni-Hub",
+      "description": "Access your courses, materials, and quizzes.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "Enter your email address",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "••••••••••••••••",
+      "rememberMe": "Remember Me",
+      "forgotPassword": "Forgot Password?",
+      "submitButton": "Sign in to Uni-Hub",
+      "signingIn": "Signing in...",
+      "loginWith": "Login with",
+      "magicLink": "Magic Link",
+      "quickLogin": {
+        "user": "Login as User",
+        "admin": "Login as Admin"
+      },
+      "noAccount": "New on our platform?",
+      "createAccount": "Create an account",
+      "or": "or",
+      "signInWithGoogle": "Sign in with google",
+      "success": "Login successful!",
+      "welcomeBack": "Welcome back to Uni-Hub",
+      "loginFailed": "Login failed. Please try again.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password"
+    },
+    "register": {
+      "title": "Create Your Account",
+      "description": "Join Uni-Hub to access course materials and resources.",
+      "submitButton": "Create Account",
+      "creating": "Creating...",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in instead",
+      "fullNameLabel": "Full Name",
+      "fullNamePlaceholder": "Enter your full name",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "Enter your email address",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Create a password",
+      "confirmPasswordLabel": "Confirm Password",
+      "confirmPasswordPlaceholder": "Re-enter your password",
+      "success": "Registration successful!",
+      "failed": "Registration failed. Please try again."
+    },
+    "forgotPassword": {
+      "title": "Forgot Password",
+      "description": "Enter your email to receive a password reset link.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "Enter your email address",
+      "submitButton": "Send Reset Link",
+      "sending": "Sending...",
+      "backToLogin": "Back to Login",
+      "success": "Reset link sent to your email!",
+      "failed": "Failed to send reset link."
+    },
+    "resetPassword": {
+      "title": "Reset Password",
+      "description": "Enter your new password below.",
+      "passwordLabel": "New Password",
+      "passwordPlaceholder": "Enter new password",
+      "confirmPasswordLabel": "Confirm Password",
+      "confirmPasswordPlaceholder": "Re-enter new password",
+      "submitButton": "Reset Password",
+      "resetting": "Resetting...",
+      "success": "Password reset successful!",
+      "failed": "Failed to reset password."
+    }
+  },
+  "home": {
+    "hero": {
+      "badge": {
+        "new": "New",
+        "text": "AI Academic Supervisor is now available"
+      },
+      "title": {
+        "part1": "Your Gateway to",
+        "part2": "Academic Excellence"
+      },
+      "subtitle": "The ultimate platform for university students. Access comprehensive study materials, smart quiz banks, and AI-powered academic guidance — all in one place.",
+      "cta": {
+        "getStarted": "Get Started Free",
+        "watchDemo": "Watch Demo",
+        "learnMore": "Learn More"
+      }
+    },
+    "features": {
+      "studyMaterials": {
+        "title": "Study Materials",
+        "description": "Access curated study materials, lecture notes, and resources organized by course and topic."
+      },
+      "quizBank": {
+        "title": "Quiz Bank",
+        "description": "Practice with comprehensive question banks covering all subjects. Track your progress and improve with every attempt."
+      },
+      "aiSupervisor": {
+        "title": "AI Supervisor",
+        "description": "Get instant, personalized academic guidance around the clock. Ask questions, get explanations, and receive study recommendations."
+      },
+      "community": {
+        "title": "Community",
+        "description": "Connect with fellow students, share knowledge, and collaborate on study groups."
+      },
+      "progressTracking": {
+        "title": "Progress Tracking",
+        "description": "Visualize your learning journey with detailed analytics and performance insights."
+      },
+      "universityNetwork": {
+        "title": "University Network",
+        "description": "Access resources from universities worldwide. Find course-specific materials tailored to your curriculum."
+      },
+      "lightningFast": {
+        "title": "Lightning Fast",
+        "description": "Instant access to all resources"
+      },
+      "securePrivate": {
+        "title": "Secure & Private",
+        "description": "Your data is always protected"
+      },
+      "alwaysUpdated": {
+        "title": "Always Updated",
+        "description": "Fresh content added daily"
+      },
+      "support247": {
+        "title": "24/7 Support",
+        "description": "Help when you need it"
+      }
+    },
+    "notFound": {
+      "whoops": "Whoops!",
+      "title": "Something went wrong",
+      "description": "The page you're looking for isn't found, we suggest you back to home.",
+      "backButton": "Back to home page"
+    }
+  },
+  "courses": {
+    "list": {
+      "title": "Courses",
+      "description": "Browse and manage your courses",
+      "noCourses": "No courses available",
+      "addCourse": "Add Course",
+      "searchPlaceholder": "Search courses..."
+    },
+    "details": {
+      "overview": "Overview",
+      "materials": "Materials",
+      "quizzes": "Quizzes",
+      "students": "Students",
+      "information": "Course Information",
+      "instructor": "Instructor",
+      "duration": "Duration",
+      "level": "Level",
+      "enrolledStudents": "Enrolled Students"
+    },
+    "table": {
+      "headers": {
+        "courseName": "Course Name",
+        "courseCode": "Course Code",
+        "description": "Description",
+        "credits": "Credits",
+        "semester": "Semester",
+        "actions": "Actions"
+      }
+    },
+    "form": {
+      "courseName": "Course Name",
+      "courseNamePlaceholder": "Enter course name",
+      "courseCode": "Course Code",
+      "courseCodePlaceholder": "Enter course code",
+      "description": "Description",
+      "descriptionPlaceholder": "Enter course description",
+      "credits": "Credits",
+      "semester": "Semester",
+      "addCourseTitle": "Add New Course",
+      "editCourseTitle": "Edit Course",
+      "step1": "Enter Course Code",
+      "step2": "Course Details",
+      "searchByCode": "Search by code to check if course exists",
+      "courseExists": "Course found! Fill in additional details.",
+      "courseNotFound": "Course not found. You can create a new one.",
+      "checkCode": "Check Code"
+    },
+    "messages": {
+      "addSuccess": "Course added successfully",
+      "addError": "Failed to add course",
+      "updateSuccess": "Course updated successfully",
+      "updateError": "Failed to update course",
+      "deleteSuccess": "Course deleted successfully",
+      "deleteError": "Failed to delete course"
+    },
+    "stats": {
+      "total": "Total Courses",
+      "active": "Active Courses",
+      "completed": "Completed Courses"
+    }
+  },
+  "materials": {
+    "explorer": {
+      "title": "Course Materials",
+      "description": "Browse and manage course materials",
+      "totalItems": "Total Items",
+      "folders": "Folders",
+      "files": "Files",
+      "addFolder": "Add Folder",
+      "addMaterial": "Add Material",
+      "noMaterials": "No materials available",
+      "loading": "Loading course materials…",
+      "uploadFile": "Upload File",
+      "createFolder": "Create Folder"
+    },
+    "folder": {
+      "title": "Folder",
+      "back": "Back to Materials",
+      "empty": "This folder is empty",
+      "addItem": "Add Item"
+    },
+    "form": {
+      "folderName": "Folder Name",
+      "folderNamePlaceholder": "Enter folder name",
+      "materialName": "Material Name",
+      "materialNamePlaceholder": "Enter material name",
+      "materialType": "Material Type",
+      "selectFile": "Select File",
+      "dragDrop": "Drag and drop or click to upload"
+    },
+    "types": {
+      "pdf": "PDF Document",
+      "video": "Video",
+      "image": "Image",
+      "document": "Document",
+      "archive": "Archive",
+      "other": "Other"
+    },
+    "messages": {
+      "uploadSuccess": "Material uploaded successfully",
+      "uploadError": "Failed to upload material",
+      "deleteSuccess": "Material deleted successfully",
+      "deleteError": "Failed to delete material",
+      "folderCreated": "Folder created successfully",
+      "folderDeleted": "Folder deleted successfully"
+    }
+  },
+  "quizzes": {
+    "list": {
+      "title": "Quizzes",
+      "description": "Browse and take quizzes",
+      "addQuiz": "Add Quiz",
+      "noQuizzes": "No quizzes available",
+      "totalQuizzes": "Total Quizzes",
+      "viewMode": {
+        "grid": "Grid View",
+        "list": "List View"
+      },
+      "back": "Back"
+    },
+    "card": {
+      "questions": "Questions",
+      "duration": "Duration",
+      "minutes": "min",
+      "difficulty": "Difficulty",
+      "attempts": "Attempts",
+      "startQuiz": "Start Quiz",
+      "continueQuiz": "Continue Quiz",
+      "viewResults": "View Results",
+      "retakeQuiz": "Retake Quiz"
+    },
+    "details": {
+      "title": "Quiz",
+      "description": "Answer all questions",
+      "question": "Question",
+      "of": "of",
+      "nextQuestion": "Next Question",
+      "previousQuestion": "Previous Question",
+      "submitQuiz": "Submit Quiz",
+      "timeRemaining": "Time Remaining",
+      "score": "Score",
+      "correctAnswers": "Correct Answers",
+      "incorrectAnswers": "Incorrect Answers"
+    },
+    "form": {
+      "quizTitle": "Quiz Title",
+      "quizTitlePlaceholder": "Enter quiz title",
+      "description": "Description",
+      "descriptionPlaceholder": "Enter quiz description",
+      "duration": "Duration (minutes)",
+      "difficulty": "Difficulty Level",
+      "addQuestion": "Add Question",
+      "questionText": "Question Text",
+      "questionTextPlaceholder": "Enter question",
+      "answerOption": "Answer Option",
+      "correctAnswer": "Correct Answer",
+      "addOption": "Add Option",
+      "removeOption": "Remove Option"
+    },
+    "difficulty": {
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "messages": {
+      "quizStarted": "Quiz started",
+      "quizSubmitted": "Quiz submitted successfully",
+      "quizSaved": "Quiz saved",
+      "errorLoading": "Error loading quiz",
+      "errorSubmitting": "Error submitting quiz",
+      "retry": "Retry"
+    }
+  },
+  "universities": {
+    "list": {
+      "title": "Universities",
+      "description": "Browse and manage universities",
+      "addUniversity": "Add University",
+      "noUniversities": "No universities available",
+      "searchPlaceholder": "Search universities..."
+    },
+    "details": {
+      "faculties": "Faculties",
+      "majors": "Majors",
+      "students": "Students",
+      "addFaculty": "Add Faculty",
+      "facultyName": "Faculty Name",
+      "noFaculties": "No faculties available"
+    },
+    "faculty": {
+      "title": "Faculty",
+      "majors": "Majors",
+      "addMajor": "Add Major",
+      "majorName": "Major Name",
+      "noMajors": "No majors available"
+    },
+    "form": {
+      "universityName": "University Name",
+      "universityNamePlaceholder": "Enter university name",
+      "location": "Location",
+      "locationPlaceholder": "Enter location",
+      "website": "Website",
+      "websitePlaceholder": "Enter website URL",
+      "facultyName": "Faculty Name",
+      "facultyNamePlaceholder": "Enter faculty name",
+      "majorName": "Major Name",
+      "majorNamePlaceholder": "Enter major name"
+    },
+    "messages": {
+      "universityAdded": "University added successfully",
+      "universityUpdated": "University updated successfully",
+      "universityDeleted": "University deleted successfully",
+      "facultyAdded": "Faculty added successfully",
+      "facultyUpdated": "Faculty updated successfully",
+      "facultyDeleted": "Faculty deleted successfully",
+      "majorAdded": "Major added successfully",
+      "majorUpdated": "Major updated successfully",
+      "majorDeleted": "Major deleted successfully"
+    }
+  },
+  "users": {
+    "list": {
+      "title": "Users",
+      "description": "Manage system users",
+      "addUser": "Add User",
+      "noUsers": "No users found",
+      "searchPlaceholder": "Search users..."
+    },
+    "table": {
+      "headers": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status",
+        "joinedDate": "Joined Date",
+        "actions": "Actions"
+      }
+    },
+    "roles": {
+      "admin": "Admin",
+      "writer": "Writer",
+      "student": "Student",
+      "instructor": "Instructor"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "suspended": "Suspended"
+    },
+    "form": {
+      "fullName": "Full Name",
+      "fullNamePlaceholder": "Enter full name",
+      "email": "Email",
+      "emailPlaceholder": "Enter email",
+      "role": "Role",
+      "selectRole": "Select role",
+      "status": "Status",
+      "selectStatus": "Select status"
+    },
+    "messages": {
+      "userAdded": "User added successfully",
+      "userUpdated": "User updated successfully",
+      "userDeleted": "User deleted successfully",
+      "errorLoading": "Error loading users",
+      "errorSaving": "Error saving user"
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "editProfile": "Edit Profile",
+    "personalInfo": "Personal Information",
+    "accountSettings": "Account Settings",
+    "fullName": "Full Name",
+    "email": "Email",
+    "phone": "Phone",
+    "bio": "Bio",
+    "university": "University",
+    "faculty": "Faculty",
+    "major": "Major",
+    "studentId": "Student ID",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "updateProfile": "Update Profile",
+    "saveChanges": "Save Changes",
+    "messages": {
+      "updateSuccess": "Profile updated successfully",
+      "updateError": "Failed to update profile",
+      "passwordChanged": "Password changed successfully",
+      "passwordError": "Failed to change password"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "overview": "Overview",
+    "analytics": "Analytics",
+    "statistics": "Statistics",
+    "recentActivity": "Recent Activity",
+    "totalUsers": "Total Users",
+    "totalCourses": "Total Courses",
+    "totalQuizzes": "Total Quizzes",
+    "totalMaterials": "Total Materials",
+    "activeUsers": "Active Users",
+    "newUsers": "New Users",
+    "courseEnrollments": "Course Enrollments",
+    "quizAttempts": "Quiz Attempts",
+    "writer": {
+      "title": "Writer Statistics",
+      "myMaterials": "My Materials",
+      "myQuizzes": "My Quizzes",
+      "totalViews": "Total Views",
+      "totalDownloads": "Total Downloads",
+      "recentUploads": "Recent Uploads"
+    }
+  },
+  "header": {
+    "navigation": {
+      "home": "Home",
+      "courses": "Courses",
+      "materials": "Materials",
+      "quizzes": "Quizzes",
+      "about": "About",
+      "contact": "Contact"
+    },
+    "userMenu": {
+      "profile": "Profile",
+      "settings": "Settings",
+      "dashboard": "Dashboard",
+      "logout": "Logout"
+    },
+    "language": "Language",
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    }
+  },
+  "footer": {
+    "copyright": "© 2026 Uni-Hub. All rights reserved.",
+    "links": {
+      "about": "About",
+      "contact": "Contact",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
+    }
+  },
+  "validation": {
+    "required": "This field is required",
+    "emailInvalid": "Please enter a valid email address",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordsDontMatch": "Passwords don't match",
+    "minLength": "Must be at least {{min}} characters",
+    "maxLength": "Must not exceed {{max}} characters",
+    "invalidFormat": "Invalid format"
+  },
+  "errors": {
+    "network": "Network error occurred",
+    "unauthorized": "Unauthorized access",
+    "notFound": "Resource not found",
+    "serverError": "Server error occurred",
+    "unknown": "An unknown error occurred",
+    "tryAgain": "Please try again"
+  },
+  "pagination": {
+    "showing": "Showing",
+    "to": "to",
+    "of": "of",
+    "results": "results",
+    "page": "Page",
+    "rowsPerPage": "Rows per page",
+    "firstPage": "First page",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "lastPage": "Last page"
+  }
+}

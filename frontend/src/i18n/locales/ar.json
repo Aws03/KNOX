@@ -1,0 +1,570 @@
+{
+  "common": {
+    "appName": "يوني-هاب",
+    "buttons": {
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "delete": "حذف",
+      "edit": "تعديل",
+      "add": "إضافة",
+      "back": "رجوع",
+      "submit": "إرسال",
+      "search": "بحث",
+      "filter": "تصفية",
+      "close": "إغلاق",
+      "confirm": "تأكيد",
+      "upload": "رفع",
+      "download": "تحميل",
+      "share": "مشاركة",
+      "viewDetails": "عرض التفاصيل",
+      "loadMore": "تحميل المزيد",
+      "refresh": "تحديث",
+      "clearFilters": "مسح الفلاتر",
+      "apply": "تطبيق",
+      "next": "التالي",
+      "previous": "السابق"
+    },
+    "actions": {
+      "loading": "جاري التحميل...",
+      "saving": "جاري الحفظ...",
+      "deleting": "جاري الحذف...",
+      "uploading": "جاري الرفع...",
+      "processing": "جاري المعالجة..."
+    },
+    "messages": {
+      "success": "تمت العملية بنجاح",
+      "error": "حدث خطأ ما",
+      "noData": "لا توجد بيانات متاحة",
+      "noResults": "لم يتم العثور على نتائج",
+      "confirmDelete": "هل أنت متأكد من الحذف؟",
+      "unsavedChanges": "لديك تغييرات غير محفوظة"
+    },
+    "labels": {
+      "name": "الاسم",
+      "description": "الوصف",
+      "date": "التاريخ",
+      "status": "الحالة",
+      "actions": "الإجراءات",
+      "search": "بحث",
+      "filter": "تصفية",
+      "sort": "ترتيب"
+    },
+    "placeholders": {
+      "search": "بحث...",
+      "enterText": "أدخل النص...",
+      "selectOption": "اختر خيارًا..."
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "تسجيل الدخول إلى يوني-هاب",
+      "description": "الوصول إلى دوراتك ومواردك والاختبارات.",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "أدخل بريدك الإلكتروني",
+      "passwordLabel": "كلمة المرور",
+      "passwordPlaceholder": "••••••••••••••••",
+      "rememberMe": "تذكرني",
+      "forgotPassword": "نسيت كلمة المرور؟",
+      "submitButton": "تسجيل الدخول إلى يوني-هاب",
+      "signingIn": "جاري تسجيل الدخول...",
+      "loginWith": "تسجيل الدخول باستخدام",
+      "magicLink": "رابط سحري",
+      "quickLogin": {
+        "user": "تسجيل كمستخدم",
+        "admin": "تسجيل كمسؤول"
+      },
+      "noAccount": "جديد على منصتنا؟",
+      "createAccount": "إنشاء حساب",
+      "or": "أو",
+      "signInWithGoogle": "تسجيل الدخول بواسطة جوجل",
+      "success": "تم تسجيل الدخول بنجاح!",
+      "welcomeBack": "مرحبًا بعودتك إلى يوني-هاب",
+      "loginFailed": "فشل تسجيل الدخول. حاول مرة أخرى.",
+      "showPassword": "إظهار كلمة المرور",
+      "hidePassword": "إخفاء كلمة المرور"
+    },
+    "register": {
+      "title": "إنشاء حسابك",
+      "description": "انضم إلى يوني-هاب للوصول إلى المواد الدراسية والموارد.",
+      "submitButton": "إنشاء حساب",
+      "creating": "جاري الإنشاء...",
+      "haveAccount": "لديك حساب بالفعل؟",
+      "signIn": "تسجيل الدخول بدلاً من ذلك",
+      "fullNameLabel": "الاسم الكامل",
+      "fullNamePlaceholder": "أدخل اسمك الكامل",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "أدخل بريدك الإلكتروني",
+      "passwordLabel": "كلمة المرور",
+      "passwordPlaceholder": "أنشئ كلمة مرور",
+      "confirmPasswordLabel": "تأكيد كلمة المرور",
+      "confirmPasswordPlaceholder": "أعد إدخال كلمة المرور",
+      "success": "تم التسجيل بنجاح!",
+      "failed": "فشل التسجيل. حاول مرة أخرى."
+    },
+    "forgotPassword": {
+      "title": "نسيت كلمة المرور",
+      "description": "أدخل بريدك الإلكتروني لتلقي رابط إعادة تعيين كلمة المرور.",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "أدخل بريدك الإلكتروني",
+      "submitButton": "إرسال رابط إعادة التعيين",
+      "sending": "جاري الإرسال...",
+      "backToLogin": "العودة لتسجيل الدخول",
+      "success": "تم إرسال رابط إعادة التعيين إلى بريدك!",
+      "failed": "فشل إرسال رابط إعادة التعيين."
+    },
+    "resetPassword": {
+      "title": "إعادة تعيين كلمة المرور",
+      "description": "أدخل كلمة المرور الجديدة أدناه.",
+      "passwordLabel": "كلمة المرور الجديدة",
+      "passwordPlaceholder": "أدخل كلمة المرور الجديدة",
+      "confirmPasswordLabel": "تأكيد كلمة المرور",
+      "confirmPasswordPlaceholder": "أعد إدخال كلمة المرور الجديدة",
+      "submitButton": "إعادة تعيين كلمة المرور",
+      "resetting": "جاري إعادة التعيين...",
+      "success": "تمت إعادة تعيين كلمة المرور بنجاح!",
+      "failed": "فشل إعادة تعيين كلمة المرور."
+    }
+  },
+  "home": {
+    "hero": {
+      "badge": {
+        "new": "جديد",
+        "text": "المشرف الأكاديمي بالذكاء الاصطناعي متاح الآن"
+      },
+      "title": {
+        "part1": "بوابتك نحو",
+        "part2": "التميز الأكاديمي"
+      },
+      "subtitle": "المنصة المثالية لطلاب الجامعات. الوصول إلى المواد الدراسية الشاملة، وبنوك الأسئلة الذكية، والإرشاد الأكاديمي المدعوم بالذكاء الاصطناعي - كل ذلك في مكان واحد.",
+      "cta": {
+        "getStarted": "ابدأ مجانًا",
+        "watchDemo": "شاهد العرض التوضيحي",
+        "learnMore": "اعرف المزيد"
+      }
+    },
+    "features": {
+      "studyMaterials": {
+        "title": "المواد الدراسية",
+        "description": "الوصول إلى المواد الدراسية المنسقة، وملاحظات المحاضرات، والموارد المنظمة حسب المادة والموضوع."
+      },
+      "quizBank": {
+        "title": "بنك الاختبارات",
+        "description": "تدرب مع بنوك الأسئلة الشاملة التي تغطي جميع المواد. تتبع تقدمك وتحسن مع كل محاولة."
+      },
+      "aiSupervisor": {
+        "title": "المشرف بالذكاء الاصطناعي",
+        "description": "احصل على إرشاد أكاديمي شخصي فوري على مدار الساعة. اطرح الأسئلة، واحصل على التفسيرات، وتلقَّ توصيات الدراسة."
+      },
+      "community": {
+        "title": "المجتمع",
+        "description": "تواصل مع زملائك الطلاب، وشارك المعرفة، وتعاون في مجموعات الدراسة."
+      },
+      "progressTracking": {
+        "title": "تتبع التقدم",
+        "description": "تصور رحلتك التعليمية من خلال التحليلات التفصيلية ورؤى الأداء."
+      },
+      "universityNetwork": {
+        "title": "شبكة الجامعات",
+        "description": "الوصول إلى موارد من الجامعات في جميع أنحاء العالم. ابحث عن مواد خاصة بالمقرر الدراسي مصممة حسب منهجك."
+      },
+      "lightningFast": {
+        "title": "سريع للغاية",
+        "description": "وصول فوري لجميع الموارد"
+      },
+      "securePrivate": {
+        "title": "آمن وخاص",
+        "description": "بياناتك محمية دائمًا"
+      },
+      "alwaysUpdated": {
+        "title": "محدث دائمًا",
+        "description": "محتوى جديد يضاف يوميًا"
+      },
+      "support247": {
+        "title": "دعم على مدار الساعة",
+        "description": "المساعدة عندما تحتاجها"
+      }
+    },
+    "notFound": {
+      "whoops": "عذرًا!",
+      "title": "حدث خطأ ما",
+      "description": "الصفحة التي تبحث عنها غير موجودة، نقترح عليك العودة إلى الصفحة الرئيسية.",
+      "backButton": "العودة للصفحة الرئيسية"
+    }
+  },
+  "courses": {
+    "list": {
+      "title": "المقررات",
+      "description": "تصفح وإدارة مقرراتك",
+      "noCourses": "لا توجد مقررات متاحة",
+      "addCourse": "إضافة مقرر",
+      "searchPlaceholder": "البحث عن مقررات..."
+    },
+    "details": {
+      "overview": "نظرة عامة",
+      "materials": "المواد",
+      "quizzes": "الاختبارات",
+      "students": "الطلاب",
+      "information": "معلومات المقرر",
+      "instructor": "المحاضر",
+      "duration": "المدة",
+      "level": "المستوى",
+      "enrolledStudents": "الطلاب المسجلون"
+    },
+    "table": {
+      "headers": {
+        "courseName": "اسم المقرر",
+        "courseCode": "كود المقرر",
+        "description": "الوصف",
+        "credits": "الساعات المعتمدة",
+        "semester": "الفصل الدراسي",
+        "actions": "الإجراءات"
+      }
+    },
+    "form": {
+      "courseName": "اسم المقرر",
+      "courseNamePlaceholder": "أدخل اسم المقرر",
+      "courseCode": "كود المقرر",
+      "courseCodePlaceholder": "أدخل كود المقرر",
+      "description": "الوصف",
+      "descriptionPlaceholder": "أدخل وصف المقرر",
+      "credits": "الساعات المعتمدة",
+      "semester": "الفصل الدراسي",
+      "addCourseTitle": "إضافة مقرر جديد",
+      "editCourseTitle": "تعديل المقرر",
+      "step1": "أدخل كود المقرر",
+      "step2": "تفاصيل المقرر",
+      "searchByCode": "ابحث بالكود للتحقق من وجود المقرر",
+      "courseExists": "تم العثور على المقرر! املأ التفاصيل الإضافية.",
+      "courseNotFound": "المقرر غير موجود. يمكنك إنشاء مقرر جديد.",
+      "checkCode": "التحقق من الكود"
+    },
+    "messages": {
+      "addSuccess": "تمت إضافة المقرر بنجاح",
+      "addError": "فشل إضافة المقرر",
+      "updateSuccess": "تم تحديث المقرر بنجاح",
+      "updateError": "فشل تحديث المقرر",
+      "deleteSuccess": "تم حذف المقرر بنجاح",
+      "deleteError": "فشل حذف المقرر"
+    },
+    "stats": {
+      "total": "إجمالي المقررات",
+      "active": "المقررات النشطة",
+      "completed": "المقررات المكتملة"
+    }
+  },
+  "materials": {
+    "explorer": {
+      "title": "مواد المقرر",
+      "description": "تصفح وإدارة مواد المقرر",
+      "totalItems": "إجمالي العناصر",
+      "folders": "المجلدات",
+      "files": "الملفات",
+      "addFolder": "إضافة مجلد",
+      "addMaterial": "إضافة مادة",
+      "noMaterials": "لا توجد مواد متاحة",
+      "loading": "جاري تحميل مواد المقرر…",
+      "uploadFile": "رفع ملف",
+      "createFolder": "إنشاء مجلد"
+    },
+    "folder": {
+      "title": "مجلد",
+      "back": "العودة إلى المواد",
+      "empty": "هذا المجلد فارغ",
+      "addItem": "إضافة عنصر"
+    },
+    "form": {
+      "folderName": "اسم المجلد",
+      "folderNamePlaceholder": "أدخل اسم المجلد",
+      "materialName": "اسم المادة",
+      "materialNamePlaceholder": "أدخل اسم المادة",
+      "materialType": "نوع المادة",
+      "selectFile": "اختر ملف",
+      "dragDrop": "اسحب وأفلت أو انقر للرفع"
+    },
+    "types": {
+      "pdf": "مستند PDF",
+      "video": "فيديو",
+      "image": "صورة",
+      "document": "مستند",
+      "archive": "أرشيف",
+      "other": "أخرى"
+    },
+    "messages": {
+      "uploadSuccess": "تم رفع المادة بنجاح",
+      "uploadError": "فشل رفع المادة",
+      "deleteSuccess": "تم حذف المادة بنجاح",
+      "deleteError": "فشل حذف المادة",
+      "folderCreated": "تم إنشاء المجلد بنجاح",
+      "folderDeleted": "تم حذف المجلد بنجاح"
+    }
+  },
+  "quizzes": {
+    "list": {
+      "title": "الاختبارات",
+      "description": "تصفح وقم بحل الاختبارات",
+      "addQuiz": "إضافة اختبار",
+      "noQuizzes": "لا توجد اختبارات متاحة",
+      "totalQuizzes": "إجمالي الاختبارات",
+      "viewMode": {
+        "grid": "عرض الشبكة",
+        "list": "عرض القائمة"
+      },
+      "back": "رجوع"
+    },
+    "card": {
+      "questions": "أسئلة",
+      "duration": "المدة",
+      "minutes": "دقيقة",
+      "difficulty": "الصعوبة",
+      "attempts": "المحاولات",
+      "startQuiz": "بدء الاختبار",
+      "continueQuiz": "متابعة الاختبار",
+      "viewResults": "عرض النتائج",
+      "retakeQuiz": "إعادة الاختبار"
+    },
+    "details": {
+      "title": "اختبار",
+      "description": "أجب على جميع الأسئلة",
+      "question": "سؤال",
+      "of": "من",
+      "nextQuestion": "السؤال التالي",
+      "previousQuestion": "السؤال السابق",
+      "submitQuiz": "إرسال الاختبار",
+      "timeRemaining": "الوقت المتبقي",
+      "score": "النتيجة",
+      "correctAnswers": "الإجابات الصحيحة",
+      "incorrectAnswers": "الإجابات الخاطئة"
+    },
+    "form": {
+      "quizTitle": "عنوان الاختبار",
+      "quizTitlePlaceholder": "أدخل عنوان الاختبار",
+      "description": "الوصف",
+      "descriptionPlaceholder": "أدخل وصف الاختبار",
+      "duration": "المدة (دقائق)",
+      "difficulty": "مستوى الصعوبة",
+      "addQuestion": "إضافة سؤال",
+      "questionText": "نص السؤال",
+      "questionTextPlaceholder": "أدخل السؤال",
+      "answerOption": "خيار الإجابة",
+      "correctAnswer": "الإجابة الصحيحة",
+      "addOption": "إضافة خيار",
+      "removeOption": "إزالة خيار"
+    },
+    "difficulty": {
+      "easy": "سهل",
+      "medium": "متوسط",
+      "hard": "صعب"
+    },
+    "messages": {
+      "quizStarted": "بدأ الاختبار",
+      "quizSubmitted": "تم إرسال الاختبار بنجاح",
+      "quizSaved": "تم حفظ الاختبار",
+      "errorLoading": "خطأ في تحميل الاختبار",
+      "errorSubmitting": "خطأ في إرسال الاختبار",
+      "retry": "إعادة المحاولة"
+    }
+  },
+  "universities": {
+    "list": {
+      "title": "الجامعات",
+      "description": "تصفح وإدارة الجامعات",
+      "addUniversity": "إضافة جامعة",
+      "noUniversities": "لا توجد جامعات متاحة",
+      "searchPlaceholder": "البحث عن جامعات..."
+    },
+    "details": {
+      "faculties": "الكليات",
+      "majors": "التخصصات",
+      "students": "الطلاب",
+      "addFaculty": "إضافة كلية",
+      "facultyName": "اسم الكلية",
+      "noFaculties": "لا توجد كليات متاحة"
+    },
+    "faculty": {
+      "title": "كلية",
+      "majors": "التخصصات",
+      "addMajor": "إضافة تخصص",
+      "majorName": "اسم التخصص",
+      "noMajors": "لا توجد تخصصات متاحة"
+    },
+    "form": {
+      "universityName": "اسم الجامعة",
+      "universityNamePlaceholder": "أدخل اسم الجامعة",
+      "location": "الموقع",
+      "locationPlaceholder": "أدخل الموقع",
+      "website": "الموقع الإلكتروني",
+      "websitePlaceholder": "أدخل رابط الموقع",
+      "facultyName": "اسم الكلية",
+      "facultyNamePlaceholder": "أدخل اسم الكلية",
+      "majorName": "اسم التخصص",
+      "majorNamePlaceholder": "أدخل اسم التخصص"
+    },
+    "messages": {
+      "universityAdded": "تمت إضافة الجامعة بنجاح",
+      "universityUpdated": "تم تحديث الجامعة بنجاح",
+      "universityDeleted": "تم حذف الجامعة بنجاح",
+      "facultyAdded": "تمت إضافة الكلية بنجاح",
+      "facultyUpdated": "تم تحديث الكلية بنجاح",
+      "facultyDeleted": "تم حذف الكلية بنجاح",
+      "majorAdded": "تمت إضافة التخصص بنجاح",
+      "majorUpdated": "تم تحديث التخصص بنجاح",
+      "majorDeleted": "تم حذف التخصص بنجاح"
+    }
+  },
+  "users": {
+    "list": {
+      "title": "المستخدمون",
+      "description": "إدارة مستخدمي النظام",
+      "addUser": "إضافة مستخدم",
+      "noUsers": "لم يتم العثور على مستخدمين",
+      "searchPlaceholder": "البحث عن مستخدمين..."
+    },
+    "table": {
+      "headers": {
+        "name": "الاسم",
+        "email": "البريد الإلكتروني",
+        "role": "الدور",
+        "status": "الحالة",
+        "joinedDate": "تاريخ الانضمام",
+        "actions": "الإجراءات"
+      }
+    },
+    "roles": {
+      "admin": "مسؤول",
+      "writer": "كاتب",
+      "student": "طالب",
+      "instructor": "محاضر"
+    },
+    "status": {
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "suspended": "معلق"
+    },
+    "form": {
+      "fullName": "الاسم الكامل",
+      "fullNamePlaceholder": "أدخل الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "emailPlaceholder": "أدخل البريد الإلكتروني",
+      "role": "الدور",
+      "selectRole": "اختر الدور",
+      "status": "الحالة",
+      "selectStatus": "اختر الحالة"
+    },
+    "messages": {
+      "userAdded": "تمت إضافة المستخدم بنجاح",
+      "userUpdated": "تم تحديث المستخدم بنجاح",
+      "userDeleted": "تم حذف المستخدم بنجاح",
+      "errorLoading": "خطأ في تحميل المستخدمين",
+      "errorSaving": "خطأ في حفظ المستخدم"
+    }
+  },
+  "profile": {
+    "title": "الملف الشخصي",
+    "editProfile": "تعديل الملف الشخصي",
+    "personalInfo": "المعلومات الشخصية",
+    "accountSettings": "إعدادات الحساب",
+    "fullName": "الاسم الكامل",
+    "email": "البريد الإلكتروني",
+    "phone": "الهاتف",
+    "bio": "نبذة",
+    "university": "الجامعة",
+    "faculty": "الكلية",
+    "major": "التخصص",
+    "studentId": "الرقم الجامعي",
+    "changePassword": "تغيير كلمة المرور",
+    "currentPassword": "كلمة المرور الحالية",
+    "newPassword": "كلمة المرور الجديدة",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "updateProfile": "تحديث الملف الشخصي",
+    "saveChanges": "حفظ التغييرات",
+    "messages": {
+      "updateSuccess": "تم تحديث الملف الشخصي بنجاح",
+      "updateError": "فشل تحديث الملف الشخصي",
+      "passwordChanged": "تم تغيير كلمة المرور بنجاح",
+      "passwordError": "فشل تغيير كلمة المرور"
+    }
+  },
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "overview": "نظرة عامة",
+    "analytics": "التحليلات",
+    "statistics": "الإحصائيات",
+    "recentActivity": "النشاط الأخير",
+    "totalUsers": "إجمالي المستخدمين",
+    "totalCourses": "إجمالي المقررات",
+    "totalQuizzes": "إجمالي الاختبارات",
+    "totalMaterials": "إجمالي المواد",
+    "activeUsers": "المستخدمون النشطون",
+    "newUsers": "مستخدمون جدد",
+    "courseEnrollments": "تسجيلات المقررات",
+    "quizAttempts": "محاولات الاختبارات",
+    "writer": {
+      "title": "إحصائيات الكاتب",
+      "myMaterials": "موادي",
+      "myQuizzes": "اختباراتي",
+      "totalViews": "إجمالي المشاهدات",
+      "totalDownloads": "إجمالي التحميلات",
+      "recentUploads": "الرفوعات الأخيرة"
+    }
+  },
+  "header": {
+    "navigation": {
+      "home": "الرئيسية",
+      "courses": "المقررات",
+      "materials": "المواد",
+      "quizzes": "الاختبارات",
+      "about": "عن",
+      "contact": "اتصل بنا"
+    },
+    "userMenu": {
+      "profile": "الملف الشخصي",
+      "settings": "الإعدادات",
+      "dashboard": "لوحة التحكم",
+      "logout": "تسجيل الخروج"
+    },
+    "language": "اللغة",
+    "theme": {
+      "light": "فاتح",
+      "dark": "داكن",
+      "system": "النظام"
+    }
+  },
+  "footer": {
+    "copyright": "© 2026 يوني-هاب. جميع الحقوق محفوظة.",
+    "links": {
+      "about": "عن",
+      "contact": "اتصل بنا",
+      "privacy": "سياسة الخصوصية",
+      "terms": "شروط الخدمة"
+    }
+  },
+  "validation": {
+    "required": "هذا الحقل مطلوب",
+    "emailInvalid": "الرجاء إدخال بريد إلكتروني صحيح",
+    "passwordTooShort": "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
+    "passwordsDontMatch": "كلمات المرور غير متطابقة",
+    "minLength": "يجب أن يكون {{min}} أحرف على الأقل",
+    "maxLength": "يجب ألا يتجاوز {{max}} حرفًا",
+    "invalidFormat": "صيغة غير صحيحة"
+  },
+  "errors": {
+    "network": "حدث خطأ في الشبكة",
+    "unauthorized": "وصول غير مصرح به",
+    "notFound": "المورد غير موجود",
+    "serverError": "حدث خطأ في الخادم",
+    "unknown": "حدث خطأ غير معروف",
+    "tryAgain": "الرجاء المحاولة مرة أخرى"
+  },
+  "pagination": {
+    "showing": "عرض",
+    "to": "إلى",
+    "of": "من",
+    "results": "نتائج",
+    "page": "صفحة",
+    "rowsPerPage": "صفوف لكل صفحة",
+    "firstPage": "الصفحة الأولى",
+    "previousPage": "الصفحة السابقة",
+    "nextPage": "الصفحة التالية",
+    "lastPage": "الصفحة الأخيرة"
+  }
+}

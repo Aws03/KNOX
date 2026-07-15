@@ -1,9 +1,0 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-namespace JadaraITKnowledgeSystem.API.Controllers;
-
-[Route("api/[controller]")]
-[ApiController]
-public class CourseMaterialsController : ControllerBase
-{
-}

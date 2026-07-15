@@ -22,6 +22,9 @@ public static class DependencyInjection
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ExceptionHandlingBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+        // Registered before TransactionBehavior so its post-`next()` code runs
+        // strictly after the transaction below has committed.
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(DispatchPostCommitJobsBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
 
         return services;

@@ -2,6 +2,7 @@
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
 using JadaraITKnowledgeSystem.Infrastructure.Interceptors;
 using JadaraITKnowledgeSystem.Infrastructure.Persistence.Context;
+using JadaraITKnowledgeSystem.Infrastructure.Services.BackgroundJobs;
 using JadaraITKnowledgeSystem.Infrastructure.Services.FileManagement;
 using JadaraITKnowledgeSystem.Infrastructure.Services.FileMangment;
 using JadaraITKnowledgeSystem.Infrastructure.Services.JWT;
@@ -54,6 +55,17 @@ namespace JadaraITKnowledgeSystem.Infrastructure
 
             services.AddHttpContextAccessor();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+            // Post-commit background job dispatch (replaces Task.Run + Task.Delay(100)).
+            // PostCommitDispatcher is scoped (per-request staging area, drained by
+            // DispatchPostCommitJobsBehavior after the request's transaction commits).
+            // BackgroundJobQueue is a process-wide singleton; it's registered under its
+            // concrete type too so QueuedBackgroundService can consume it directly
+            // while command handlers only ever see it through the IBackgroundJobQueue port.
+            services.AddScoped<IPostCommitDispatcher, PostCommitDispatcher>();
+            services.AddSingleton<BackgroundJobQueue>();
+            services.AddSingleton<IBackgroundJobQueue>(sp => sp.GetRequiredService<BackgroundJobQueue>());
+            services.AddHostedService<QueuedBackgroundService>();
 
             return services;
         }

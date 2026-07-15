@@ -120,15 +120,22 @@ public class QuizzesController(IMediator mediator) : ControllerBase
     {
         var command = new AddReactionCommand(
             quizId,
-            dto.UserId,
             dto.ReactionType
         );
 
         var result = await _mediator.Send(command, cancellationToken);
 
         return result.Match<IActionResult>(
-            onValue: result => Ok(result),
-            onError: errors => BadRequest(new { errors })
+            onValue: reactionResult => Ok(reactionResult),
+            onError: errors =>
+            {
+                var top = errors.FirstOrDefault();
+                return top.Code switch
+                {
+                    "User.NotAuthenticated" => Unauthorized(new { errors }),
+                    _ => BadRequest(new { errors })
+                };
+            }
         );
     }
 

@@ -1,6 +1,7 @@
 ﻿using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Courses;
+using JadaraITKnowledgeSystem.Domain.Courses.Entites;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Enums;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Errors;
@@ -28,6 +29,15 @@ namespace JadaraITKnowledgeSystem.Domain.Quizzes
         public int Dislikes { get; private set; }
         public DateTime CreatedAt { get; private set; }
 
+        public QuizSource Source { get; private set; } = QuizSource.Manual;
+        
+        [ForeignKey(nameof(SourceMaterial))]
+        public int? SourceMaterialId { get; private set; }
+        public CourseMaterial? SourceMaterial { get; private set; }
+        
+        public int? PartNumber { get; private set; }
+        public int? TotalParts { get; private set; }
+
         private readonly List<Question> _questions = new();
         public IReadOnlyCollection<Question> Questions => _questions.AsReadOnly();
 
@@ -54,21 +64,42 @@ namespace JadaraITKnowledgeSystem.Domain.Quizzes
 
         private Quiz() { }
 
-        private Quiz(int courseId, int writerId, string title, string? description = null)
+        private Quiz(
+            int courseId, 
+            int writerId, 
+            string title, 
+            string? description = null,
+            QuizSource source = QuizSource.Manual,
+            int? sourceMaterialId = null,
+            int? partNumber = null,
+            int? totalParts = null)
         {
             CourseId = courseId;
             WriterId = writerId;
             Title = title;
             Description = description;
             CreatedAt = DateTime.UtcNow;
+            Source = source;
+            SourceMaterialId = sourceMaterialId;
+            PartNumber = partNumber;
+            TotalParts = totalParts;
         }
 
-        public static Result<Quiz> Create(int courseId, int writerId, string title, string? description = null, IEnumerable<string>? tags = null)
+        public static Result<Quiz> Create(
+            int courseId, 
+            int writerId, 
+            string title, 
+            string? description = null, 
+            IEnumerable<string>? tags = null,
+            QuizSource source = QuizSource.Manual,
+            int? sourceMaterialId = null,
+            int? partNumber = null,
+            int? totalParts = null)
         {
             if (string.IsNullOrWhiteSpace(title))
                 return QuizErrors.TitleRequired;
 
-            var quiz = new Quiz(courseId, writerId, title, description);
+            var quiz = new Quiz(courseId, writerId, title, description, source, sourceMaterialId, partNumber, totalParts);
             var tagResult = quiz.UpdateTags(tags);
             if (tagResult.IsError)
                 return tagResult.Errors;

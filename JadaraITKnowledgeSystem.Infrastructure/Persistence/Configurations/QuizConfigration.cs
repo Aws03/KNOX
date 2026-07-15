@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using JadaraITKnowledgeSystem.Domain.Quizzes;
+using JadaraITKnowledgeSystem.Domain.Quizzes.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -28,6 +29,19 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
             builder.Property(q => q.Dislikes)
                 .HasDefaultValue(0);
 
+            builder.Property(q => q.Source)
+                .IsRequired()
+                .HasConversion<int>();
+
+            builder.Property(q => q.SourceMaterialId)
+                .IsRequired(false);
+
+            builder.Property(q => q.PartNumber)
+                .IsRequired(false);
+
+            builder.Property(q => q.TotalParts)
+                .IsRequired(false);
+
             var tagsComparer = new ValueComparer<List<string>>(
                 (c1, c2) => c1.SequenceEqual(c2, StringComparer.OrdinalIgnoreCase),
                 c => c.Aggregate(0, (a, v) => HashCode.Combine(a, StringComparer.OrdinalIgnoreCase.GetHashCode(v))),
@@ -39,10 +53,10 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
                 .HasColumnName("Tags")
                 .HasColumnType("nvarchar(max)")
                 .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
                     v => string.IsNullOrWhiteSpace(v)
                         ? new List<string>()
-                        : JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default) ?? new List<string>())
+                        : JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>())
                 .Metadata.SetValueComparer(tagsComparer);
 
             // Auditable fields
@@ -71,6 +85,11 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
                 .HasForeignKey(q => q.WriterId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasOne(q => q.SourceMaterial)
+                .WithMany()
+                .HasForeignKey(q => q.SourceMaterialId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             builder.HasMany(q => q.Questions)
                 .WithOne(qs => qs.Quiz)
                 .HasForeignKey(qs => qs.QuizId)
@@ -85,6 +104,10 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
                 .WithOne(a => a.Quiz)
                 .HasForeignKey(a => a.QuizId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes
+            builder.HasIndex(q => q.SourceMaterialId);
+            builder.HasIndex(q => q.Source);
         }
     }
 }

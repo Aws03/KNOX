@@ -8,5 +8,6 @@ namespace JadaraITKnowledgeSystem.Application.Interfaces.Services
         Task<Result<Success>> AddToRoleAsync(int identityUserId, string role);
         Task<Result<Success>> SetSingleRoleAsync(int identityUserId, string role);
         Task<Result<Success>> ResetPasswordAsync(string email, string newPassword);
+        Task<Result<Success>> ChangePasswordAsync(int identityUserId, string currentPassword, string newPassword);
     }
 }

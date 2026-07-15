@@ -112,6 +112,29 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Identity
             return Result.Success;
         }
 
+        public async Task<Result<Success>> ChangePasswordAsync(int identityUserId, string currentPassword, string newPassword)
+        {
+            // Find the identity user by ID
+            var user = await _userManager.FindByIdAsync(identityUserId.ToString());
+            if (user is null)
+            {
+                return Error.NotFound("User.NotFound", "User not found");
+            }
+
+            // Change the password using UserManager which validates the current password
+            var result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors
+                    .Select(e => Error.Validation("Password.Change", e.Description))
+                    .ToList();
+                return errors;
+            }
+
+            return Result.Success;
+        }
+
         private static string GeneratePassword()
         {
             var bytes = System.Security.Cryptography.RandomNumberGenerator.GetBytes(16);

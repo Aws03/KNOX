@@ -8,3 +8,4 @@ public sealed record AssignRoleRequest(int UserId, string Role);
 public sealed record SendOtpRequest(string Email);
 public sealed record VerifyOtpRequest(string Email, string Otp);
 public sealed record ResetPasswordRequest(string Email, string Otp, string NewPassword);
+public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);

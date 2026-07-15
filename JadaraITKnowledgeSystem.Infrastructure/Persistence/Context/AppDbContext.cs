@@ -6,6 +6,8 @@ using JadaraITKnowledgeSystem.Domain.Courses.Entities;
 using JadaraITKnowledgeSystem.Domain.Identity;
 using JadaraITKnowledgeSystem.Domain.Quizzes;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
+using JadaraITKnowledgeSystem.Domain.Quizzes.Entities;
+using JadaraITKnowledgeSystem.Domain.System.Entities;
 using JadaraITKnowledgeSystem.Domain.Universities;
 using JadaraITKnowledgeSystem.Domain.Universities.Entities;
 using JadaraITKnowledgeSystem.Domain.Users;
@@ -38,6 +40,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Context
         public virtual DbSet<VerificationOTP> VerificationOTPs { get; set; }
         public virtual DbSet<WriterApplication> WriterApplications { get; set; }
         public virtual DbSet<Enrollment> Enrollments { get; set; }
+        public virtual DbSet<QuizGenerationJob> QuizGenerationJobs { get; set; }
+        public virtual DbSet<SystemSetting> SystemSettings { get; set; }
 
         private readonly IMediator _mediator;
 

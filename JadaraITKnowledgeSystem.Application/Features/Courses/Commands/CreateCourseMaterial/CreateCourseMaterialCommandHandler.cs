@@ -1,22 +1,35 @@
 ﻿using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Courses.Mappers;
+using JadaraITKnowledgeSystem.Application.Features.Quizzes.Commands.GenerateQuizFromMaterial;
+using JadaraITKnowledgeSystem.Application.Features.Quizzes.Dtos;
 using JadaraITKnowledgeSystem.Application.Interfaces;
+using JadaraITKnowledgeSystem.Application.Interfaces.Services;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Courses.Entites;
 using Microsoft.EntityFrameworkCore;
 using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 
 namespace JadaraITKnowledgeSystem.Application.Features.Courses.Commands.CreateCourseMaterial;
 
 public sealed class CreateCourseMaterialCommandHandler(
     IApplicationDbContext context,
+    IFeatureFlagService featureFlagService,
+    ICurrentUserService currentUserService,
+    IPostCommitDispatcher postCommitDispatcher,
     ILogger<CreateCourseMaterialCommandHandler> logger)
     : IRequestHandler<CreateCourseMaterialCommand, Result<CourseMaterialDto>>
 {
     private readonly ILogger<CreateCourseMaterialCommandHandler> _logger = logger;
     private readonly IApplicationDbContext _context = context;
+    private readonly IFeatureFlagService _featureFlagService = featureFlagService;
+    private readonly ICurrentUserService _currentUserService = currentUserService;
+    private readonly IPostCommitDispatcher _postCommitDispatcher = postCommitDispatcher;
 
     public async Task<Result<CourseMaterialDto>> Handle(
         CreateCourseMaterialCommand request,
@@ -72,6 +85,46 @@ public sealed class CreateCourseMaterialCommandHandler(
         await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Course material created successfully. Id={Id} CourseId={CourseId}", material.Id, request.CourseId);
+
+        // Capture material ID for background processing
+        var materialId = material.Id;
+        var userId = _currentUserService.UserId ?? 1;
+
+        // Auto-generate quiz if requested and feature is enabled
+        if (request.GenerateQuiz && _featureFlagService.IsQuizGenerationEnabled())
+        {
+            _logger.LogInformation("Initiating quiz generation for material. MaterialId={MaterialId}", materialId);
+
+            // Stage quiz generation to run only after this command's transaction has
+            // committed - DispatchPostCommitJobsBehavior hands this to the real
+            // background queue once TransactionBehavior confirms the commit succeeded.
+            _postCommitDispatcher.Enqueue(async (serviceProvider, ct) =>
+            {
+                try
+                {
+                    var mediator = serviceProvider.GetRequiredService<IMediator>();
+
+                    var quizOptions = request.QuizOptions ?? new QuizGenerationOptionsDto();
+                    var generateCommand = new GenerateQuizFromMaterialCommand(
+                        materialId,
+                        userId,
+                        quizOptions);
+
+                    await mediator.Send(generateCommand, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Background quiz generation failed for material. MaterialId={MaterialId}",
+                        materialId);
+                }
+            });
+        }
+        else if (request.GenerateQuiz && !_featureFlagService.IsQuizGenerationEnabled())
+        {
+            _logger.LogWarning("Quiz generation requested but feature is disabled. MaterialId={MaterialId}", materialId);
+        }
+
         return material.ToDto();
     }
 }

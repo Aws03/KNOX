@@ -1,6 +1,6 @@
-﻿using JadaraITKnowledgeSystem.Application.Fetures.Majors.Commands.CreateMajor;
-using JadaraITKnowledgeSystem.Application.Fetures.Majors.Queries.GetMajorByFacultyId;
-using JadaraITKnowledgeSystem.Application.Fetures.Majors.Queries.GetMajorById;
+﻿using JadaraITKnowledgeSystem.Application.Features.Majors.Commands.CreateMajor;
+using JadaraITKnowledgeSystem.Application.Features.Majors.Queries.GetMajorByFacultyId;
+using JadaraITKnowledgeSystem.Application.Features.Majors.Queries.GetMajorById;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

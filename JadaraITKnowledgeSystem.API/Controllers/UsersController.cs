@@ -1,15 +1,15 @@
 ﻿using JadaraITKnowledgeSystem.Application.Common.Models;
-using JadaraITKnowledgeSystem.Application.Fetures.Users.Dtos;
-using JadaraITKnowledgeSystem.Application.Fetures.Users.Queries.GetUsers;
-using JadaraITKnowledgeSystem.Application.Fetures.Users.Queries.GetUsersWithDetails;
-using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.BlockUser;
-using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.ActivateUser;
-using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.UpdateUserProfile;
-using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.UpdateProfilePicture;
-using JadaraITKnowledgeSystem.Application.Fetures.Users.Commands.DeleteProfilePicture;
-using JadaraITKnowledgeSystem.Application.Fetures.Identity.Queries.GetRoles;
-using JadaraITKnowledgeSystem.Application.Fetures.Identity.Commands.AssignRole;
-using JadaraITKnowledgeSystem.Application.Fetures.Users.Queries.GetCurrentUserProfile;
+using JadaraITKnowledgeSystem.Application.Features.Users.Dtos;
+using JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetUsers;
+using JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetUsersWithDetails;
+using JadaraITKnowledgeSystem.Application.Features.Users.Commands.BlockUser;
+using JadaraITKnowledgeSystem.Application.Features.Users.Commands.ActivateUser;
+using JadaraITKnowledgeSystem.Application.Features.Users.Commands.UpdateUserProfile;
+using JadaraITKnowledgeSystem.Application.Features.Users.Commands.UpdateProfilePicture;
+using JadaraITKnowledgeSystem.Application.Features.Users.Commands.DeleteProfilePicture;
+using JadaraITKnowledgeSystem.Application.Features.Identity.Queries.GetRoles;
+using JadaraITKnowledgeSystem.Application.Features.Identity.Commands.AssignRole;
+using JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetCurrentUserProfile;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -185,13 +185,13 @@ public class UsersController(IMediator mediator) : ControllerBase
         [FromQuery] string? email,
         [FromQuery] int? id,
         [FromQuery] bool? isActive,
-        [FromQuery] bool? isVerfied,
+        [FromQuery] bool? isVerified,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(
-            new GetUsersWithDetailsQuery(universityId, facultyId, majorId, email, id, isActive, isVerfied, pageNumber, pageSize),
+            new GetUsersWithDetailsQuery(universityId, facultyId, majorId, email, id, isActive, isVerified, pageNumber, pageSize),
             cancellationToken);
 
         return result.Match<IActionResult>(
@@ -272,7 +272,7 @@ public class UsersController(IMediator mediator) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetWriterStatistics(int id, CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(new Application.Fetures.Users.Queries.GetWriterStatistics.GetWriterStatisticsQuery(id), cancellationToken);
+        var result = await _mediator.Send(new Application.Features.Users.Queries.GetWriterStatistics.GetWriterStatisticsQuery(id), cancellationToken);
         if (result == null)
             return NotFound();
         return Ok(result);

@@ -1,4 +1,4 @@
-﻿//using JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Dtos;
+﻿//using JadaraITKnowledgeSystem.Application.Features.Quizzes.Dtos;
 //using JadaraITKnowledgeSystem.Application.Interfaces.Services.Generic;
 //using System;
 //using System.Collections.Generic;

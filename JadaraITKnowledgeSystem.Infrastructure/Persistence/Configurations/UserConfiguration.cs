@@ -44,10 +44,10 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
                 .HasForeignKey(u => u.MajorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            builder.Property(u => u.IsVerfied)
+            builder.Property(u => u.IsVerified)
                 .IsRequired();
 
-            builder.Property(u => u.VerficationDate)
+            builder.Property(u => u.VerificationDate)
                 .IsRequired(false);
 
             // Auditable fields inherited (if used separately)

@@ -4,6 +4,8 @@ using JadaraITKnowledgeSystem.Domain.Courses.Entities;
 using JadaraITKnowledgeSystem.Domain.Identity;
 using JadaraITKnowledgeSystem.Domain.Quizzes;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
+using JadaraITKnowledgeSystem.Domain.Quizzes.Entities;
+using JadaraITKnowledgeSystem.Domain.System.Entities;
 using JadaraITKnowledgeSystem.Domain.Universities;
 using JadaraITKnowledgeSystem.Domain.Universities.Entities;
 using JadaraITKnowledgeSystem.Domain.Users;
@@ -38,6 +40,8 @@ public interface IApplicationDbContext
     public DbSet<VerificationOTP> VerificationOTPs { get; set; }
     public DbSet<WriterApplication> WriterApplications { get; set; }
     public DbSet<Enrollment> Enrollments { get; set; }
+    public DbSet<QuizGenerationJob> QuizGenerationJobs { get; set; }
+    public DbSet<SystemSetting> SystemSettings { get; set; }
 
     DatabaseFacade Database { get; } // For transactions
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

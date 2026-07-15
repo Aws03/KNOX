@@ -2,6 +2,7 @@
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
 using JadaraITKnowledgeSystem.Infrastructure.Interceptors;
 using JadaraITKnowledgeSystem.Infrastructure.Persistence.Context;
+using JadaraITKnowledgeSystem.Infrastructure.Services.AI;
 using JadaraITKnowledgeSystem.Infrastructure.Services.BackgroundJobs;
 using JadaraITKnowledgeSystem.Infrastructure.Services.FileManagement;
 using JadaraITKnowledgeSystem.Infrastructure.Services.FileMangment;
@@ -9,6 +10,8 @@ using JadaraITKnowledgeSystem.Infrastructure.Services.JWT;
 using JadaraITKnowledgeSystem.Infrastructure.Services.Security;
 using JadaraITKnowledgeSystem.Infrastructure.Services.Email;
 using JadaraITKnowledgeSystem.Infrastructure.Services.Storage;
+using JadaraITKnowledgeSystem.Infrastructure.Services.System;
+using JadaraITKnowledgeSystem.Infrastructure.Services.TextExtraction;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -55,6 +58,12 @@ namespace JadaraITKnowledgeSystem.Infrastructure
 
             services.AddHttpContextAccessor();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+            // Quiz Generation Services
+            services.AddScoped<ITextExtractionService, TextExtractionService>();
+            services.AddHttpClient<IOpenAIService, OpenAIService>();
+            services.AddScoped<IFeatureFlagService, FeatureFlagService>();
+            services.AddMemoryCache(); // Required for feature flag caching
 
             // Post-commit background job dispatch (replaces Task.Run + Task.Delay(100)).
             // PostCommitDispatcher is scoped (per-request staging area, drained by

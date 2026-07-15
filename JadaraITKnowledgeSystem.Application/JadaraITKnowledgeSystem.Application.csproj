@@ -17,12 +17,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Fetures\Faculties\Queries\GetFaculties\" />
-    <Folder Include="Fetures\Files\Commands\DeleteFile\" />
-    <Folder Include="Fetures\Files\Commands\DeleteFileByUrl\" />
-    <Folder Include="Fetures\Files\Mappers\" />
-    <Folder Include="Fetures\Files\Queries\" />
-    <Folder Include="Fetures\Majors\Queries\GetMajors\" />
+    <Folder Include="Features\Faculties\Queries\GetFaculties\" />
+    <Folder Include="Features\Files\Commands\DeleteFile\" />
+    <Folder Include="Features\Files\Commands\DeleteFileByUrl\" />
+    <Folder Include="Features\Files\Mappers\" />
+    <Folder Include="Features\Files\Queries\" />
+    <Folder Include="Features\Majors\Queries\GetMajors\" />
   </ItemGroup>
 
 </Project>

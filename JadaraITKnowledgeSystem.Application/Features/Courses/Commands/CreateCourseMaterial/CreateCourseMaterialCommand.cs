@@ -1,4 +1,5 @@
 ﻿using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
+using JadaraITKnowledgeSystem.Application.Features.Quizzes.Dtos;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
 using System.Collections.Generic;
@@ -11,5 +12,7 @@ public sealed record CreateCourseMaterialCommand(
     int CourseId,
     int? FolderId,
     string? Description,
-    IEnumerable<string>? Tags
+    IEnumerable<string>? Tags,
+    bool GenerateQuiz = false,
+    QuizGenerationOptionsDto? QuizOptions = null
 ) : IRequest<Result<CourseMaterialDto>>;

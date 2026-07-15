@@ -1,6 +1,6 @@
-﻿using JadaraITKnowledgeSystem.Application.Fetures.Faculties.Commands.CreateFaculty;
-using JadaraITKnowledgeSystem.Application.Fetures.Faculties.Queries.GetFacultiesByUniversityId;
-using JadaraITKnowledgeSystem.Application.Fetures.Faculties.Queries.GetFacultyById;
+﻿using JadaraITKnowledgeSystem.Application.Features.Faculties.Commands.CreateFaculty;
+using JadaraITKnowledgeSystem.Application.Features.Faculties.Queries.GetFacultiesByUniversityId;
+using JadaraITKnowledgeSystem.Application.Features.Faculties.Queries.GetFacultyById;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

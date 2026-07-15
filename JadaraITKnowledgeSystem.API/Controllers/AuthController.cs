@@ -8,6 +8,7 @@ using MediatR;
 using JadaraITKnowledgeSystem.Application.Features.Users.Commands.CreateUser;
 using JadaraITKnowledgeSystem.Application.Features.Users.Commands.VerifyAccount;
 using JadaraITKnowledgeSystem.Application.Features.Users.Commands.ResetPassword;
+using JadaraITKnowledgeSystem.Application.Features.Users.Commands.ChangePassword;
 using Microsoft.Extensions.Logging;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetUserVerificationStatus;
@@ -446,5 +447,35 @@ public class AuthController : ControllerBase
 
         _logger.LogInformation("[ResetPassword] Password reset successfully for {Email}", request.Email);
         return Ok(new { message = "Password reset successfully" });
+    }
+
+    [HttpPost("change-password")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        {
+            _logger.LogWarning("[ChangePassword] Invalid user claim");
+            return Unauthorized(new { message = "Invalid user" });
+        }
+
+        _logger.LogInformation("[ChangePassword] Password change attempt for UserId={UserId}", userId);
+
+        var command = new ChangePasswordCommand(request.CurrentPassword, request.NewPassword);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsError)
+        {
+            _logger.LogWarning("[ChangePassword] Password change failed for UserId={UserId}: {Errors}",
+                userId, string.Join("; ", result.Errors.Select(e => e.Description)));
+            return BadRequest(new { message = result.TopError.Description });
+        }
+
+        _logger.LogInformation("[ChangePassword] Password changed successfully for UserId={UserId}", userId);
+        return Ok(new { message = "Password changed successfully" });
     }
 }

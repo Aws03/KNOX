@@ -1,9 +1,9 @@
-﻿using JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Commands.AddReaction;
-using JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Commands.CreateQuiz;
-using JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Dtos;
-using JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Queries.GetQuizById;
-using JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Queries.GetQuizzes;
-using JadaraITKnowledgeSystem.Application.Fetures.Quizzes.Queries.GetQuizzesByWriterId;
+﻿using JadaraITKnowledgeSystem.Application.Features.Quizzes.Commands.AddReaction;
+using JadaraITKnowledgeSystem.Application.Features.Quizzes.Commands.CreateQuiz;
+using JadaraITKnowledgeSystem.Application.Features.Quizzes.Dtos;
+using JadaraITKnowledgeSystem.Application.Features.Quizzes.Queries.GetQuizById;
+using JadaraITKnowledgeSystem.Application.Features.Quizzes.Queries.GetQuizzes;
+using JadaraITKnowledgeSystem.Application.Features.Quizzes.Queries.GetQuizzesByWriterId;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

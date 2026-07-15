@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using JadaraITKnowledgeSystem.Application.Fetures.Dashboard.Queries.GetSystemStatistics;
+using JadaraITKnowledgeSystem.Application.Features.Dashboard.Queries.GetSystemStatistics;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

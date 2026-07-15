@@ -371,3 +371,6 @@ JadaraITKnowledgeSystem.API/appsettings.*.json
 # Locally-stored uploads (local file storage backend) - keep the folder, not its contents
 JadaraITKnowledgeSystem.API/wwwroot/uploads/*
 !JadaraITKnowledgeSystem.API/wwwroot/uploads/.gitkeepnode_modules/
+
+# macOS
+.DS_Store

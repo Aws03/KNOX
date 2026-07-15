@@ -14,8 +14,8 @@ namespace JadaraITKnowledgeSystem.Domain.Users
         public int MajorId { get; private set; }
         public Major Major { get; private set; }
 
-        public bool IsVerfied { get; private set; } = false;
-        public DateTime? VerficationDate { get; private set; } = null;
+        public bool IsVerified { get; private set; } = false;
+        public DateTime? VerificationDate { get; private set; } = null;
 
         public bool IsActive { get; private set; } = true; // default active
         public string? ProfilePictureUrl { get; private set; } = null;
@@ -40,11 +40,11 @@ namespace JadaraITKnowledgeSystem.Domain.Users
 
         public Result<Success> VerifyAccount()
         {
-            if (IsVerfied)
+            if (IsVerified)
                 return Result.Success;
 
-            IsVerfied = true;
-            VerficationDate = DateTime.UtcNow;
+            IsVerified = true;
+            VerificationDate = DateTime.UtcNow;
             return Result.Success;
         }
 

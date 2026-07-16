@@ -14,18 +14,24 @@ public static class DependencyInjection
 
         // MediatR
         services.AddMediatR(cfg =>
-            cfg.RegisterServicesFromAssembly(assembly));
+        {
+            cfg.RegisterServicesFromAssembly(assembly);
+
+            // All 5 behaviours are open generics over TRequest/TResponse directly
+            // (see ValidationBehavior's own comment for why that constraint matters -
+            // it used to be generic over TValue with TResponse hardcoded to
+            // Result<TValue>, which the DI container could never actually resolve).
+            cfg.AddOpenBehavior(typeof(ExceptionHandlingBehavior<,>));
+            cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
+            cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+            // Registered before TransactionBehavior so its post-`next()` code runs
+            // strictly after the transaction below has committed.
+            cfg.AddOpenBehavior(typeof(DispatchPostCommitJobsBehavior<,>));
+            cfg.AddOpenBehavior(typeof(TransactionBehavior<,>));
+        });
 
         // FluentValidation
         services.AddValidatorsFromAssembly(assembly);
-
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ExceptionHandlingBehavior<,>));
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-        // Registered before TransactionBehavior so its post-`next()` code runs
-        // strictly after the transaction below has committed.
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(DispatchPostCommitJobsBehavior<,>));
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
 
         return services;
     }

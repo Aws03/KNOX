@@ -97,6 +97,13 @@ namespace JadaraITKnowledgeSystem.Domain.Common.Results
         public static implicit operator Result<TValue>(List<Error> errors) =>
             new(errors);
 
+        // Named (non-operator) equivalent of the List<Error> -> Result<TValue>
+        // implicit conversion above, callable via reflection. ValidationBehavior
+        // needs this: it can't be generic over TValue directly (see the comment
+        // on ValidationBehavior for why), so it only knows TResponse's runtime
+        // type is some closed Result<X> and must build the failure through this
+        // named static method instead of the compiler-resolved operator.
+        public static Result<TValue> Failure(List<Error> errors) => new(errors);
 
     }
 

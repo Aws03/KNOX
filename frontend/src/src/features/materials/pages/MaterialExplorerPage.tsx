@@ -8,6 +8,7 @@ import { MaterialExplorerHeader } from "../components/MaterialExplorerHeader";
 import { MaterialExplorerContent } from "../components/MaterialExplorerContent";
 import { CreateFolderDialog } from "../components/CreateFolderDialog";
 import { UploadMaterialDialog } from "../components/UploadMaterialDialog";
+import { deleteFolder, deleteMaterial } from "../api";
 import type { FolderItem, MaterialItem } from "../types";
 
 interface MaterialExplorerProps {
@@ -44,16 +45,30 @@ export default function MaterialExplorerPage({
     // TODO: Open edit folder dialog
   };
 
-  const handleDeleteFolder = (_folderId: number) => {
-    // TODO: Confirm and delete folder
+  const handleDeleteFolder = async (folderId: number) => {
+    if (!confirm("Are you sure you want to delete this folder?")) return;
+
+    try {
+      await deleteFolder(folderId);
+      await refetch();
+    } catch (err) {
+      console.error("Failed to delete folder:", err);
+    }
   };
 
   const handleEditMaterial = (_material: MaterialItem) => {
     // TODO: Open edit material dialog
   };
 
-  const handleDeleteMaterial = (_materialId: number) => {
-    // TODO: Confirm and delete material
+  const handleDeleteMaterial = async (materialId: number) => {
+    if (!confirm("Are you sure you want to delete this material?")) return;
+
+    try {
+      await deleteMaterial(materialId);
+      await refetch();
+    } catch (err) {
+      console.error("Failed to delete material:", err);
+    }
   };
 
   if (loading) {

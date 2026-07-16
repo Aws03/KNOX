@@ -20,9 +20,12 @@ public sealed class DeleteCourseResourceCommandHandler
     {
         _logger.LogInformation("Deleting resource {ResourceId} from course {CourseId}", request.ResourceId, request.CourseId);
 
-        // Get the course with CourseInfo
+        // Get the course with CourseInfo and its resources - RemoveResource below
+        // searches CourseInfo's in-memory Resources collection, which EF only
+        // populates when explicitly included via ThenInclude.
         var course = await _context.Courses
             .Include(c => c.CourseInfo)
+                .ThenInclude(ci => ci.Resources)
             .FirstOrDefaultAsync(c => c.Id == request.CourseId, cancellationToken);
         if (course is null)
         {

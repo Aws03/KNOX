@@ -40,6 +40,10 @@ namespace JadaraITKnowledgeSystem.Domain.Universities.Entities
             return new Major(name,facultyId);
         }
 
+        public void UpdateName(string name) => SetName(name);
+
+        public void UpdateFaculty(int facultyId) => SetFacultyId(facultyId);
+
         private void SetFacultyId(int facultyId)
         {
             if(facultyId <= 0)

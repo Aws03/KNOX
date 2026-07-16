@@ -45,5 +45,19 @@ namespace JadaraITKnowledgeSystem.Domain.Universities
 
             _faculties.Add(faculty);
         }
+
+        public void UpdateName(string name) => SetName(name);
+
+        private void SetName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("University name is required.", nameof(name));
+
+            var trimmed = name.Trim();
+            if (trimmed.Length > 120)
+                throw new ArgumentException("University name must be 120 characters or fewer.", nameof(name));
+
+            Name = trimmed;
+        }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using JadaraITKnowledgeSystem.Application.Features.Universities.Commands.CreateUniversity;
+using JadaraITKnowledgeSystem.Application.Features.Universities.Commands.UpdateUniversity;
 using JadaraITKnowledgeSystem.Application.Features.Universities.Queries.GetUniversityById;
 using JadaraITKnowledgeSystem.Application.Features.Universities.Queries.GetUniversities;
 using MediatR;
@@ -67,5 +68,31 @@ public class UniversitiesController(IMediator mediator) : ControllerBase
             onValue: universities => Ok(universities),
             onError: errors => BadRequest(new { errors })
         );
+    }
+
+    public sealed record UpdateUniversityRequest(string Name);
+
+    [HttpPut("{id}")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(
+        int id,
+        [FromBody] UpdateUniversityRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new UpdateUniversityCommand(id, request.Name);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        return result.Match<IActionResult>(
+            onValue: university => Ok(university),
+            onError: errors =>
+            {
+                var top = errors.FirstOrDefault();
+                if (top.Code == "University.NotFound")
+                    return NotFound(new { errors });
+                return BadRequest(new { errors });
+            });
     }
 }

@@ -1,4 +1,5 @@
 ﻿using JadaraITKnowledgeSystem.Application.Features.Majors.Commands.CreateMajor;
+using JadaraITKnowledgeSystem.Application.Features.Majors.Commands.UpdateMajor;
 using JadaraITKnowledgeSystem.Application.Features.Majors.Queries.GetMajorByFacultyId;
 using JadaraITKnowledgeSystem.Application.Features.Majors.Queries.GetMajorById;
 using MediatR;
@@ -65,5 +66,31 @@ public class MajorsController(IMediator mediator) : ControllerBase
             onValue: faculties => Ok(faculties),
             onError: errors => BadRequest(new { errors })
         );
+    }
+
+    public sealed record UpdateMajorRequest(string Name, int FacultyId);
+
+    [HttpPut("{id}")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(
+        int id,
+        [FromBody] UpdateMajorRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new UpdateMajorCommand(id, request.Name, request.FacultyId);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        return result.Match<IActionResult>(
+            onValue: major => Ok(major),
+            onError: errors =>
+            {
+                var top = errors.FirstOrDefault();
+                if (top.Code == "Major.NotFound")
+                    return NotFound(new { errors });
+                return BadRequest(new { errors });
+            });
     }
 }

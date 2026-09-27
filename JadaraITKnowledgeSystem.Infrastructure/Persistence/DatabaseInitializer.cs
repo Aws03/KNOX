@@ -26,6 +26,7 @@ public sealed class DatabaseInitializer(
     /// <summary>Applies migrations, provisions the API's SQL login and seeds bootstrap data.</summary>
     public async Task MigrateAsync(CancellationToken cancellationToken = default)
     {
+        LogTarget();
         await ApplyMigrationsAsync(cancellationToken);
         await EnsureAppLoginAsync(cancellationToken);
         await SeedAsync(cancellationToken);
@@ -33,6 +34,7 @@ public sealed class DatabaseInitializer(
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
+        LogTarget();
         if (options.Value.MigrateOnStartup)
             await ApplyMigrationsAsync(cancellationToken);
 
@@ -40,6 +42,16 @@ public sealed class DatabaseInitializer(
             await SeedAsync(cancellationToken);
 
         await FailInterruptedJobsAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Names the server and database in use (never the credentials): configuration layers such as
+    /// dotnet user-secrets or environment variables can silently override appsettings.
+    /// </summary>
+    private void LogTarget()
+    {
+        var connection = context.Database.GetDbConnection();
+        logger.LogInformation("Using database {Database} on {Server}", connection.Database, connection.DataSource);
     }
 
     private async Task ApplyMigrationsAsync(CancellationToken cancellationToken)

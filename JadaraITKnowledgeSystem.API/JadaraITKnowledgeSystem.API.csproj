@@ -5,6 +5,8 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- XML docs feed the OpenAPI document; undocumented members are fine. -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- A pure API: files live in object storage, and Swagger UI serves its assets from the package. -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
   </PropertyGroup>
 
   <ItemGroup>

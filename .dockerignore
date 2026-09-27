@@ -4,7 +4,6 @@
 **/.vscode/
 **/*.user
 **/node_modules/
-**/wwwroot/uploads/
 .git/
 .github/
 tests/

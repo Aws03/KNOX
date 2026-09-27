@@ -1,0 +1,74 @@
+# Optional self-hosted object storage (SeaweedFS, S3-compatible) on the same host.
+# Managed storage (Cloudflare R2, AWS S3, Backblaze B2) behind a CDN is recommended for production
+# video delivery; use this for small installations or to try the stack locally:
+#   COMPOSE_FILE=compose.yml:compose.storage.yml   (in .env)
+# Browsers reach the buckets through Caddy at https://$DOMAIN/<bucket>/..., so presigned uploads and
+# downloads use the site's own origin (set STORAGE_PUBLIC_SERVICE_URL=https://$DOMAIN).
+# Back up the storage-data volume alongside the database.
+
+x-storage-image: &storage-image chrislusf/seaweedfs:4.47
+
+services:
+  storage:
+    image: *storage-image
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+    environment:
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:?Set STORAGE_ACCESS_KEY in .env}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:?Set STORAGE_SECRET_KEY in .env}
+      PUBLIC_BUCKET: ${STORAGE_PUBLIC_BUCKET:-knox-public}
+    # The API's key may do everything; anonymous callers may only read the public bucket.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        cat > /tmp/s3.json <<JSON
+        {"identities":[
+          {"name":"knox","credentials":[{"accessKey":"$$STORAGE_ACCESS_KEY","secretKey":"$$STORAGE_SECRET_KEY"}],"actions":["Admin","Read","Write","List","Tagging"]},
+          {"name":"anonymous","actions":["Read:$$PUBLIC_BUCKET"]}
+        ]}
+        JSON
+        # A stable name (not the container IP, which changes) and all interfaces (two networks).
+        exec weed server -dir=/data -ip=storage -ip.bind=0.0.0.0 -s3 -s3.port=8333 -s3.config=/tmp/s3.json
+    volumes:
+      - storage-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8333/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    # app: the API's S3 calls; edge: Caddy forwards browsers' presigned requests.
+    networks: [app, edge]
+
+  # Creates the two buckets (idempotent); runs before the API starts.
+  storage-init:
+    image: *storage-image
+    restart: "no"
+    depends_on:
+      storage:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        for bucket in ${STORAGE_PUBLIC_BUCKET:-knox-public} ${STORAGE_PRIVATE_BUCKET:-knox-private}; do
+          echo "s3.bucket.create -name $$bucket" | weed shell -master=storage:9333 2>&1 | grep -v "already exists" || true
+        done
+        echo "s3.bucket.list" | weed shell -master=storage:9333
+    networks: [app]
+
+  backend:
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+
+  proxy:
+    volumes:
+      - ./caddy/storage:/etc/caddy/conf.d:ro
+
+volumes:
+  storage-data:

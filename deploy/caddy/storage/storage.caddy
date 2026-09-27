@@ -1,0 +1,11 @@
+# Bucket paths go to self-hosted object storage (mounted by compose.storage.yml).
+# The Host header is passed through unchanged, which presigned URL signatures depend on.
+@buckets path /{$STORAGE_PUBLIC_BUCKET:knox-public}/* /{$STORAGE_PRIVATE_BUCKET:knox-private}/*
+handle @buckets {
+	request_body {
+		max_size 5GB
+	}
+	reverse_proxy storage:8333 {
+		flush_interval -1
+	}
+}

@@ -1,0 +1,26 @@
+# Edge proxy: automatic HTTPS (Let's Encrypt), HTTP/3, compression and HSTS in front of the web container.
+{
+	email {$ACME_EMAIL}
+	# Certificates come from Let's Encrypt; never try to add Caddy's local CA to a trust store.
+	skip_install_trust
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Optional extra routes (e.g. self-hosted object storage, see compose.storage.yml).
+	import /etc/caddy/conf.d/*.caddy
+
+	# Caddy replaces any client-supplied X-Forwarded-For with the real client address.
+	reverse_proxy web:8080
+
+	log {
+		output stdout
+		format json
+	}
+}

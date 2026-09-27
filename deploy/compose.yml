@@ -1,0 +1,163 @@
+# KNOX production stack (single host):
+#   proxy (Caddy: HTTPS, HTTP/3) -> web (nginx: SPA + /api proxy) -> backend (API) -> sqlserver
+# Course files live in S3-compatible object storage behind a CDN, never on this host.
+# Deploy with scripts/deploy.sh; see README.md for first-time setup, backups and rollback.
+name: knox
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+# Application containers: immutable root filesystem, no Linux capabilities, no privilege escalation.
+x-hardened: &hardened
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  logging: *logging
+
+x-api-image: &api-image ${KNOX_API_IMAGE:-ghcr.io/aws03/knox-api}:${KNOX_API_VERSION:?Set KNOX_API_VERSION in .env}
+
+x-api-environment: &api-environment
+  ASPNETCORE_ENVIRONMENT: Production
+  ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=${DB_NAME:-KnoxDb};User ID=${DB_APP_LOGIN:-knox_app};Password=${DB_APP_PASSWORD:?Set DB_APP_PASSWORD in .env};TrustServerCertificate=True
+  Database__MigrateOnStartup: "false"
+  Database__SeedOnStartup: "false"
+  JwtSettings__Secret: ${JWT_SECRET:?Set JWT_SECRET in .env}
+  JwtSettings__Issuer: ${JWT_ISSUER:-knox-api}
+  JwtSettings__Audience: ${JWT_AUDIENCE:-knox-web}
+  Cors__AllowedOrigins__0: https://${DOMAIN:?Set DOMAIN in .env}
+  # Only nginx (behind Caddy) can reach the API, so its single X-Forwarded-For hop is trusted.
+  ForwardedHeaders__Enabled: "true"
+  OpenApi__Enabled: "false"
+  AuthSettings__RequireEmailVerification: ${REQUIRE_EMAIL_VERIFICATION:-false}
+  Storage__ServiceUrl: ${STORAGE_SERVICE_URL:?Set STORAGE_SERVICE_URL in .env}
+  Storage__PublicServiceUrl: ${STORAGE_PUBLIC_SERVICE_URL:-}
+  Storage__Region: ${STORAGE_REGION:-auto}
+  Storage__AccessKey: ${STORAGE_ACCESS_KEY:-}
+  Storage__SecretKey: ${STORAGE_SECRET_KEY:-}
+  Storage__PublicBucket: ${STORAGE_PUBLIC_BUCKET:-knox-public}
+  Storage__PrivateBucket: ${STORAGE_PRIVATE_BUCKET:-knox-private}
+  Storage__PublicBaseUrl: ${STORAGE_PUBLIC_BASE_URL:?Set STORAGE_PUBLIC_BASE_URL in .env}
+  Storage__CdnBaseUrl: ${CDN_PRIVATE_BASE_URL:-}
+  Storage__CdnTokenKey: ${CDN_TOKEN_KEY:-}
+  Storage__MaxMaterialBytes: ${MAX_MATERIAL_BYTES:-2147483648}
+  OpenAI__ApiKey: ${OPENAI_API_KEY:-}
+  Brevo__ApiKey: ${BREVO_API_KEY:-}
+  Brevo__FromEmail: ${BREVO_FROM_EMAIL:-}
+  Brevo__FromName: ${BREVO_FROM_NAME:-KNOX}
+  AhaSend__AccountId: ${AHASEND_ACCOUNT_ID:-}
+  AhaSend__ApiKey: ${AHASEND_API_KEY:-}
+  AhaSend__FromEmail: ${AHASEND_FROM_EMAIL:-}
+  AhaSend__FromName: ${AHASEND_FROM_NAME:-KNOX}
+
+services:
+  proxy:
+    image: caddy:2.11.4-alpine
+    restart: unless-stopped
+    <<: *hardened
+    cap_add: [NET_BIND_SERVICE]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env (Let's Encrypt account)}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Extra site snippets (*.caddy); compose.storage.yml swaps in the storage routes.
+      - ./caddy/extra:/etc/caddy/conf.d:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    tmpfs: [/tmp]
+    depends_on:
+      web:
+        condition: service_healthy
+    networks: [edge]
+
+  web:
+    image: ${KNOX_WEB_IMAGE:-ghcr.io/aws03/knox-web}:${KNOX_WEB_VERSION:?Set KNOX_WEB_VERSION in .env}
+    restart: unless-stopped
+    <<: *hardened
+    environment:
+      CSP_MEDIA_SOURCES: ${CSP_MEDIA_SOURCES:-https:}
+    # nginx renders its config and writes its pid/temp files at start-up.
+    tmpfs:
+      - /tmp
+      - /etc/nginx/conf.d:uid=101,gid=101
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [edge, app]
+
+  backend:
+    image: *api-image
+    restart: unless-stopped
+    <<: *hardened
+    environment: *api-environment
+    tmpfs: [/tmp]
+    stop_grace_period: 30s
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks: [app, data]
+
+  # Deployment step, not a long-running service: `docker compose run --rm migrate`
+  # (scripts/deploy.sh runs it before switching versions). Connects as sa to apply migrations,
+  # provisions the API's least-privilege login and seeds bootstrap data.
+  migrate:
+    image: *api-image
+    profiles: [tools]
+    restart: "no"
+    <<: *hardened
+    command: ["migrate"]
+    environment:
+      <<: *api-environment
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=${DB_NAME:-KnoxDb};User ID=sa;Password=${DB_SA_PASSWORD:?Set DB_SA_PASSWORD in .env};TrustServerCertificate=True
+      Database__AppLogin: ${DB_APP_LOGIN:-knox_app}
+      Database__AppPassword: ${DB_APP_PASSWORD}
+      Seed__AdminEmail: ${SEED_ADMIN_EMAIL:-admin@knox.com}
+      Seed__AdminPassword: ${SEED_ADMIN_PASSWORD:-}
+    tmpfs: [/tmp]
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks: [data]
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-CU27-ubuntu-22.04
+    platform: linux/amd64
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
+    environment:
+      ACCEPT_EULA: "Y"
+      # Express is free for production use (10 GB per database; files are in object storage, not here).
+      # Use Standard/Enterprise with your own license if you outgrow it. Developer is NOT licensed for production.
+      MSSQL_PID: ${MSSQL_PID:-Express}
+      MSSQL_SA_PASSWORD: ${DB_SA_PASSWORD}
+      MSSQL_MEMORY_LIMIT_MB: ${MSSQL_MEMORY_LIMIT_MB:-2048}
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    stop_grace_period: 60s
+    networks: [data]
+
+networks:
+  edge: {}
+  app: {}
+  # The database has no route to the internet; only the API and the migrate job can reach it.
+  data:
+    internal: true
+
+volumes:
+  caddy-data:
+  caddy-config:
+  sqldata:

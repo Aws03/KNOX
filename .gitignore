@@ -372,3 +372,7 @@ node_modules/
 # Local secrets never live in appsettings*.json (use user-secrets or environment variables).
 *.local.json
 .env
+
+# Deployment: host secrets and database backups never belong in the repository.
+.env.local
+deploy/backups/

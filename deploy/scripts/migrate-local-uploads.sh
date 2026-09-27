@@ -18,8 +18,8 @@ public_base="${public_base%/}"
 
 # The AWS CLI runs on the stack's network, so an internal endpoint (http://storage:8333) works too.
 s3() {
-  # "knox" is the project name set in compose.yml.
-  docker run --rm --network knox_app \
+  # Compose names the network <project>_app ("knox" unless COMPOSE_PROJECT_NAME overrides it).
+  docker run --rm --network "$(env_value COMPOSE_PROJECT_NAME knox)_app" \
     -v "$uploads:/uploads:ro" \
     -e AWS_ACCESS_KEY_ID="$(env_value STORAGE_ACCESS_KEY)" \
     -e AWS_SECRET_ACCESS_KEY="$(env_value STORAGE_SECRET_KEY)" \

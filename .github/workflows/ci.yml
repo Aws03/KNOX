@@ -78,6 +78,8 @@ jobs:
           docker compose -f compose.yml config --quiet
           docker compose -f compose.yml -f compose.storage.yml config --quiet
           docker compose -f compose.yml --profile tools config --quiet
+          # The local development stack (built from source) must stay valid too.
+          docker compose --env-file .env.local.example config --quiet
 
   image:
     name: Container image

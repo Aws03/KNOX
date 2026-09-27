@@ -1,0 +1,57 @@
+# Local development: the production topology on one machine, built from source.
+#   proxy (Caddy, plain HTTP) -> web (nginx) -> backend (API) -> sqlserver, plus SeaweedFS object storage
+# Differences from production, all deliberate:
+#   - images are built from the source checkouts (backend: .., frontend: FRONTEND_DIR)
+#   - HTTP on localhost:${HTTP_PORT} instead of HTTPS on a public domain
+#   - Swagger UI is on, and the API (5001), SQL Server (1433) and storage (8333) are published on 127.0.0.1
+#   - the migrate job runs automatically before the API starts
+# Usage (from deploy/): cp .env.local.example .env.local && docker compose --env-file .env.local up -d --build
+
+services:
+  proxy:
+    environment:
+      DOMAIN: http://localhost:${HTTP_PORT:-8080}
+    ports: !override
+      - "${HTTP_PORT:-8080}:${HTTP_PORT:-8080}"
+
+  web:
+    image: knox-web:local
+    pull_policy: build
+    build:
+      context: ${FRONTEND_DIR:-../../KNOX_Frontend/uni-hub}
+
+  backend:
+    image: knox-api:local
+    pull_policy: build
+    build:
+      context: ..
+    environment:
+      # Swagger UI at http://127.0.0.1:5001/swagger; the Vite dev server (5173) may call the API directly.
+      OpenApi__Enabled: "true"
+      Cors__AllowedOrigins__1: http://localhost:5173
+    ports:
+      - "127.0.0.1:5001:5001"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # Runs on every `up` (idempotent), exactly like the production deployment step.
+  migrate:
+    image: knox-api:local
+    pull_policy: never
+    profiles: !reset []
+
+  sqlserver:
+    # For SSMS / Azure Data Studio / `dotnet run` (sa, password from .env.local).
+    ports:
+      - "127.0.0.1:1433:1433"
+
+  storage:
+    # For `dotnet run` and S3 tools; browsers use the same buckets through the proxy.
+    ports:
+      - "127.0.0.1:8333:8333"
+
+networks:
+  # Production keeps the database network internal; published ports need a routable network.
+  data:
+    internal: false

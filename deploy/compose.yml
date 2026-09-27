@@ -27,7 +27,7 @@ x-api-environment: &api-environment
   JwtSettings__Secret: ${JWT_SECRET:?Set JWT_SECRET in .env}
   JwtSettings__Issuer: ${JWT_ISSUER:-knox-api}
   JwtSettings__Audience: ${JWT_AUDIENCE:-knox-web}
-  Cors__AllowedOrigins__0: https://${DOMAIN:?Set DOMAIN in .env}
+  Cors__AllowedOrigins__0: ${PUBLIC_ORIGIN:-https://${DOMAIN:?Set DOMAIN in .env}}
   # Only nginx (behind Caddy) can reach the API, so its single X-Forwarded-For hop is trusted.
   ForwardedHeaders__Enabled: "true"
   OpenApi__Enabled: "false"

@@ -18,14 +18,20 @@ KNOX is a university knowledge hub (LMS) for IT students. Students belong to a *
   - `global.json` pins the SDK.
 - **Tests**: xUnit + NSubstitute.
   - Unit tests run without a database.
-  - Integration tests run against **real SQL Server 2022 via Testcontainers**, so Docker must be running.
+  - Integration tests run against **real SQL Server 2022 and S3-compatible storage (SeaweedFS) via Testcontainers**, so Docker must be running.
 - **Frontend**: `../KNOX_Frontend/uni-hub`, a separate git repo.
   - React 19 + TypeScript + Vite, shadcn/ui + Tailwind v4, React Router v7, TanStack Query, Axios.
   - Tests use Vitest.
   - Files use **CRLF line endings** and there is no `.gitattributes`, so preserve EOLs when editing.
 - **Email**: Brevo if `Brevo:ApiKey` is set, else AhaSend if configured, else `LoggingEmailService` (logs only).
-- **File storage**: local disk (`wwwroot/uploads`, configurable via `Storage:RootPath`), served at `/uploads`.
-- **Containers**: `../docker-compose.yml`, which lives in the parent `SP/` git repo, runs SQL Server, the API and the nginx frontend.
+- **File storage**: S3-compatible object storage (`S3StorageService`, AWSSDK.S3) with two buckets.
+  - Public (images) is read through `Storage:PublicBaseUrl`, a CDN or bucket URL.
+  - Private (course materials, including video) is read only through short-lived signed URLs: Bunny CDN token auth when `Storage:Cdn*` is set, otherwise S3 presigned URLs.
+  - Browsers upload materials **directly** with a presigned PUT; the API never streams large files.
+- **Containers**:
+  - `deploy/` holds production: Caddy, nginx web, the API, SQL Server Express and a one-shot `migrate` job, with images from GHCR. See `deploy/README.md`.
+  - `../docker-compose.yml` (the local-only `SP/` workspace repo) builds both apps from source with SeaweedFS storage.
+- **The frontend is a separate repository.** Its `origin` (`Aws03/KNOX-Frontend`) did not exist on GitHub at the time of writing.
 
 ## 3. Project Structure
 
@@ -47,7 +53,8 @@ KNOX_Backend/
 │   ├── Persistence/                         # AppDbContext, Configurations, Conventions (UTC DateTime), Seed, DatabaseInitializer
 │   ├── Migrations/                          # EF Core migrations (design-time factory reads KNOX_MIGRATIONS_CONNECTION)
 │   ├── Identity/                            # ApplicationUser/Role, RoleSeeder, IdentityUserService
-│   ├── Services/                            # AI, BackgroundJobs, Email, FeatureFlags, FileManagement, JWT, Security, Storage, TextExtraction
+│   ├── Services/                            # AI, BackgroundJobs, Email, FeatureFlags, FileManagement (file policy), JWT, Security,
+│   │                                        # Storage (S3StorageService, BunnyTokenSigner, StorageHealthCheck), TextExtraction
 │   └── Interceptors/                        # AuditableEntityInterceptor
 │
 └── JadaraITKnowledgeSystem.API/             # Composition root.
@@ -56,11 +63,13 @@ KNOX_Backend/
     ├── ErrorHandling/GlobalExceptionHandler # The only unhandled-exception boundary (IExceptionHandler → problem details)
     ├── Extensions/                          # AddApi() service registration, UseApiPipeline() middleware order
     ├── OpenApi/                             # Bearer security scheme transformer
-    └── Program.cs                           # AddApplication().AddInfrastructure().AddApi(); migrate/seed; run
+    └── Program.cs                           # AddApplication().AddInfrastructure().AddApi(); "migrate" command; run
+
+deploy/                                      # Production: compose.yml, compose.storage.yml, caddy/, scripts/ (deploy, backup, restore), README runbook
 
 tests/
 ├── JadaraITKnowledgeSystem.UnitTests/        # Domain, validators, behaviours, infrastructure services
-└── JadaraITKnowledgeSystem.IntegrationTests/ # SqlServerFixture (one container per run), handler/migration/API tests
+└── JadaraITKnowledgeSystem.IntegrationTests/ # InfrastructureFixture (SQL Server + object store, once per run), handler/migration/API tests
 ```
 
 ## 4. Architecture Rules. Strict, never break these.
@@ -96,40 +105,48 @@ tests/
   - Anything stored against a user (quiz writer, enrollment, generation job, reaction) must use `DomainUserId`, taken from the token and never from the client.
 - **Emails** are stored upper-cased by the `Email` value object. Compare using `Email.Normalize(input)`.
 - **Concurrency.** Quiz has a `RowVersion`. Reactions and attempts have unique `(UserId, QuizId)` indexes.
+- **Files.**
+  - Materials store a storage **key** (`CourseMaterial.StorageKey`, e.g. `materials/12/<guid>.mp4`), never a URL.
+  - DTOs get a freshly signed URL via `IFileManager.GetMaterialUrl`.
+  - Uploads land in `temp/` and are claimed (verified, then server-side copied) when the material is created.
+  - Images keep public URLs; `IStorageService.GetPublicKey` maps a URL back to its key.
+  - Delete files only after commit (`IPostCommitDispatcher`).
+- **Database lifecycle.** `DatabaseInitializer.MigrateAsync` (the `migrate` command) migrates, creates the least-privilege `Database:AppLogin` and seeds.
+  - On every start, `InitializeAsync` fails quiz generation jobs that a restart interrupted.
+  - The SuperAdmin is seeded only when `Seed:AdminPassword` is set.
 - **Time.** Inject `TimeProvider` rather than calling `DateTime.UtcNow` in services. All `DateTime` values are persisted and read back as UTC.
 
 ## 6. Running Locally
 
 ```bash
-docker run -d --name knox-sql -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD='Your_strong_pw1' -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+docker compose -f ../docker-compose.yml up -d sqlserver storage storage-init   # SQL Server + SeaweedFS (http://localhost:8333)
 cd JadaraITKnowledgeSystem.API
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=KnoxDb;User ID=sa;Password=Your_strong_pw1;TrustServerCertificate=True"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=KnoxDb;User ID=sa;Password=<pw>;TrustServerCertificate=True"
+dotnet user-secrets set "Storage:AccessKey" "knox-local"; dotnet user-secrets set "Storage:SecretKey" "<STORAGE_SECRET_KEY>"
 dotnet run    # http://localhost:5001; Development migrates + seeds and serves /swagger
 ```
 
-- `appsettings.json` is tracked and holds **no secrets**. `appsettings.Development.json` has a dev-only JWT key. Put real secrets in user-secrets or environment variables.
-- Frontend: `cd ../KNOX_Frontend/uni-hub && npm run dev`. It runs on http://localhost:5173 and calls `VITE_API_URL`, which defaults to http://localhost:5001/api.
+- `appsettings.json` is tracked and holds **no secrets**. `appsettings.Development.json` has development-only values.
+- Frontend: `cd ../KNOX_Frontend/uni-hub && npm run dev`, on http://localhost:5173.
 
 ## 7. Running with Docker
 
-```bash
-cd ..                    # SP/
-cp .env.example .env     # DB_SA_PASSWORD and JWT_SECRET are required
-docker compose up --build -d
-```
-
-- `sqlserver` (2022, amd64/emulated on Apple Silicon, volume `knox-sqldata`) → `backend` → `frontend`. Each starts only after the previous one is healthy.
-- `backend`: a non-root container on port 5001. It migrates on startup, stores uploads in volume `knox-uploads`, and is published on **127.0.0.1** only.
-  - Its health check probes `/health/ready` via bash `/dev/tcp`, because the runtime image has no curl.
-- `frontend`: `nginx-unprivileged` on port 8080, published as `WEB_PORT` (default 5173). It serves the SPA and proxies `/api` and `/uploads` to `backend:5001`.
-- The API trusts `X-Forwarded-For` (`ForwardedHeaders__Enabled`) only because it is reachable solely through nginx. Rate limits rely on this.
-- `VITE_API_URL` is a **build-time** arg, defaulting to `/api`.
+- **Local, built from source:** `cd .. && cp .env.example .env && docker compose up --build -d`. The app is on :5173, storage on :8333 and the API on 127.0.0.1:5001.
+- **Production:** `deploy/scripts/deploy.sh <api-tag> <web-tag>` on the host (see `deploy/README.md`). It runs:
+  1. Pull, then start SQL Server, then back up.
+  2. `docker compose run --rm migrate`.
+  3. `up --wait`, with automatic rollback of the app images if the new version is unhealthy.
+- **Health:**
+  - Containers are health-checked on `/health/ready` (database and storage).
+  - nginx exposes it publicly as `/healthz`.
+  - The runtime image has no curl, so the API checks itself over bash `/dev/tcp`.
+- `VITE_API_URL` is a **build-time** arg, defaulting to `/api`. `CSP_MEDIA_SOURCES` (a web container env var) lists the storage and CDN origins for the Content-Security-Policy.
 
 ## 8. Seeded Accounts
 
 `DataSeeder` runs after `RoleSeeder` at startup when `Database:SeedOnStartup` is set (the default). It is idempotent. On a fresh database it creates:
 - The Jadara University → Faculty of Information Technology → Computer Science / Information Technology hierarchy.
-- A SuperAdmin account, **`admin@knox.com`** / **`Admin@123456`**. Change this password on any shared deployment.
+- A SuperAdmin account, `Seed:AdminEmail` (default **`admin@knox.com`**), created only when `Seed:AdminPassword` is set. That is `Admin@123456` in Development and the local compose stack; production sets `SEED_ADMIN_PASSWORD` for the first deploy only.
 
 ## 9. Known Issues / Technical Debt
 
@@ -140,12 +157,12 @@ docker compose up --build -d
 - The namespace typo `Domain.Entites` remains in a few places. Renaming it is churn with no behavioural value.
 - **Grading** on enrollments is intentionally not modelled (grading schemes differ per university).
 - **Data Protection keys** are not persisted. The only consumer is Identity's password-reset token, which is generated and redeemed in the same request, so this is harmless today. Persist the keys before adding cookie auth or long-lived tokens.
-- The frontend bundle is a single ~1.5 MB chunk. Route-level code splitting is not done yet.
+- Videos are delivered as uploaded (progressive MP4/WebM); there is no HLS transcoding.
 
 ## 10. Development Workflow
 
 - Run `dotnet build` + `dotnet test` (Docker running) for the backend, and `npm run lint && npm test && npm run build` for the frontend. Expect 0 warnings and all tests green.
-- CI in `.github/workflows/ci.yml` (both repos) runs the same checks plus a Docker image build.
+- CI in `.github/workflows/ci.yml` (both repos) runs the same checks, plus a Trivy image scan and a multi-arch GHCR publish on the default branch. `deploy.yml` deploys manually over SSH.
 - Add a migration whenever the model changes, and hand-edit it if existing data could violate new constraints. The integration suite fails on missing migrations and has an upgrade-with-dirty-data test.
 - Use conventional commits (`feat(...)`, `fix(...)`, `refactor(...)`, `docs(...)`), one focused commit per logical change.
 - **Only commit when explicitly asked to.**

@@ -21,6 +21,7 @@ The backend is a .NET 10 solution built strictly to Clean Architecture, and the 
 - **Auth**: JWT access/refresh tokens, role hierarchy (`SuperAdmin > Admin > Writer > User`), OTP-based email verification, forgot/reset password, change password
 - **Courses**: course catalog scoped by major, hierarchical folders and materials, course resources, enrollment
 - **Quizzes**: hand-authored quizzes (single choice, multiple choice, true/false, short answer), scoring and review, like/dislike reactions
+- **Course videos and files**: browsers upload straight to object storage (up to 2 GB by default) and play or download through short-lived signed CDN URLs
 - **AI quiz generation**: upload a PDF/DOCX/PPTX course material, extract its real text (iText7 / DocumentFormat.OpenXml), chunk it, and generate quizzes from the content via OpenAI — processed through a post-commit background job queue rather than blocking the request
 - **Profile**: editable profile, profile picture upload/crop, academic info (university/faculty/major)
 - **i18n**: English and Arabic
@@ -31,7 +32,7 @@ The backend is a .NET 10 solution built strictly to Clean Architecture, and the 
 
 **Frontend** (`../KNOX_Frontend/uni-hub`, sibling directory) — React 19, TypeScript, Vite 7, React Router 7, TanStack Query, Axios, Tailwind v4 + shadcn/ui, react-i18next.
 
-**Infrastructure** — Docker Compose (SQL Server 2022, API, nginx-served SPA), local disk storage served via ASP.NET static files, Brevo (primary) / AhaSend (fallback) for transactional email, OpenAI for AI quiz generation.
+**Infrastructure** — Docker Compose with Caddy (HTTPS), nginx, the API and SQL Server 2022; S3-compatible object storage (Cloudflare R2, AWS S3 or self-hosted SeaweedFS) with Bunny CDN token-authenticated delivery for videos and files; Brevo (primary) / AhaSend (fallback) for transactional email; OpenAI for AI quiz generation. GitHub Actions build, test, scan and publish multi-arch images to GHCR.
 
 ## Architecture
 
@@ -93,33 +94,42 @@ Key patterns: every use case is a MediatR `Command`/`Query` + `Handler`; domain 
 
 ### Prerequisites
 
-- [Docker](https://www.docker.com/) with Docker Compose v2 (the whole stack, including SQL Server, runs in containers)
-- For local development without containers: .NET SDK 10 and Node.js 22
+- [Docker](https://www.docker.com/) with Docker Compose v2. SQL Server and object storage run in containers.
+- For development without containers for the app: .NET SDK 10 and Node.js 22.
 
-### Quick Start (Docker)
+### Quick Start (Docker, built from source)
+
+The workspace folder (`SP/`, which contains `KNOX_Backend/` and `KNOX_Frontend/`) has a compose file that builds both apps:
 
 ```bash
-# From SP/, the folder that contains docker-compose.yml, KNOX_Backend/ and KNOX_Frontend/
-cp .env.example .env    # set DB_SA_PASSWORD and JWT_SECRET at minimum
+cp .env.example .env    # set DB_SA_PASSWORD, JWT_SECRET and STORAGE_SECRET_KEY
 docker compose up --build -d
 ```
 
-- App: **http://localhost:5173**. nginx serves the SPA and proxies `/api` and `/uploads` to the API.
+- App: **http://localhost:5173**. nginx serves the SPA and proxies `/api`.
+- Object storage (SeaweedFS, S3 API): **http://localhost:8333**. Browsers upload and read files here with presigned URLs.
 - API (loopback only): **http://127.0.0.1:5001**. Set `OPENAPI_ENABLED=true` for Swagger UI at `/swagger`.
-- Health: `/health/live` (process) and `/health/ready` (database reachable).
+- Health: `/health/live` (process) and `/health/ready` (database and storage reachable).
 
-Compose starts SQL Server 2022 (volume `knox-sqldata`), then the API, which applies EF Core migrations and seeds on startup (volume `knox-uploads` holds uploaded files), and then the frontend. Each service waits until the one before it is healthy. SQL Server has no arm64 image, so on Apple Silicon it runs under emulation.
+### Production
+
+See **[deploy/README.md](deploy/README.md)**, which covers:
+
+- HTTPS through Caddy and images from GHCR.
+- A deploy script: backup, then migrate, then a health-gated switch, with automatic rollback.
+- The least-privilege SQL login, backups and restores, object storage and CDN setup for video, monitoring, and GitHub Actions deployment.
 
 ### Running Locally (no Docker for the app)
 
 ```bash
-# A throwaway SQL Server for development
-docker run -d --name knox-sql -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD='Your_strong_pw1' \
-  -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+# SQL Server and object storage from the workspace compose file
+docker compose -f ../docker-compose.yml up -d sqlserver storage storage-init
 
 cd JadaraITKnowledgeSystem.API
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" \
-  "Server=localhost,1433;Database=KnoxDb;User ID=sa;Password=Your_strong_pw1;TrustServerCertificate=True"
+  "Server=localhost,1433;Database=KnoxDb;User ID=sa;Password=<DB_SA_PASSWORD>;TrustServerCertificate=True"
+dotnet user-secrets set "Storage:AccessKey" "knox-local"
+dotnet user-secrets set "Storage:SecretKey" "<STORAGE_SECRET_KEY>"
 dotnet run                 # http://localhost:5001, Swagger at /swagger; migrates + seeds in Development
 
 # Frontend (separate terminal)
@@ -128,7 +138,9 @@ npm ci
 npm run dev                # http://localhost:5173
 ```
 
-`appsettings.Development.json` holds a development-only JWT key. Real secrets never go in `appsettings*.json`: use user-secrets locally and environment variables in containers.
+To reach SQL Server from the host, publish port 1433 in the workspace compose file, or run a standalone `mcr.microsoft.com/mssql/server:2022-CU27-ubuntu-22.04` container.
+
+`appsettings.Development.json` holds development-only values: a JWT key, the local storage endpoint, and the seed admin password. Real secrets never go in `appsettings*.json`: use user-secrets locally and environment variables in containers.
 
 ### Configuration
 
@@ -136,18 +148,21 @@ Every option is bound and validated at startup. A missing or invalid required va
 
 | Section (env var prefix) | Keys | Notes |
 |---|---|---|
-| `ConnectionStrings` | `DefaultConnection` | Required. |
+| `ConnectionStrings` | `DefaultConnection` | Required. In production this is the least-privilege app login. |
 | `JwtSettings` | `Secret`, `Issuer`, `Audience`, `ExpirationMinutes`, `RefreshTokenDays` | `Secret` is required and must be 32+ characters. |
-| `Database` | `MigrateOnStartup`, `SeedOnStartup` | Migrations run automatically only when enabled (Development and Compose do). |
-| `Storage` | `BaseUrl`, `RootPath`, `RequestPath` | `BaseUrl` is the public origin used in upload URLs. |
+| `Database` | `MigrateOnStartup`, `SeedOnStartup`, `AppLogin`, `AppPassword` | Production runs the `migrate` command instead of migrating on startup; it creates `AppLogin` with read/write data access. |
+| `Seed` | `AdminEmail`, `AdminPassword` | The SuperAdmin is created only when `AdminPassword` is set. |
+| `Storage` | `ServiceUrl`, `PublicServiceUrl`, `Region`, `AccessKey`, `SecretKey`, `PublicBucket`, `PrivateBucket`, `PublicBaseUrl`, `CdnBaseUrl`, `CdnTokenKey`, `MaxMaterialBytes`, `UploadUrlMinutes`, `DownloadUrlMinutes` | S3-compatible object storage. `Cdn*` enables Bunny token-authenticated delivery of private files. |
 | `Cors` | `AllowedOrigins` | |
 | `AuthSettings` | `RequireEmailVerification` | Needs an email provider when true. |
 | `Brevo` / `AhaSend` | API keys and sender | Brevo is used if configured, else AhaSend, else emails are only logged. |
 | `OpenAI` | `ApiKey`, `Model`, ... | Optional. Without a key, generation jobs fail with `OpenAI.NotConfigured`. |
-| `ForwardedHeaders` | `Enabled` | Enable only behind a trusted reverse proxy (Compose does). |
+| `ForwardedHeaders` | `Enabled` | Enable only behind a trusted reverse proxy (compose does). |
 | `OpenApi` | `Enabled` | Defaults to on in Development only. |
 
-In environment variables, `:` becomes `__`, for example `JwtSettings__Secret`.
+In environment variables, `:` becomes `__`, for example `Storage__SecretKey`.
+
+`dotnet JadaraITKnowledgeSystem.API.dll migrate` applies migrations, provisions `Database:AppLogin` and seeds, then exits. The production `migrate` job runs this command.
 
 ### Database Migrations
 
@@ -157,7 +172,7 @@ export KNOX_MIGRATIONS_CONNECTION="Server=localhost,1433;Database=KnoxDb;User ID
 dotnet ef migrations add <Name> -p JadaraITKnowledgeSystem.Infrastructure -s JadaraITKnowledgeSystem.Infrastructure -o Migrations
 ```
 
-The integration suite fails if the model has changes with no migration, and it runs an upgrade test from the previous schema with dirty data.
+Keep migrations backward-compatible with the previous release (expand, then contract later), so an application rollback never needs a database restore. The integration suite fails if the model has changes with no migration, and it runs an upgrade test from an older schema with existing data.
 
 ### Running the Tests
 
@@ -166,17 +181,21 @@ dotnet test JadaraITKnowledgeSystem.sln   # Docker must be running
 ```
 
 - **Unit tests**: no external dependencies.
-- **Integration tests**: Testcontainers starts a SQL Server 2022 container once per run. They cover handlers, transactions, every migration and the HTTP API end to end: auth flows, token rotation and reuse detection, OTP limits, uploads, concurrency and problem details. The OpenAI call is the only external dependency that is not exercised.
+- **Integration tests**: Testcontainers starts SQL Server 2022 and an S3-compatible object store (SeaweedFS) once per run. They cover:
+  - handlers, transactions, every migration and the least-privilege login;
+  - the HTTP API end to end, including direct uploads to storage, signed and range downloads, and file cleanup.
 
-CI (`.github/workflows/ci.yml`) runs the build with warnings as errors, both test suites, and a Docker image build.
+  The OpenAI call is the only external dependency that is not exercised.
+
+CI (`.github/workflows/ci.yml`) builds with warnings as errors and runs both test suites. It also validates the deployment files and shellchecks the scripts. It then scans the image with Trivy and publishes `ghcr.io/aws03/knox-api` for `linux/amd64` and `linux/arm64`.
 
 ## Seeded Accounts
 
 | Role | Email | Password |
 |---|---|---|
-| SuperAdmin | `admin@knox.com` | `Admin@123456` |
+| SuperAdmin | `admin@knox.com` (`Seed:AdminEmail`) | `Admin@123456` in Development and the local compose stack; production uses `SEED_ADMIN_PASSWORD` |
 
-**Change this password immediately on any shared or production deployment.** Seeded academic hierarchy: **Jadara University** → **Faculty of Information Technology** → **Computer Science** / **Information Technology**.
+Seeded academic hierarchy: **Jadara University** → **Faculty of Information Technology** → **Computer Science** / **Information Technology**.
 
 ## API Conventions
 
@@ -190,6 +209,8 @@ CI (`.github/workflows/ci.yml`) runs the build with warnings as errors, both tes
 - **AI quiz generation needs an OpenAI API key.** Everything up to the OpenAI call (extraction, chunking, the background job, failure handling) is tested.
 - **Two user id spaces**: the ASP.NET Identity id (JWT `sub`) and the domain `Users` id (`domain_user_id` claim).
 - Password reset is **OTP-based** (a 6-digit code emailed to the user), not a magic link.
+- **Videos are served as uploaded** (progressive MP4/WebM with range requests). There is no transcoding to adaptive HLS; Bunny Stream or a transcoding job would be the next step for very large or low-bandwidth audiences.
+- **Quiz generation runs on an in-process queue**: jobs interrupted by a restart are marked failed at startup and must be started again.
 
 ## License
 

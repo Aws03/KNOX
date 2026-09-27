@@ -4,7 +4,7 @@ using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Users;
 
-namespace JadaraITKnowledgeSystem.Domain.Courses.Entites;
+namespace JadaraITKnowledgeSystem.Domain.Courses.Entities;
 
 /// <summary>
 /// Represents a user's enrollment in a course.

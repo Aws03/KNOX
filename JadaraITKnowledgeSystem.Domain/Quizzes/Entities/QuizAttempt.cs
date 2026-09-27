@@ -5,7 +5,7 @@ using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Users;
 
-namespace JadaraITKnowledgeSystem.Domain.Quizzes.Entites
+namespace JadaraITKnowledgeSystem.Domain.Quizzes.Entities
 {
     public sealed class QuizAttempt : AuditableEntity
     {

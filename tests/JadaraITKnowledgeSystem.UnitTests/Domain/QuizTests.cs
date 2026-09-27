@@ -1,6 +1,6 @@
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Quizzes;
-using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
+using JadaraITKnowledgeSystem.Domain.Quizzes.Entities;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Enums;
 
 namespace JadaraITKnowledgeSystem.UnitTests.Domain;

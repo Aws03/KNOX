@@ -1,7 +1,7 @@
 using System.Reflection;
 using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Courses;
-using JadaraITKnowledgeSystem.Domain.Courses.Entites;
+using JadaraITKnowledgeSystem.Domain.Courses.Entities;
 using JadaraITKnowledgeSystem.Domain.Courses.Enums;
 
 namespace JadaraITKnowledgeSystem.UnitTests.Domain;

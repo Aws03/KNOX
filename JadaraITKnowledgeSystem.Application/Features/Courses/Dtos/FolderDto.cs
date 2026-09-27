@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Domain.Courses.Entites;
+﻿using JadaraITKnowledgeSystem.Domain.Courses.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;

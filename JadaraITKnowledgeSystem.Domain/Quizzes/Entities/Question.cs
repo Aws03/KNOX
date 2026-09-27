@@ -4,7 +4,7 @@ using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Enums;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Errors;
 
-namespace JadaraITKnowledgeSystem.Domain.Quizzes.Entites
+namespace JadaraITKnowledgeSystem.Domain.Quizzes.Entities
 {
     public class Question : AuditableEntity
     {

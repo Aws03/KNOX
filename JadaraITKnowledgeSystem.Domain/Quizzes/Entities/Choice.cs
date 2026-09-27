@@ -3,7 +3,7 @@ using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Errors;
 
-namespace JadaraITKnowledgeSystem.Domain.Quizzes.Entites
+namespace JadaraITKnowledgeSystem.Domain.Quizzes.Entities
 {
     public sealed class Choice : AuditableEntity
     {

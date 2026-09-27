@@ -1,10 +1,8 @@
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Courses;
-using JadaraITKnowledgeSystem.Domain.Courses.Entites;
 using JadaraITKnowledgeSystem.Domain.Courses.Entities;
 using JadaraITKnowledgeSystem.Domain.Identity;
 using JadaraITKnowledgeSystem.Domain.Quizzes;
-using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Entities;
 using JadaraITKnowledgeSystem.Domain.System.Entities;
 using JadaraITKnowledgeSystem.Domain.Universities;

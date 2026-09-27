@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 
-namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
+namespace JadaraITKnowledgeSystem.Domain.Courses.Entities
 {
     public sealed class CourseMaterial : AuditableEntity
     {

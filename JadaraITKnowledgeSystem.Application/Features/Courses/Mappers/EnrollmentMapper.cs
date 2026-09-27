@@ -1,5 +1,5 @@
 using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
-using JadaraITKnowledgeSystem.Domain.Courses.Entites;
+using JadaraITKnowledgeSystem.Domain.Courses.Entities;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Courses.Mappers;
 

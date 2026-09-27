@@ -7,10 +7,10 @@ using JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetWriterStatis
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Courses;
-using JadaraITKnowledgeSystem.Domain.Courses.Entites;
+using JadaraITKnowledgeSystem.Domain.Courses.Entities;
 using JadaraITKnowledgeSystem.Domain.Courses.Enums;
 using JadaraITKnowledgeSystem.Domain.Quizzes;
-using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
+using JadaraITKnowledgeSystem.Domain.Quizzes.Entities;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Enums;
 using JadaraITKnowledgeSystem.Domain.Universities;
 using JadaraITKnowledgeSystem.Domain.Universities.Entities;

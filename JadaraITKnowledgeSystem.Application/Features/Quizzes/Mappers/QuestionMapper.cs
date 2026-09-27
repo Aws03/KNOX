@@ -1,5 +1,5 @@
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Dtos;
-using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
+using JadaraITKnowledgeSystem.Domain.Quizzes.Entities;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Quizzes.Mappers;
 

@@ -1,5 +1,4 @@
 ﻿using JadaraITKnowledgeSystem.Domain.Courses;
-using JadaraITKnowledgeSystem.Domain.Courses.Entites;
 using JadaraITKnowledgeSystem.Domain.Courses.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

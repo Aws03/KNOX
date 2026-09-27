@@ -7,7 +7,7 @@ using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Courses.Enums;
 using JadaraITKnowledgeSystem.Domain.Universities.Entities;
 
-namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
+namespace JadaraITKnowledgeSystem.Domain.Courses.Entities
 {
     public sealed class CourseRequirementMapping : AuditableEntity
     {

@@ -70,7 +70,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.ToTable("Courses", (string)null);
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entites.CourseMaterial", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entities.CourseMaterial", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -123,7 +123,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.ToTable("CourseMaterials", (string)null);
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entites.CourseRequirementMapping", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entities.CourseRequirementMapping", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -166,7 +166,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.ToTable("CourseRequirementMappings", (string)null);
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entites.Folder", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entities.Folder", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -256,7 +256,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.Choice", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entities.Choice", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -299,7 +299,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.ToTable("Choices", (string)null);
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.Question", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entities.Question", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -341,7 +341,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.ToTable("Questions", (string)null);
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.QuizAttempt", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entities.QuizAttempt", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -385,7 +385,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.ToTable("QuizAttempts", (string)null);
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.UserReaction", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entities.UserReaction", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -889,7 +889,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entites.CourseMaterial", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entities.CourseMaterial", b =>
                 {
                     b.HasOne("JadaraITKnowledgeSystem.Domain.Courses.Course", "Course")
                         .WithMany("Materials")
@@ -897,7 +897,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Courses.Entites.Folder", "Folder")
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Courses.Entities.Folder", "Folder")
                         .WithMany("Materials")
                         .HasForeignKey("FolderId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -907,7 +907,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.Navigation("Folder");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entites.CourseRequirementMapping", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entities.CourseRequirementMapping", b =>
                 {
                     b.HasOne("JadaraITKnowledgeSystem.Domain.Courses.Course", "Course")
                         .WithMany("Requirements")
@@ -926,7 +926,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.Navigation("Major");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entites.Folder", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entities.Folder", b =>
                 {
                     b.HasOne("JadaraITKnowledgeSystem.Domain.Courses.Course", "Course")
                         .WithMany("Folders")
@@ -934,7 +934,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Courses.Entites.Folder", "ParentFolder")
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Courses.Entities.Folder", "ParentFolder")
                         .WithMany("SubFolders")
                         .HasForeignKey("ParentFolderId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -944,9 +944,9 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.Navigation("ParentFolder");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.Choice", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entities.Choice", b =>
                 {
-                    b.HasOne("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.Question", "Question")
+                    b.HasOne("JadaraITKnowledgeSystem.Domain.Quizzes.Entities.Question", "Question")
                         .WithMany("Choices")
                         .HasForeignKey("QuestionId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -955,7 +955,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.Navigation("Question");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.Question", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entities.Question", b =>
                 {
                     b.HasOne("JadaraITKnowledgeSystem.Domain.Quizzes.Quiz", "Quiz")
                         .WithMany("Questions")
@@ -966,7 +966,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.Navigation("Quiz");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.QuizAttempt", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entities.QuizAttempt", b =>
                 {
                     b.HasOne("JadaraITKnowledgeSystem.Domain.Quizzes.Quiz", "Quiz")
                         .WithMany("Attempts")
@@ -985,7 +985,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.UserReaction", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entities.UserReaction", b =>
                 {
                     b.HasOne("JadaraITKnowledgeSystem.Domain.Quizzes.Quiz", "Quiz")
                         .WithMany("Reactions")
@@ -1182,14 +1182,14 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.Navigation("Requirements");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entites.Folder", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Courses.Entities.Folder", b =>
                 {
                     b.Navigation("Materials");
 
                     b.Navigation("SubFolders");
                 });
 
-            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entites.Question", b =>
+            modelBuilder.Entity("JadaraITKnowledgeSystem.Domain.Quizzes.Entities.Question", b =>
                 {
                     b.Navigation("Choices");
                 });

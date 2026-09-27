@@ -22,13 +22,6 @@ internal class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
         builder.Property(e => e.FinishedAt)
                .IsRequired(false);
 
-        // TODO: Grade functionality is temporarily disabled.
-        // Universities may have different grading systems (A, A+, B, etc.)
-        // This needs to be redesigned to support flexible grading systems.
-        // builder.Property(e => e.Grade)
-        //        .HasPrecision(5, 2)
-        //        .IsRequired(false);
-
         builder.Property(e => e.Notes)
                .HasMaxLength(500)
                .IsRequired(false);

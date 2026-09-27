@@ -26,7 +26,7 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entities
         public int CourseId { get; private set; }
         public Course Course { get; private set; } = null!;
 
-        // New: Optional folder assignment
+        // Null: the material is at the course root.
         [ForeignKey(nameof(Folder))]
         public int? FolderId { get; private set; }
         public Folder? Folder { get; private set; }

@@ -20,7 +20,7 @@ public static class DependencyInjection
 
             // All behaviours are open generics over TRequest/TResponse directly
             // (see ValidationBehavior's own comment for why that constraint matters).
-            // Unhandled exceptions are left to the API's ExceptionHandlingMiddleware.
+            // Unhandled exceptions are left to the API's GlobalExceptionHandler.
             cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
             cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
             // Registered before TransactionBehavior so its post-`next()` code runs

@@ -12,7 +12,7 @@ public sealed class AppDbContextDesignTimeFactory : IDesignTimeDbContextFactory<
     public AppDbContext CreateDbContext(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("KNOX_MIGRATIONS_CONNECTION")
-            ?? "Server=localhost,1433;Database=JadaraITKnowledgeSystemDB;Integrated Security=false;TrustServerCertificate=True";
+            ?? "Server=localhost,1433;Database=KnoxDb;Integrated Security=false;TrustServerCertificate=True";
 
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlServer(connectionString)

@@ -40,8 +40,6 @@ public sealed partial class FileManager(
 
     private readonly StorageOptions _options = options.Value;
 
-    public static IReadOnlyCollection<string> MaterialExtensions => MaterialTypes.Keys;
-
     // ---------- Public images ----------
 
     public async Task<string> UploadAsync(Stream fileStream, string extension, string folder, CancellationToken cancellationToken = default)

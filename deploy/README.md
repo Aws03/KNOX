@@ -15,6 +15,7 @@ browser ──presigned PUT / signed GET──▶ object storage or CDN (course 
 |---|---|
 | `compose.yml` | The stack. Images come from GHCR (`ghcr.io/aws03/knox-api`, `ghcr.io/aws03/knox-web`). |
 | `compose.storage.yml` | Optional self-hosted object storage (SeaweedFS), served through Caddy. |
+| `compose.local.yml`, `.env.local.example` | Local development: the same stack built from source, over HTTP on localhost:8080 (see the main README). |
 | `.env.example` | Every setting, with notes. Copy it to `.env` and `chmod 600` it. |
 | `caddy/` | The Caddyfile and optional route snippets. |
 | `scripts/deploy.sh` | Backup, then migrate, then a health-gated switch, with automatic rollback. |

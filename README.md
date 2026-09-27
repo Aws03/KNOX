@@ -94,22 +94,70 @@ Key patterns: every use case is a MediatR `Command`/`Query` + `Handler`; domain 
 
 ### Prerequisites
 
-- [Docker](https://www.docker.com/) with Docker Compose v2. SQL Server and object storage run in containers.
-- For development without containers for the app: .NET SDK 10 and Node.js 22.
+- [Docker](https://www.docker.com/) with Docker Compose v2.24+. SQL Server and object storage always run in containers.
+- For working on the code outside containers: .NET SDK 10 and Node.js 22.
+- The frontend checked out next to this repository. The expected layout is below; any other location works if you set `FRONTEND_DIR` in `deploy/.env.local`.
 
-### Quick Start (Docker, built from source)
+  ```
+  <workspace>/
+  ├── KNOX_Backend/            # this repository (git clone https://github.com/Aws03/KNOX.git KNOX_Backend)
+  └── KNOX_Frontend/uni-hub/   # the frontend repository
+  ```
 
-The workspace folder (`SP/`, which contains `KNOX_Backend/` and `KNOX_Frontend/`) has a compose file that builds both apps:
+### Run everything locally (recommended)
+
+The local stack is the production topology (`deploy/compose.yml`) plus a small local override (`deploy/compose.local.yml`):
+
+- Caddy → nginx (SPA) → API → SQL Server, with S3-compatible storage (SeaweedFS) behind the same proxy.
+- Both images are built from source. The one-shot `migrate` job creates the schema, the least-privilege SQL login and the seed data before the API starts.
 
 ```bash
-cp .env.example .env    # set DB_SA_PASSWORD, JWT_SECRET and STORAGE_SECRET_KEY
-docker compose up --build -d
+cd deploy
+cp .env.local.example .env.local      # local-only values, nothing to fill in
+docker compose --env-file .env.local up -d --build --wait
 ```
 
-- App: **http://localhost:5173**. nginx serves the SPA and proxies `/api`.
-- Object storage (SeaweedFS, S3 API): **http://localhost:8333**. Browsers upload and read files here with presigned URLs.
-- API (loopback only): **http://127.0.0.1:5001**. Set `OPENAPI_ENABLED=true` for Swagger UI at `/swagger`.
-- Health: `/health/live` (process) and `/health/ready` (database and storage reachable).
+| What | Where |
+|---|---|
+| The app (same origin as in production) | **http://localhost:8080** |
+| Swagger UI / OpenAPI document | http://127.0.0.1:5001/swagger / http://127.0.0.1:5001/openapi/v1.json |
+| Readiness (database and storage) | http://localhost:8080/healthz |
+| SQL Server (SSMS, Azure Data Studio) | `localhost,1433`, user `sa`, password `Knox_Local_Sa_1!` |
+| Object storage (S3 API) | http://127.0.0.1:8333, key `knox-local` / `knox-local-secret` |
+| Sign in | `admin@knox.com` / `Admin@123456` (SuperAdmin) |
+
+- **Logs:** `docker compose --env-file .env.local logs -f backend`
+- **Stop:** `docker compose --env-file .env.local down`
+- **Reset all data:** `docker compose --env-file .env.local down -v`
+- Without an email provider, emails such as verification codes are written to the backend log.
+- Without `OPENAI_API_KEY`, AI quiz generation jobs fail cleanly with `OpenAI.NotConfigured`.
+
+### Work on the code (hot reload)
+
+Keep SQL Server and storage in Docker, and run the API and SPA from source:
+
+```bash
+cd deploy && docker compose --env-file .env.local up -d sqlserver storage storage-init
+cd .. && dotnet run --project JadaraITKnowledgeSystem.API     # http://localhost:5001 (+ /swagger)
+cd ../KNOX_Frontend/uni-hub && npm ci && npm run dev         # http://localhost:5173
+```
+
+`appsettings.Development.json` already points at that SQL Server (`localhost,1433`) and storage (`localhost:8333`) with the local-only credentials.
+
+**User-secrets override appsettings.** If you set `ConnectionStrings:DefaultConnection` (or other keys) with `dotnet user-secrets` for an older setup, the API connects to that database instead.
+- The first log line of every start says which server and database are in use: `Using database KnoxDb on localhost,1433`.
+- To see or remove stale secrets, run `dotnet user-secrets list` and `dotnet user-secrets remove <key>` in `JadaraITKnowledgeSystem.API`.
+
+### Test the API
+
+- **Swagger UI** (http://127.0.0.1:5001/swagger):
+  - Every endpoint shows its request and response schemas and the role it requires.
+  - Call `POST /api/auth/login`, click **Authorize**, and paste the `accessToken`.
+- **Postman:** import `docs/postman/KNOX.postman_collection.json` and `docs/postman/KNOX.local.postman_environment.json`, then select the "KNOX local" environment.
+  - The requests run top to bottom, storing tokens and ids as they go.
+  - They include the direct-upload flow for course files, which uses `docs/postman/sample-lecture.pdf`.
+  - To run them from a terminal: `npx newman run docs/postman/KNOX.postman_collection.json -e docs/postman/KNOX.local.postman_environment.json --working-dir docs/postman`.
+- **Editor:** `JadaraITKnowledgeSystem.API/JadaraITKnowledgeSystem.API.http` (VS Code REST Client / Rider / Visual Studio).
 
 ### Production
 
@@ -118,29 +166,6 @@ See **[deploy/README.md](deploy/README.md)**, which covers:
 - HTTPS through Caddy and images from GHCR.
 - A deploy script: backup, then migrate, then a health-gated switch, with automatic rollback.
 - The least-privilege SQL login, backups and restores, object storage and CDN setup for video, monitoring, and GitHub Actions deployment.
-
-### Running Locally (no Docker for the app)
-
-```bash
-# SQL Server and object storage from the workspace compose file
-docker compose -f ../docker-compose.yml up -d sqlserver storage storage-init
-
-cd JadaraITKnowledgeSystem.API
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" \
-  "Server=localhost,1433;Database=KnoxDb;User ID=sa;Password=<DB_SA_PASSWORD>;TrustServerCertificate=True"
-dotnet user-secrets set "Storage:AccessKey" "knox-local"
-dotnet user-secrets set "Storage:SecretKey" "<STORAGE_SECRET_KEY>"
-dotnet run                 # http://localhost:5001, Swagger at /swagger; migrates + seeds in Development
-
-# Frontend (separate terminal)
-cd ../../KNOX_Frontend/uni-hub
-npm ci
-npm run dev                # http://localhost:5173
-```
-
-To reach SQL Server from the host, publish port 1433 in the workspace compose file, or run a standalone `mcr.microsoft.com/mssql/server:2022-CU27-ubuntu-22.04` container.
-
-`appsettings.Development.json` holds development-only values: a JWT key, the local storage endpoint, and the seed admin password. Real secrets never go in `appsettings*.json`: use user-secrets locally and environment variables in containers.
 
 ### Configuration
 
@@ -203,6 +228,33 @@ Seeded academic hierarchy: **Jadara University** → **Faculty of Information Te
 - Errors are always `application/problem+json` (RFC 7807) with `traceId`. Business errors add a `code` (for example `Auth.InvalidCredentials`), and validation errors add `errors` keyed by field.
 - Actions that return nothing respond with `204 No Content`.
 - Auth endpoints are rate limited per client IP: login and register at 5 per minute; sending, verifying and redeeming OTPs at 3 per minute.
+
+## Tracing a Feature
+
+Every feature follows the same path, so you can follow a request from the UI to the database. Here is uploading a course video:
+
+| Step | Layer | Where |
+|---|---|---|
+| Upload dialog | Frontend component | `KNOX_Frontend/.../features/materials/components/UploadMaterialDialog.tsx` |
+| 1. Ask for an upload URL | Frontend API module | `features/materials/api.ts` → `uploadMaterialFile()` → `POST /api/files/material-uploads` |
+| | API controller | `API/Controllers/FilesController.cs` → `CreateMaterialUpload` |
+| | File policy (type, size, key) | `Infrastructure/Services/FileManagement/FileManager.cs` → `CreateMaterialUpload` |
+| | Presigned URL | `Infrastructure/Services/Storage/S3StorageService.cs` → `CreateUploadUrl` |
+| 2. Browser uploads the bytes | Object storage | `PUT` to the presigned URL (the API is not involved) |
+| 3. Create the material | Frontend API module | `features/materials/api.ts` → `createMaterial()` → `POST /api/courses/{id}/materials` |
+| | API controller | `API/Controllers/CoursesController.cs` → `CreateMaterial` → `CreateCourseMaterialCommand` |
+| | Use case | `Application/Features/Courses/Commands/CreateCourseMaterial/*Handler.cs` (runs inside `TransactionBehavior`) |
+| | Verify and move the upload | `FileManager.ClaimMaterialUploadAsync` → `S3StorageService.CopyAsync` |
+| | Business rules | `Domain/Courses/Entities/CourseMaterial.cs` → `Create` |
+| | Persistence | `Infrastructure/Persistence/Configurations/CourseMaterialConfiguration.cs` → table `CourseMaterials` |
+| 4. Play it | Frontend | Course contents return a signed `contentUrl` (`FileManager.GetMaterialUrl`). `VideoPlayerDialog.tsx` streams it with range requests. |
+
+Conventions that make this predictable:
+- Frontend: each feature keeps its HTTP calls in its `api.ts` (the one exception is the generic paged dropdown hook `usePaginatedSelect` used by the users filters); components call those functions, never the HTTP client.
+- API: controllers only translate HTTP ↔ command/query (`ApiControllerBase` maps `Result` errors to problem details).
+- Application: one folder per use case (`Features/<Area>/{Commands,Queries}/<UseCase>`), with a validator when there is input to check.
+- Infrastructure: implements the Application's interfaces (`Application/Interfaces`).
+- The OpenAPI document lists the roles each endpoint requires. `ProtectedRoute` guards in `src/lib/router/router.tsx` mirror them.
 
 ## Known Limitations
 

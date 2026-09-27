@@ -1,4 +1,10 @@
-@baseUrl = http://localhost:5001
+# Quick requests for VS Code REST Client / Rider / Visual Studio.
+# The full, commented collection is docs/postman; every endpoint is in Swagger (/swagger).
+# baseUrl: the local stack's proxy (http://localhost:8080) or the API itself (http://localhost:5001).
+@baseUrl = http://localhost:8080
+
+### Readiness (database + object storage)
+GET {{baseUrl}}/healthz
 
 ### Log in with the seeded SuperAdmin
 # @name login
@@ -11,9 +17,35 @@ Content-Type: application/json
 }
 
 ### Current user's profile
+# @name me
 GET {{baseUrl}}/api/users/me
 Authorization: Bearer {{login.response.body.accessToken}}
 
-### Universities (public)
-GET {{baseUrl}}/api/universities?pageNumber=1&pageSize=10
-Accept: application/json
+### Universities (public; name filters)
+GET {{baseUrl}}/api/universities?pageNumber=1&pageSize=10&name=jadara
+
+### Courses of the admin's major
+GET {{baseUrl}}/api/courses/by-major/{{me.response.body.majorId}}?pageNumber=1&pageSize=10
+
+### Course contents (signed file URLs; requires sign-in) - replace 1 with a course id
+GET {{baseUrl}}/api/courses/1/contents
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Direct upload, step 1: ask for a presigned upload URL (PUT the file to "url" with its "headers", then
+### create the material with POST /api/courses/{id}/materials { "title": "...", "uploadKey": "<key>" })
+POST {{baseUrl}}/api/files/material-uploads
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "fileName": "lecture.mp4",
+  "size": 1048576
+}
+
+### Refresh the session (refresh tokens are single-use)
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{login.response.body.refreshToken}}"
+}

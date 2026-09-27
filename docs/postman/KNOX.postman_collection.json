@@ -1,0 +1,1329 @@
+{
+  "info": {
+    "name": "KNOX API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Curated requests for the KNOX API, in the order you would use them. Run them top to bottom the first time: each request stores the ids and tokens the next ones need (collection variables).\n\nSetup\n1. Start the local stack (see KNOX README, \"Run everything locally\").\n2. Import this collection and `KNOX.local.postman_environment.json`, then select the \"KNOX local\" environment.\n3. Run \"Auth / Log in (admin)\". Every other request sends the stored token automatically (collection-level Bearer auth).\n\nGood to know\n- Errors are RFC 7807 problem details: `detail` explains, `code` identifies business errors, `errors` lists validation failures. Every response carries a `traceId` you can find in the API logs.\n- Log in/register are rate limited (5 per minute per IP). A 429 means wait a minute.\n- The full, always-current endpoint list with schemas is the OpenAPI document: {{apiUrl}}/openapi/v1.json (Swagger UI at {{apiUrl}}/swagger). Postman can import it too.\n- Course files: \"Materials\" shows the direct-upload flow. Step 2 sends the file straight to object storage with the presigned URL from step 1; the API never receives the bytes."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "majorId",
+      "value": ""
+    },
+    {
+      "key": "universityId",
+      "value": ""
+    },
+    {
+      "key": "facultyId",
+      "value": ""
+    },
+    {
+      "key": "courseId",
+      "value": ""
+    },
+    {
+      "key": "folderId",
+      "value": ""
+    },
+    {
+      "key": "uploadKey",
+      "value": ""
+    },
+    {
+      "key": "uploadUrl",
+      "value": ""
+    },
+    {
+      "key": "uploadContentType",
+      "value": ""
+    },
+    {
+      "key": "materialId",
+      "value": ""
+    },
+    {
+      "key": "quizId",
+      "value": ""
+    },
+    {
+      "key": "jobId",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Readiness (through the proxy)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/healthz",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "healthz"
+              ]
+            },
+            "description": "200 `Healthy` when the API can reach SQL Server and object storage (what uptime monitors call).",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Log in (admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Signs in and stores accessToken/refreshToken for the other requests. The seeded SuperAdmin comes from SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD (.env.local).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "const tokens = body.tokens ?? body; // register nests them, login/refresh/verify return them directly",
+                  "if (tokens.accessToken) {",
+                  "  pm.collectionVariables.set(\"accessToken\", tokens.accessToken);",
+                  "  pm.collectionVariables.set(\"refreshToken\", tokens.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Who am I",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "description": "The caller's profile, role and academic affiliation. Stores majorId for later requests."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"majorId\", body.majorId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register a student",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Creates a User-role account. Returns tokens right away unless REQUIRE_EMAIL_VERIFICATION=true (then `requiresVerification` is true and a code is emailed; without an email provider the code is printed in the API log). Stores the new user's id as userId (the admin session stays active).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student.{{$timestamp}}@knox.local\",\n  \"password\": \"Student123\",\n  \"fullName\": \"Test Student\",\n  \"majorId\": {{majorId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "// Keep the admin session: only remember who was created (the Administration requests act on this user).",
+                  "pm.collectionVariables.set(\"userId\", pm.response.json().user.domainUserId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh tokens",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Exchanges the refresh token for a new pair. Refresh tokens are single-use: sending an old one again revokes all of the user's sessions.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "const tokens = body.tokens ?? body; // register nests them, login/refresh/verify return them directly",
+                  "if (tokens.accessToken) {",
+                  "  pm.collectionVariables.set(\"accessToken\", tokens.accessToken);",
+                  "  pm.collectionVariables.set(\"refreshToken\", tokens.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Send verification / reset code",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/send-verification-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "send-verification-otp"
+              ]
+            },
+            "description": "Emails a 6-digit code (account verification or password reset). 204 on success; 409 `OTP.NotSent` when throttled or the address is unknown.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Log out",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Revokes this refresh token (no access token needed). Send an empty body while signed in to sign out everywhere.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Account (run manually)",
+      "description": "Requests that change state or need input from you; the rest of the collection runs top to bottom without them.",
+      "item": [
+        {
+          "name": "Change password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "change-password"
+              ]
+            },
+            "description": "Changes the signed-in user's password: 204. The new password must differ from the current one and have 8+ characters with upper, lower and a digit. Update adminPassword in the environment afterwards.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{adminPassword}}\",\n  \"newPassword\": \"Replace-Me-1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Verify account",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-account",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-account"
+              ]
+            },
+            "description": "Only needed when REQUIRE_EMAIL_VERIFICATION=true: put the registered email and the 6-digit code (from the email, or the API log without an email provider). Returns tokens.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"otp\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "const tokens = body.tokens ?? body; // register nests them, login/refresh/verify return them directly",
+                  "if (tokens.accessToken) {",
+                  "  pm.collectionVariables.set(\"accessToken\", tokens.accessToken);",
+                  "  pm.collectionVariables.set(\"refreshToken\", tokens.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Catalog",
+      "item": [
+        {
+          "name": "Universities (search by name)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/universities?pageNumber=1&pageSize=10&name=jadara",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "universities"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "name",
+                  "value": "jadara"
+                }
+              ]
+            },
+            "description": "Paged list; `name` matches part of the name. Stores the first universityId.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"universityId\", body.items[0]?.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Faculties of a university",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/faculties/by-university/{{universityId}}?pageNumber=1&pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "faculties",
+                "by-university",
+                "{{universityId}}"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Stores the first facultyId.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"facultyId\", body.items[0]?.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Majors of a faculty",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/majors/by-faculty/{{facultyId}}?pageNumber=1&pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "majors",
+                "by-faculty",
+                "{{facultyId}}"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Create a university (admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/universities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "universities"
+              ]
+            },
+            "description": "Requires Admin or SuperAdmin.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test University {{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Courses",
+      "item": [
+        {
+          "name": "Create a course (writer)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "description": "Creates the course in a major. requirementType: University|Faculty|Major|Remedial; requirementNature: Compulsory|Elective. Stores courseId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"majorId\": {{majorId}},\n  \"courseName\": \"Networks {{$timestamp}}\",\n  \"courseCode\": \"NET{{$randomInt}}\",\n  \"description\": \"Intro to networking\",\n  \"requirementType\": \"Major\",\n  \"requirementNature\": \"Compulsory\",\n  \"credits\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"courseId\", body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get a course",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "{{courseId}}"
+              ]
+            },
+            "description": "Includes numberOfMaterials and numberOfQuizzes.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Courses of a major",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/by-major/{{majorId}}?pageNumber=1&pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "by-major",
+                "{{majorId}}"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Optional filters: requirementType, requirementNature.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Create a folder",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}/folders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "{{courseId}}",
+                "folders"
+              ]
+            },
+            "description": "Stores folderId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Week 1\",\n  \"parentFolderId\": null,\n  \"description\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"folderId\", body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Enroll",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}/enroll",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "{{courseId}}",
+                "enroll"
+              ]
+            },
+            "description": "409 when already enrolled.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Materials (direct upload, AI generation)",
+      "item": [
+        {
+          "name": "1. Request an upload URL",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/material-uploads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "files",
+                "material-uploads"
+              ]
+            },
+            "description": "Validates type and size (pdf, docx, pptx, png, jpg, mp4, webm; 2 GB by default) and returns a presigned PUT URL. Stores uploadKey, uploadUrl and the Content-Type the upload must use. The body matches sample-lecture.pdf (next to this collection); change fileName/size for your own file.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"lecture.pdf\",\n  \"size\": 734\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"uploadKey\", body.key);",
+                  "pm.collectionVariables.set(\"uploadUrl\", body.url);",
+                  "pm.collectionVariables.set(\"uploadContentType\", body.headers[\"Content-Type\"]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Upload the file to storage",
+          "request": {
+            "method": "PUT",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "{{uploadContentType}}"
+              }
+            ],
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": "sample-lecture.pdf"
+              }
+            },
+            "url": {
+              "raw": "{{uploadUrl}}",
+              "host": [
+                "{{uploadUrl}}"
+              ]
+            },
+            "description": "Goes straight to object storage (not the API): pick a small PDF under Body > binary. No bearer token: the signature in the URL is the credential. Expect 200 from storage."
+          }
+        },
+        {
+          "name": "3. Create the material",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}/materials",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "{{courseId}}",
+                "materials"
+              ]
+            },
+            "description": "The API verifies the upload, copies it under materials/{courseId}/ and returns the material with a short-lived signed contentUrl. Stores materialId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Lecture 1\",\n  \"uploadKey\": \"{{uploadKey}}\",\n  \"folderId\": null,\n  \"description\": \"Slides\",\n  \"tags\": [\n    \"week1\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"materialId\", body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Course contents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}/contents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "{{courseId}}",
+                "contents"
+              ]
+            },
+            "description": "Folders and materials at the course root (add ?folderId= for a folder). Requires sign-in because every material carries a fresh signed contentUrl: open one in a browser to download or stream it."
+          }
+        },
+        {
+          "name": "5. Generate quizzes from it (AI)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quiz-generation/materials/{{materialId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "quiz-generation",
+                "materials",
+                "{{materialId}}"
+              ]
+            },
+            "description": "202 with a job that runs in the background (PDF/DOCX/PPTX only; the feature flag must be on, see Administration). Without OPENAI_API_KEY the job ends Failed with OpenAI.NotConfigured - the expected local result.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionsPerQuiz\": 5,\n  \"difficulty\": \"Medium\",\n  \"maxQuizzes\": 1,\n  \"autoPublish\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 202\", () => pm.response.to.have.status(202));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"jobId\", body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6. Generation job status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quiz-generation/jobs/{{jobId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "quiz-generation",
+                "jobs",
+                "{{jobId}}"
+              ]
+            },
+            "description": "Poll until status is Completed or Failed (errorMessage explains)."
+          }
+        },
+        {
+          "name": "7. Delete the material",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/materials/{{materialId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "materials",
+                "{{materialId}}"
+              ]
+            },
+            "description": "204; the file is deleted from storage after the transaction commits."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Quizzes",
+      "item": [
+        {
+          "name": "Create a quiz (writer)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quizzes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "quizzes"
+              ]
+            },
+            "description": "The writer is the caller (from the token). type: SingleChoice|MultipleChoice|TrueFalse|ShortAnswer. Stores quizId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Networking basics\",\n  \"courseId\": {{courseId}},\n  \"description\": \"Warm-up\",\n  \"questions\": [\n    {\n      \"text\": \"Which layer does IP belong to?\",\n      \"type\": \"SingleChoice\",\n      \"choices\": [\n        {\n          \"text\": \"Network\",\n          \"isCorrect\": true\n        },\n        {\n          \"text\": \"Transport\",\n          \"isCorrect\": false\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"quizId\", body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get a quiz",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quizzes/{{quizId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "quizzes",
+                "{{quizId}}"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Quizzes of a course",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quizzes/by-course/{{courseId}}?pageNumber=1&pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "quizzes",
+                "by-course",
+                "{{courseId}}"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "For a signed-in caller each item carries their last score."
+          }
+        },
+        {
+          "name": "Submit a score",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quizzes/{{quizId}}/attempts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "quizzes",
+                "{{quizId}}",
+                "attempts"
+              ]
+            },
+            "description": "Records (or replaces) the caller's score.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 80\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "React",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quizzes/{{quizId}}/reactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "quizzes",
+                "{{quizId}}",
+                "reactions"
+              ]
+            },
+            "description": "Like or Dislike; repeating the same reaction is 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reactionType\": \"Like\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Administration",
+      "item": [
+        {
+          "name": "Enable generation (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/system/settings/feature-flags/quiz-generation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "system",
+                "settings",
+                "feature-flags",
+                "quiz-generation"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Is generation enabled",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/system/settings/feature-flags/quiz-generation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "system",
+                "settings",
+                "feature-flags",
+                "quiz-generation"
+              ]
+            },
+            "description": "Public.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Users with details (admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/details?pageNumber=1&pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "details"
+              ],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Filters: universityId, facultyId, majorId, email, id, isActive, isVerified."
+          }
+        },
+        {
+          "name": "Assignable roles (admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "roles"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Assign a role (admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/assign-role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{userId}}",
+                "assign-role"
+              ]
+            },
+            "description": "Body is the role name as a JSON string. Only a SuperAdmin can grant SuperAdmin. Acts on the student created by \"Auth / Register a student\".",
+            "body": {
+              "mode": "raw",
+              "raw": "\"Writer\"",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Block a user (admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/block",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{userId}}",
+                "block"
+              ]
+            },
+            "description": "204; the user can no longer sign in or refresh. Acts on the student created by \"Auth / Register a student\"."
+          }
+        },
+        {
+          "name": "Activate a user (admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/activate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{userId}}",
+                "activate"
+              ]
+            },
+            "description": "204. Acts on the student created by \"Auth / Register a student\"."
+          }
+        },
+        {
+          "name": "Platform statistics (SuperAdmin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/statistics?months=6",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "statistics"
+              ],
+              "query": [
+                {
+                  "key": "months",
+                  "value": "6"
+                }
+              ]
+            },
+            "description": ""
+          }
+        }
+      ],
+      "description": "Admin or SuperAdmin (platform statistics: SuperAdmin). An administrator cannot change their own role or block themselves."
+    }
+  ]
+}

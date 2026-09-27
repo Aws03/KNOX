@@ -30,7 +30,7 @@ KNOX is a university knowledge hub (LMS) for IT students. Students belong to a *
   - Browsers upload materials **directly** with a presigned PUT; the API never streams large files.
 - **Containers**:
   - `deploy/` holds production: Caddy, nginx web, the API, SQL Server Express and a one-shot `migrate` job, with images from GHCR. See `deploy/README.md`.
-  - `../docker-compose.yml` (the local-only `SP/` workspace repo) builds both apps from source with SeaweedFS storage.
+  - `deploy/compose.local.yml` (with `deploy/.env.local.example`) runs the same topology locally, built from source: HTTP on :8080, Swagger on 127.0.0.1:5001, and SQL Server/storage published on loopback.
 - **The frontend is a separate repository.** Its `origin` (`Aws03/KNOX-Frontend`) did not exist on GitHub at the time of writing.
 
 ## 3. Project Structure
@@ -119,26 +119,29 @@ tests/
 ## 6. Running Locally
 
 ```bash
-docker compose -f ../docker-compose.yml up -d sqlserver storage storage-init   # SQL Server + SeaweedFS (http://localhost:8333)
-cd JadaraITKnowledgeSystem.API
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=KnoxDb;User ID=sa;Password=<pw>;TrustServerCertificate=True"
-dotnet user-secrets set "Storage:AccessKey" "knox-local"; dotnet user-secrets set "Storage:SecretKey" "<STORAGE_SECRET_KEY>"
-dotnet run    # http://localhost:5001; Development migrates + seeds and serves /swagger
+cd deploy && cp .env.local.example .env.local && docker compose --env-file .env.local up -d --build --wait
+# app http://localhost:8080 · Swagger http://127.0.0.1:5001/swagger · admin@knox.com / Admin@123456
 ```
 
-- `appsettings.json` is tracked and holds **no secrets**. `appsettings.Development.json` has development-only values.
-- Frontend: `cd ../KNOX_Frontend/uni-hub && npm run dev`, on http://localhost:5173.
+- **Hot reload.** Run `docker compose --env-file .env.local up -d sqlserver storage storage-init`, then `dotnet run --project JadaraITKnowledgeSystem.API` and `npm run dev` in the frontend.
+  - `appsettings.Development.json` already targets the local SQL Server (1433) and storage (8333).
+  - User-secrets override it. Stale secrets such as `ConnectionStrings:DefaultConnection` make the API connect elsewhere.
+- **No secrets in tracked settings.** `appsettings.json` has none. `appsettings.Development.json` and `deploy/.env.local.example` hold only local-only values bound to localhost.
+- **API testing:**
+  - Swagger shows the required role per endpoint (`OpenApi/AuthorizationTransformer`).
+  - Postman: `docs/postman/` has a collection, a local environment and a sample PDF. Keep the collection in step with contract changes; verify it with `npx newman run ...` (see README).
+  - `JadaraITKnowledgeSystem.API.http` has quick editor requests.
 
 ## 7. Running with Docker
 
-- **Local, built from source:** `cd .. && cp .env.example .env && docker compose up --build -d`. The app is on :5173, storage on :8333 and the API on 127.0.0.1:5001.
 - **Production:** `deploy/scripts/deploy.sh <api-tag> <web-tag>` on the host (see `deploy/README.md`). It runs:
   1. Pull, then start SQL Server, then back up.
   2. `docker compose run --rm migrate`.
   3. `up --wait`, with automatic rollback of the app images if the new version is unhealthy.
+- **Local:** `compose.local.yml` builds the images, runs `migrate` automatically before the API, enables Swagger, and publishes ports on loopback. See §6.
 - **Health:**
   - Containers are health-checked on `/health/ready` (database and storage).
-  - nginx exposes it publicly as `/healthz`.
+  - nginx exposes it as `/healthz`.
   - The runtime image has no curl, so the API checks itself over bash `/dev/tcp`.
 - `VITE_API_URL` is a **build-time** arg, defaulting to `/api`. `CSP_MEDIA_SOURCES` (a web container env var) lists the storage and CDN origins for the Content-Security-Policy.
 
@@ -154,10 +157,19 @@ dotnet run    # http://localhost:5001; Development migrates + seeds and serves /
 - **Two id spaces for users** (see §5). Access tokens issued before the `domain_user_id` claim existed fall back to the Identity id until they expire.
 - **`CreatedBy` holds the author's email.** It is the only link between folders, materials and resources and their writer; there is no foreign key.
 - **`WriterApplication`** table and entity exist but no feature uses them.
-- The namespace typo `Domain.Entites` remains in a few places. Renaming it is churn with no behavioural value.
 - **Grading** on enrollments is intentionally not modelled (grading schemes differ per university).
 - **Data Protection keys** are not persisted. The only consumer is Identity's password-reset token, which is generated and redeemed in the same request, so this is harmless today. Persist the keys before adding cookie auth or long-lived tokens.
 - Videos are delivered as uploaded (progressive MP4/WebM); there is no HLS transcoding.
+- **API features without UI:**
+  - AI quiz generation (`/api/quiz-generation/*`) and the feature-flag toggle.
+  - "My enrollments" and course completion.
+  - The writer-scoped views `my-info` and `my-quizzes`. The quiz management page uses the public list.
+  - These are reachable through Swagger and Postman.
+- **No API yet** for editing or deleting quizzes, renaming folders, editing materials, or deleting universities, faculties or majors. The UI hides those actions rather than offering buttons that do nothing.
+- **Frontend duplication left in place (low risk):**
+  - `features/courses/api.ts` repeats the university/faculty/major fetchers of `features/universities/api.ts`, with its own types.
+  - The courses filters call a faculty a "college".
+  - Most `i18n/locales` keys are unused: the UI is largely hard-coded English.
 
 ## 10. Development Workflow
 

@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Application.Common.Models;
+using JadaraITKnowledgeSystem.Application.Common.Models;
 using JadaraITKnowledgeSystem.Application.Features.Faculties.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Faculties.Mappers;
 using JadaraITKnowledgeSystem.Application.Interfaces;
@@ -20,14 +20,14 @@ public sealed class GetFacultiesByUniversityIdQueryHandler
         Handle(GetFacultiesByUniversityIdQuery request, CancellationToken cancellationToken)
     {
         _logger.LogInformation(
-           "Handling GetFacultiesByUniversityIdQuery: Page {Page}, PageSize {PageSize}",
-           request.PageNumber, request.PageSize);
+           "Handling GetFacultiesByUniversityIdQuery: UniversityId {UniversityId}, Page {Page}, PageSize {PageSize}",
+           request.UniversityId, request.PageNumber, request.PageSize);
 
-        // Project the query to FacultyDto before pagination
         var query = _context.Faculties
             .AsNoTracking()
-            .OrderBy(u => u.Name)
-            .Select(u => u.ToDto());
+            .Where(f => f.UniversityId == request.UniversityId)
+            .OrderBy(f => f.Name)
+            .Select(f => f.ToDto());
 
         // Use the factory method to create the paginated list
         var paginatedList = await PaginatedList<FacultyDto>.CreateAsync(

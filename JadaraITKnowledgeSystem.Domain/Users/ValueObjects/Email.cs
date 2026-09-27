@@ -1,9 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace JadaraITKnowledgeSystem.Domain.Users.ValueObjects
 {
     public class Email
@@ -12,13 +6,18 @@ namespace JadaraITKnowledgeSystem.Domain.Users.ValueObjects
 
         public Email(string address)
         {
-            if (string.IsNullOrWhiteSpace(address) || !address.Contains("@"))
+            if (string.IsNullOrWhiteSpace(address) || !address.Contains('@'))
                 throw new ArgumentException("Invalid email address");
 
-            Address = address.ToUpper();
+            Address = Normalize(address);
         }
+
+        /// <summary>
+        /// The canonical stored form of an address. Compare stored addresses against
+        /// <c>Normalize(input)</c> rather than relying on the database collation.
+        /// </summary>
+        public static string Normalize(string address) => address.Trim().ToUpperInvariant();
 
         public override string ToString() => Address;
     }
-
 }

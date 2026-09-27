@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
@@ -16,15 +14,15 @@ public sealed class QuizGenerationJob : AuditableEntity
 {
     [ForeignKey(nameof(Material))]
     public int MaterialId { get; private set; }
-    public CourseMaterial Material { get; private set; }
+    public CourseMaterial Material { get; private set; } = null!;
 
     [ForeignKey(nameof(Course))]
     public int CourseId { get; private set; }
-    public Course Course { get; private set; }
+    public Course Course { get; private set; } = null!;
 
     [ForeignKey(nameof(RequestedByUser))]
     public int RequestedByUserId { get; private set; }
-    public User RequestedByUser { get; private set; }
+    public User RequestedByUser { get; private set; } = null!;
 
     public QuizGenerationStatus Status { get; private set; }
 
@@ -37,7 +35,7 @@ public sealed class QuizGenerationJob : AuditableEntity
     public string? GeneratedQuizIdsJson { get; private set; }
 
     [MaxLength(1000)]
-    public string OptionsJson { get; private set; }
+    public string OptionsJson { get; private set; } = string.Empty;
 
     public DateTime? CompletedAt { get; private set; }
 

@@ -1,13 +1,20 @@
-using JadaraITKnowledgeSystem.Domain.Common.Results;
-using JadaraITKnowledgeSystem.Domain.Identity;
+namespace JadaraITKnowledgeSystem.Application.Interfaces.Services;
 
-namespace JadaraITKnowledgeSystem.Application.Interfaces.Services
+public interface IRefreshTokenService
 {
-    public interface IRefreshTokenService
-    {
-        Task<Result<RefreshToken>> GenerateRefreshTokenAsync(int userId, string ipAddress);
-        Task<Result<RefreshToken>> GetActiveRefreshTokenAsync(string token);
-        Task<Result<Success>> RevokeTokenAsync(string token, string ipAddress);
-        Task<Result<Success>> RevokeAllUserTokensAsync(int userId, string ipAddress);
-    }
+    Task<IssuedRefreshToken> IssueAsync(int identityUserId, string ipAddress, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Consumes (revokes) the presented token and returns its owner's identity user id if it
+    /// was active. Presenting an already-rotated token revokes all of that user's tokens,
+    /// since it means a copy of the token is in someone else's hands.
+    /// </summary>
+    Task<int?> RedeemAsync(string token, string ipAddress, CancellationToken cancellationToken = default);
+
+    /// <summary>Revokes <paramref name="token"/> only if it belongs to <paramref name="identityUserId"/>.</summary>
+    Task RevokeAsync(string token, int identityUserId, string ipAddress, CancellationToken cancellationToken = default);
+
+    Task RevokeAllAsync(int identityUserId, string ipAddress, CancellationToken cancellationToken = default);
 }
+
+public sealed record IssuedRefreshToken(string Token, DateTime ExpiresAt);

@@ -1,4 +1,5 @@
-﻿using JadaraITKnowledgeSystem.Domain.Common;
+using System.ComponentModel.DataAnnotations.Schema;
+using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Courses;
 using JadaraITKnowledgeSystem.Domain.Courses.Entites;
@@ -6,10 +7,6 @@ using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Enums;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Errors;
 using JadaraITKnowledgeSystem.Domain.Users;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
 
 namespace JadaraITKnowledgeSystem.Domain.Quizzes
 {
@@ -17,17 +14,16 @@ namespace JadaraITKnowledgeSystem.Domain.Quizzes
     {
         [ForeignKey(nameof(Course))]
         public int CourseId { get; private set; }
-        public Course Course { get; private set; }
+        public Course Course { get; private set; } = null!;
 
         [ForeignKey(nameof(User))]
         public int WriterId { get; private set; }
-        public User Writer { get; private set; }
+        public User Writer { get; private set; } = null!;
 
-        public string Title { get; private set; }
+        public string Title { get; private set; } = string.Empty;
         public string? Description { get; private set; }
         public int Likes { get; private set; }
         public int Dislikes { get; private set; }
-        public DateTime CreatedAt { get; private set; }
 
         public QuizSource Source { get; private set; } = QuizSource.Manual;
         
@@ -78,7 +74,6 @@ namespace JadaraITKnowledgeSystem.Domain.Quizzes
             WriterId = writerId;
             Title = title;
             Description = description;
-            CreatedAt = DateTime.UtcNow;
             Source = source;
             SourceMaterialId = sourceMaterialId;
             PartNumber = partNumber;
@@ -139,18 +134,32 @@ namespace JadaraITKnowledgeSystem.Domain.Quizzes
                     Dislikes--;
                 }
 
-                _reactions.Remove(existingReaction);
+                // One reaction row per user and quiz: switch it in place.
+                existingReaction.ChangeType(reaction.ReactionType);
+                return Result.Success;
             }
+
+            if (reaction.ReactionType == ReactionType.Like)
+                Likes++;
             else
-            {
-                if (reaction.ReactionType == ReactionType.Like)
-                    Likes++;
-                else
-                    Dislikes++;
-            }
+                Dislikes++;
 
             _reactions.Add(reaction);
+            return Result.Success;
+        }
 
+        public Result<Success> MarkAsAiGenerated(int sourceMaterialId, int partNumber, int totalParts)
+        {
+            if (sourceMaterialId <= 0)
+                return Error.Validation("Quiz.SourceMaterialId.Invalid", "Source material id must be positive.");
+
+            if (totalParts <= 0 || partNumber <= 0 || partNumber > totalParts)
+                return Error.Validation("Quiz.Part.Invalid", "Part number must be between 1 and the total number of parts.");
+
+            Source = QuizSource.AIGenerated;
+            SourceMaterialId = sourceMaterialId;
+            PartNumber = partNumber;
+            TotalParts = totalParts;
             return Result.Success;
         }
 

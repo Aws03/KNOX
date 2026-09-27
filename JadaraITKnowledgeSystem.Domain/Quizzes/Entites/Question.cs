@@ -1,24 +1,19 @@
-﻿using JadaraITKnowledgeSystem.Domain.Common;
+using System.ComponentModel.DataAnnotations.Schema;
+using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
-using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Enums;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Errors;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Runtime.InteropServices;
-
 
 namespace JadaraITKnowledgeSystem.Domain.Quizzes.Entites
 {
     public class Question : AuditableEntity
     {
-        //[Key]
-        //public int QuestionId { get; private set; }
         [ForeignKey(nameof(Quiz))]
         public int QuizId { get; private set; }
-        public Quiz Quiz { get; private set; }
+        public Quiz Quiz { get; private set; } = null!;
 
         public QuestionType Type { get; private set; }
-        public string Text { get; private set; }
+        public string Text { get; private set; } = string.Empty;
         public string? ImageUrl { get; private set; }
 
         private readonly List<Choice> _choices = new();
@@ -39,15 +34,12 @@ namespace JadaraITKnowledgeSystem.Domain.Quizzes.Entites
             _choices.Add(choice);
         }
 
-        public static Result<Question> Create(int quizId, QuestionType type, string text,string? imageUrl = null)
+        public static Result<Question> Create(int quizId, QuestionType type, string text, string? imageUrl = null)
         {
-            //if (string.IsNullOrWhiteSpace(text))
-            //{
-            //    return 
-            //}
+            if (string.IsNullOrWhiteSpace(text))
+                return QuizErrors.QuestionTextRequired;
 
-            var question = new Question(quizId, type, text,imageUrl);
-            return question;
+            return new Question(quizId, type, text, imageUrl);
         }
 
     }

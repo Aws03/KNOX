@@ -1,11 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -14,6 +8,7 @@ using JadaraITKnowledgeSystem.Domain.Common.Results;
 using Microsoft.Extensions.Logging;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas.Parser;
+
 // Not "using ...Listener;" - iText's own TextChunk type collides with this
 // project's TextChunk DTO used elsewhere in this file.
 using SimpleTextExtractionStrategy = iText.Kernel.Pdf.Canvas.Parser.Listener.SimpleTextExtractionStrategy;
@@ -85,27 +80,6 @@ public class TextExtractionService : ITextExtractionService
         }
     }
 
-    public async Task<Result<ExtractedTextDto>> ExtractTextWithMetadataAsync(
-        Stream fileStream,
-        string extension,
-        CancellationToken cancellationToken = default)
-    {
-        var textResult = await ExtractTextAsync(fileStream, extension, cancellationToken);
-
-        if (textResult.IsError)
-            return textResult.Errors;
-
-        var text = textResult.Value;
-
-        return new ExtractedTextDto
-        {
-            Text = text,
-            CharacterCount = text.Length,
-            DetectedLanguage = DetectLanguage(text),
-            DetectedTopics = null // Could be enhanced with AI topic extraction
-        };
-    }
-
     public async Task<List<TextChunk>> ChunkTextIntelligentlyAsync(
         string text,
         ChunkingOptions options,
@@ -171,7 +145,7 @@ public class TextExtractionService : ITextExtractionService
         return Task.Run(() =>
         {
             using var document = WordprocessingDocument.Open(stream, false);
-            var body = document.MainDocumentPart?.Document.Body;
+            var body = document.MainDocumentPart?.Document?.Body;
 
             if (body == null)
                 return string.Empty;
@@ -204,7 +178,9 @@ public class TextExtractionService : ITextExtractionService
                 foreach (var slidePart in presentationPart.SlideParts)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var slide = slidePart.Slide;
+                    if (slidePart.Slide is not { } slide)
+                        continue;
+
                     foreach (var paragraph in slide.Descendants<DocumentFormat.OpenXml.Drawing.Paragraph>())
                     {
                         text.AppendLine(paragraph.InnerText);
@@ -341,13 +317,6 @@ public class TextExtractionService : ITextExtractionService
             return firstLine;
 
         return null;
-    }
-
-    private string? DetectLanguage(string text)
-    {
-        // Simple language detection (can be enhanced with a proper library)
-        // For now, just return "en" as default
-        return "en";
     }
 
     #endregion

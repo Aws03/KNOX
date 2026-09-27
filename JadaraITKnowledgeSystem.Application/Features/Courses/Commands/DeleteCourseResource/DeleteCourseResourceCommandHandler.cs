@@ -25,7 +25,7 @@ public sealed class DeleteCourseResourceCommandHandler
         // populates when explicitly included via ThenInclude.
         var course = await _context.Courses
             .Include(c => c.CourseInfo)
-                .ThenInclude(ci => ci.Resources)
+                .ThenInclude(ci => ci!.Resources)
             .FirstOrDefaultAsync(c => c.Id == request.CourseId, cancellationToken);
         if (course is null)
         {

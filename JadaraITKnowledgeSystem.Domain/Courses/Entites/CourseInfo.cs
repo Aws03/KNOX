@@ -1,7 +1,7 @@
-﻿using JadaraITKnowledgeSystem.Domain.Common;
+using System.ComponentModel.DataAnnotations;
+using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Courses.Enums;
-using System.ComponentModel.DataAnnotations;
 
 namespace JadaraITKnowledgeSystem.Domain.Courses.Entities
 {
@@ -15,7 +15,7 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entities
         private const int MaxVideoTitleLength = 200;
 
         public int CourseId { get; private set; }
-        public Course Course { get; private set; }
+        public Course Course { get; private set; } = null!;
 
         public DifficultyLevel DifficultyLevel { get; private set; }
 

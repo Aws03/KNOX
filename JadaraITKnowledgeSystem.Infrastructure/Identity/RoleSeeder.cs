@@ -1,3 +1,4 @@
+using JadaraITKnowledgeSystem.Application.Common.Security;
 using Microsoft.AspNetCore.Identity;
 
 namespace JadaraITKnowledgeSystem.Infrastructure.Identity
@@ -6,14 +7,6 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Identity
     {
         private readonly RoleManager<ApplicationRole> _roleManager;
 
-        private static readonly string[] Roles = new[]
-        {
-            "SuperAdmin",
-            "Admin",
-            "Writer",
-            "User"
-        };
-
         public RoleSeeder(RoleManager<ApplicationRole> roleManager)
         {
             _roleManager = roleManager;
@@ -21,7 +14,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Identity
 
         public async Task SeedAsync()
         {
-            foreach (var role in Roles)
+            foreach (var role in Roles.All)
             {
                 if (!await _roleManager.RoleExistsAsync(role))
                 {
@@ -31,4 +24,3 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Identity
         }
     }
 }
-

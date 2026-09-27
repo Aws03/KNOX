@@ -19,13 +19,12 @@ public sealed class GetCourseByCodeQueryHandler : IRequestHandler<GetCourseByCod
     {
         var course = await _context.Courses
             .AsNoTracking()
-            .Where(c => c.CourseCode == request.CourseCode)
-            .Select(c => c.ToDto())
-            .FirstOrDefaultAsync(cancellationToken);
+            .Include(c => c.Requirements)
+            .FirstOrDefaultAsync(c => c.CourseCode == request.CourseCode, cancellationToken);
 
         if (course == null)
             return Error.NotFound("Course.NotFound", $"Course with code '{request.CourseCode}' not found.");
 
-        return course;
+        return course.ToDto();
     }
 }

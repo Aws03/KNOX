@@ -1,54 +1,29 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Dtos;
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Enums;
-using Microsoft.Extensions.Configuration;
+using JadaraITKnowledgeSystem.Infrastructure.Options;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace JadaraITKnowledgeSystem.Infrastructure.Services.AI;
 
 /// <summary>
-/// Service for interacting with OpenAI API to generate quizzes from text.
-/// Requires: dotnet add package OpenAI or Azure.AI.OpenAI
+/// Calls the OpenAI chat completions REST API (via a typed HttpClient) to generate quizzes from text.
 /// </summary>
-public class OpenAIService : IOpenAIService
+public sealed class OpenAIService(HttpClient httpClient, IOptions<OpenAIOptions> options, ILogger<OpenAIService> logger) : IOpenAIService
 {
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<OpenAIService> _logger;
-    private readonly string _apiKey;
-    private readonly string _model;
-    private readonly int _maxTokens;
-    private readonly double _temperature;
-
-    public OpenAIService(
-        HttpClient httpClient,
-        IConfiguration configuration,
-        ILogger<OpenAIService> logger)
-    {
-        _httpClient = httpClient;
-        _logger = logger;
-
-        var openAIConfig = configuration.GetSection("OpenAI");
-        _apiKey = openAIConfig["ApiKey"] ?? throw new InvalidOperationException("OpenAI:ApiKey not configured");
-        _model = openAIConfig["Model"] ?? "gpt-4-turbo-preview";
-        _maxTokens = int.Parse(openAIConfig["MaxTokens"] ?? "4000");
-        _temperature = double.Parse(openAIConfig["Temperature"] ?? "0.7");
-
-        _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
-    }
+    private readonly ILogger<OpenAIService> _logger = logger;
 
     public async Task<Result<GeneratedQuizDto>> GenerateQuizFromTextAsync(
         GenerateQuizRequest request,
         CancellationToken cancellationToken = default)
     {
+        if (!options.Value.IsConfigured)
+            return Error.Failure("OpenAI.NotConfigured", "AI quiz generation is not configured (OpenAI:ApiKey is missing).");
+
         try
         {
             _logger.LogInformation(
@@ -84,68 +59,30 @@ public class OpenAIService : IOpenAIService
         }
     }
 
-    public async Task<Result<string>> GenerateTextAsync(
-        string prompt,
-        CancellationToken cancellationToken = default)
-    {
-        return await CallOpenAIAsync(prompt, cancellationToken);
-    }
-
-    public async Task<Result<List<string>>> ExtractTopicsAsync(
-        string text,
-        int maxTopics = 5,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var prompt = $@"
-Extract {maxTopics} key topics/keywords from the following educational content.
-Return only a JSON array of strings with the topics, no other text.
-Each topic should be 1-3 words maximum.
-
-Content:
-{text.Substring(0, Math.Min(2000, text.Length))}
-
-Return format: [""topic1"", ""topic2"", ""topic3""]
-";
-
-            var response = await CallOpenAIAsync(prompt, cancellationToken);
-            if (response.IsError)
-                return response.Errors;
-
-            var topics = JsonSerializer.Deserialize<List<string>>(response.Value);
-            return topics ?? new List<string>();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error extracting topics");
-            return new List<string>(); // Return empty list on error
-        }
-    }
-
     private async Task<Result<string>> CallOpenAIAsync(string prompt, CancellationToken cancellationToken)
     {
         try
         {
+            var settings = options.Value;
             var requestBody = new
             {
-                model = _model,
+                model = settings.Model,
                 messages = new[]
                 {
                     new { role = "system", content = GetSystemPrompt() },
                     new { role = "user", content = prompt }
                 },
-                max_tokens = _maxTokens,
-                temperature = _temperature
+                max_tokens = settings.MaxTokens,
+                temperature = settings.Temperature
             };
 
-            var json = JsonSerializer.Serialize(requestBody);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            using var request = new HttpRequestMessage(HttpMethod.Post, settings.Endpoint)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json")
+            };
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", settings.ApiKey);
 
-            var response = await _httpClient.PostAsync(
-                "https://api.openai.com/v1/chat/completions",
-                content,
-                cancellationToken);
+            using var response = await httpClient.SendAsync(request, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -177,14 +114,14 @@ Return format: [""topic1"", ""topic2"", ""topic3""]
         }
     }
 
-    private string GetSystemPrompt()
+    private static string GetSystemPrompt()
     {
         return @"You are an expert educational quiz generator. Your task is to create high-quality, 
 educational multiple-choice quizzes based on provided content. Always return responses in valid JSON format.
 Be precise, educational, and ensure questions are clear and unambiguous.";
     }
 
-    private string BuildQuizGenerationPrompt(GenerateQuizRequest request)
+    private static string BuildQuizGenerationPrompt(GenerateQuizRequest request)
     {
         var partInfo = request.TotalChunks > 1
             ? $"This is part {request.ChunkIndex + 1} of {request.TotalChunks} from a larger document."
@@ -213,7 +150,7 @@ RESPONSE FORMAT (strict JSON):
   ""questions"": [
     {{
       ""text"": ""Question text here?"",
-      ""type"": 0,
+      ""type"": 1,
       ""choices"": [
         {{""text"": ""Choice A"", ""isCorrect"": false}},
         {{""text"": ""Choice B"", ""isCorrect"": true}},
@@ -261,30 +198,25 @@ Generate the quiz now as valid JSON:
             // Validate and set defaults
             if (quizData != null)
             {
-                quizData.Topic ??= "General Quiz";
-                quizData.Title ??= "Generated Quiz";
-                quizData.Description ??= "Test your knowledge with this quiz.";
-                quizData.SuggestedTags ??= new List<string>();
-                quizData.Questions ??= new List<CreateQuestionDto>();
+                if (string.IsNullOrWhiteSpace(quizData.Topic)) quizData.Topic = "General Quiz";
+                if (string.IsNullOrWhiteSpace(quizData.Title)) quizData.Title = "Generated Quiz";
+                if (string.IsNullOrWhiteSpace(quizData.Description)) quizData.Description = "Test your knowledge with this quiz.";
+                quizData.SuggestedTags ??= [];
+                quizData.Questions ??= [];
 
-                // Ensure all questions have type set
-                foreach (var question in quizData.Questions)
-                {
-                    if (question.Choices?.Count == 4 && question.Choices.Count(c => c.IsCorrect) == 1)
-                    {
-                        // Valid question
-                        continue;
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Invalid question detected, skipping");
-                    }
-                }
-
-                // Filter out invalid questions
-                quizData.Questions = quizData.Questions
-                    .Where(q => q.Choices?.Count == 4 && q.Choices.Count(c => c.IsCorrect) == 1)
+                // Keep only well-formed single-choice questions (4 choices, exactly one correct).
+                var validQuestions = quizData.Questions
+                    .Where(q => !string.IsNullOrWhiteSpace(q.Text)
+                                && q.Choices?.Count == 4
+                                && q.Choices.Count(c => c.IsCorrect) == 1)
+                    .Select(q => q with { Type = QuestionType.SingleChoice })
                     .ToList();
+
+                var skipped = quizData.Questions.Count - validQuestions.Count;
+                if (skipped > 0)
+                    _logger.LogWarning("Skipped {Count} malformed AI-generated question(s)", skipped);
+
+                quizData.Questions = validQuestions;
             }
 
             return quizData;

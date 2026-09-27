@@ -1,8 +1,9 @@
-﻿using FluentValidation;
+using FluentValidation;
+using JadaraITKnowledgeSystem.Application.Common.Validators;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Faculties.Queries.GetFacultiesByUniversityId;
 
-public sealed class GetFacultiesByUniversityIdQueryValidator : AbstractValidator<GetFacultiesByUniversityIdQuery>
+public sealed class GetFacultiesByUniversityIdQueryValidator : PaginatedRequestValidator<GetFacultiesByUniversityIdQuery>
 {
     public GetFacultiesByUniversityIdQueryValidator()
     {

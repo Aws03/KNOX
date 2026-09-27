@@ -1,67 +1,40 @@
+using System.Net.Http.Json;
 using JadaraITKnowledgeSystem.Application.Interfaces;
-using JadaraITKnowledgeSystem.Application.Common.Models;
-using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
+using JadaraITKnowledgeSystem.Infrastructure.Options;
+using Microsoft.Extensions.Options;
 
 namespace JadaraITKnowledgeSystem.Infrastructure.Services.Email;
 
-public class BrevoEmailService : IEmailService
+public sealed class BrevoEmailService(HttpClient httpClient, IOptions<BrevoOptions> options) : IEmailService
 {
-    private const string SenderEmail = "aws.03.dev@gmail.com";
-    private const string SenderName = "KNOX";
+    private const string Endpoint = "https://api.brevo.com/v3/smtp/email";
 
-    private readonly HttpClient _httpClient;
-    private readonly string _apiKey;
-
-    public BrevoEmailService(IConfiguration configuration, HttpClient httpClient)
+    public async Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
     {
-        _httpClient = httpClient;
-        _apiKey = configuration["Brevo:ApiKey"]
-            ?? throw new ArgumentNullException("Brevo:ApiKey", "Brevo ApiKey is not configured.");
-    }
-
-    public async Task<bool> SendEmailAsync(EmailRequest emailRequest)
-    {
-        // Validation: Either text_content or html_content required
-        if (string.IsNullOrWhiteSpace(emailRequest.text_content) && string.IsNullOrWhiteSpace(emailRequest.html_content))
-            throw new ArgumentException("Either text_content or html_content must be provided.");
-        if (emailRequest.recipients is null || emailRequest.recipients.Count == 0)
-            throw new ArgumentException("At least one recipient is required.");
-
-        var payload = new BrevoEmailRequest(
-            sender: new BrevoSender(SenderName, SenderEmail),
-            to: emailRequest.recipients.Select(r => new BrevoRecipient(r.email, r.name)).ToList(),
-            subject: emailRequest.subject,
-            htmlContent: emailRequest.html_content,
-            textContent: emailRequest.text_content);
-
-        var request = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email")
+        var settings = options.Value;
+        using var request = new HttpRequestMessage(HttpMethod.Post, Endpoint)
         {
-            Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
+            Content = JsonContent.Create(new
+            {
+                sender = new { name = settings.FromName, email = settings.FromEmail },
+                to = new[] { new { email = message.ToEmail, name = message.ToName } },
+                subject = message.Subject,
+                htmlContent = message.HtmlBody,
+                textContent = message.TextBody
+            })
         };
-        request.Headers.Add("api-key", _apiKey);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.Add("api-key", settings.ApiKey);
 
-        var response = await _httpClient.SendAsync(request);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorContent = await response.Content.ReadAsStringAsync();
-            throw new HttpRequestException($"Email send failed with status {response.StatusCode}: {errorContent}");
-        }
-
-        return true;
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, "Brevo", cancellationToken);
     }
 
-    public EmailFrom GetDefaultFrom() => new EmailFrom { email = SenderEmail, name = SenderName };
+    internal static async Task EnsureSuccessAsync(HttpResponseMessage response, string provider, CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
 
-    private sealed record BrevoSender(string name, string email);
-    private sealed record BrevoRecipient(string email, string? name);
-    private sealed record BrevoEmailRequest(BrevoSender sender, List<BrevoRecipient> to, string subject, string? htmlContent, string? textContent);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        throw new HttpRequestException($"{provider} rejected the email with status {(int)response.StatusCode}: {body}");
+    }
 }

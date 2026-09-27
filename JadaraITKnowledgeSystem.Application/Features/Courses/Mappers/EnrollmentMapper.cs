@@ -19,24 +19,4 @@ public static class EnrollmentMapper
             EnrolledAt: enrollment.CreatedAt
         );
     }
-
-    public static EnrolledCourseSummaryDto ToSummaryDto(
-        this Enrollment enrollment,
-        int numberOfMaterials,
-        int numberOfQuizzes)
-    {
-        return new EnrolledCourseSummaryDto(
-            EnrollmentId: enrollment.Id,
-            CourseId: enrollment.CourseId,
-            CourseName: enrollment.Course?.CourseName ?? string.Empty,
-            CourseCode: enrollment.Course?.CourseCode,
-            Description: enrollment.Course?.Description,
-            Credits: enrollment.Course?.Credits,
-            IsFinished: enrollment.IsFinished,
-            FinishedAt: enrollment.FinishedAt,
-            EnrolledAt: enrollment.CreatedAt,
-            NumberOfMaterials: numberOfMaterials,
-            NumberOfQuizzes: numberOfQuizzes
-        );
-    }
 }

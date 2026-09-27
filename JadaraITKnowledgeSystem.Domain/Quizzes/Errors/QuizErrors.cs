@@ -1,9 +1,5 @@
-﻿using JadaraITKnowledgeSystem.Domain.Common.Results;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using JadaraITKnowledgeSystem.Domain.Common.Results;
 
 namespace JadaraITKnowledgeSystem.Domain.Quizzes.Errors
 {
@@ -17,6 +13,9 @@ namespace JadaraITKnowledgeSystem.Domain.Quizzes.Errors
 
         public static Error ConflictReaction =>
             Error.Conflict("Cannot_Dublicate_Reaction", "Can not add the same reaction on the same quiz.");
+
+        public static Error QuestionTextRequired =>
+            Error.Validation("Question_Text_Required", "Question text is required.");
 
         public static Error ChoiceTextRequired =>
             Error.Validation("Choice_Text_Required", "Choice text is required.");

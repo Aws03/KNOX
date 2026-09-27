@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Majors.Commands.CreateMajor;
 
@@ -7,10 +7,10 @@ public sealed class CreateMajorCommandValidator : AbstractValidator<CreateMajorC
     public CreateMajorCommandValidator()
     {
         RuleFor(x => x.Name)
-            .NotEmpty().WithMessage("Faculty name is required.")
-            .MaximumLength(100).WithMessage("Faculty name must not exceed 100 characters.");
+            .NotEmpty().WithMessage("Major name is required.")
+            .MaximumLength(100).WithMessage("Major name must not exceed 100 characters.");
 
         RuleFor(x => x.FacultyId)
-            .NotNull().WithMessage("University ID is required.");
+            .GreaterThan(0).WithMessage("Faculty ID must be greater than 0.");
     }
 }

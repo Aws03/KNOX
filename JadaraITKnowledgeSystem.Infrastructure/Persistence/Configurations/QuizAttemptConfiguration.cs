@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
+using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -17,6 +17,9 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
 
             builder.Property(a => a.AttemptDate)
                 .IsRequired();
+
+            // Only the latest score per user is kept (Quiz.AddOrUpdateAttempt).
+            builder.HasIndex(a => new { a.UserId, a.QuizId }).IsUnique();
 
             builder.HasOne(a => a.Quiz)
                 .WithMany(q => q.Attempts)

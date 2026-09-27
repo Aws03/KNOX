@@ -1,14 +1,13 @@
-﻿using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
+using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Dtos;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
-using System.Collections.Generic;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Courses.Commands.CreateCourseMaterial;
 
 public sealed record CreateCourseMaterialCommand(
     string Title,
-    string ContemtUrl,
+    string ContentUrl,
     int CourseId,
     int? FolderId,
     string? Description,

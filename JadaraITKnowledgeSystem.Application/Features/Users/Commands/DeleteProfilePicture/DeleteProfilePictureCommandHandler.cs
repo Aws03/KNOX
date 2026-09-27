@@ -3,6 +3,7 @@ using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using EmailAddress = JadaraITKnowledgeSystem.Domain.Users.ValueObjects.Email;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Users.Commands.DeleteProfilePicture;
 
@@ -33,7 +34,7 @@ public sealed class DeleteProfilePictureCommandHandler
         _logger.LogInformation("Deleting profile picture for User {UserId}", userId.Value);
 
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email.Address == userEmail, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email.Address == EmailAddress.Normalize(userEmail), cancellationToken);
 
         if (user is null)
             return Error.NotFound("User.NotFound", "User not found.");

@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Domain.Users;
+using JadaraITKnowledgeSystem.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -26,6 +26,9 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
                     .HasColumnName("Email")
                     .IsRequired()
                     .HasMaxLength(254);
+
+                // Most per-request lookups resolve the caller by email.
+                email.HasIndex(e => e.Address);
             });
 
             builder.Property(u => u.MajorId)

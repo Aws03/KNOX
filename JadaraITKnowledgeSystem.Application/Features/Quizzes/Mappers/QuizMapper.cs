@@ -1,6 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Dtos;
 using JadaraITKnowledgeSystem.Domain.Quizzes;
 
@@ -22,6 +19,7 @@ public static class QuizMapper
             Description = quiz.Description,
             Likes = quiz.Likes,
             Dislikes = quiz.Dislikes,
+            CreatedAt = quiz.CreatedAt,
             Questions = quiz.Questions?.ToDtos() ?? new List<QuestionDto>(),
             Tags = quiz.Tags.ToList()
         };
@@ -31,50 +29,5 @@ public static class QuizMapper
     {
         ArgumentNullException.ThrowIfNull(quizzes);
         return quizzes.Select(q => q.ToDto()).ToList();
-    }
-
-    public static QuizSummaryDto ToSummaryDto(this Quiz quiz)
-    {
-        ArgumentNullException.ThrowIfNull(quiz);
-
-        return new QuizSummaryDto
-        {
-            Id = quiz.Id,
-            Title = quiz.Title,
-            Likes = quiz.Likes,
-            WriterName = quiz.Writer?.Name.Value ?? "Unknown",
-            CreatedAt = quiz.CreatedAt,
-            LastAttemptScore = null,
-            Tags = quiz.Tags.ToList()
-        };
-    }
-
-    public static List<QuizSummaryDto> ToSummaryDtos(this IEnumerable<Quiz> quizzes)
-    {
-        return quizzes.Select(q => q.ToSummaryDto()).ToList();
-    }
-
-    public static Quiz ToEntity(this QuizDto dto)
-    {
-        ArgumentNullException.ThrowIfNull(dto);
-
-        var quiz = Quiz.Create(dto.CourseId, dto.WriterId, dto.Title, dto.Description, dto.Tags).Value;
-
-        if (dto.Questions is not null && dto.Questions.Any())
-        {
-            foreach (var questionDto in dto.Questions)
-            {
-                var question = questionDto.ToEntity();
-                quiz.AddQuestion(question);
-            }
-        }
-
-        return quiz;
-    }
-
-    public static List<Quiz> ToEntities(this IEnumerable<QuizDto> dtos)
-    {
-        ArgumentNullException.ThrowIfNull(dtos);
-        return dtos.Select(d => d.ToEntity()).ToList();
     }
 }

@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Application.Features.Universities.Dtos;
+using JadaraITKnowledgeSystem.Application.Features.Universities.Dtos;
 using JadaraITKnowledgeSystem.Domain.Universities;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Universities.Mappers;
@@ -18,18 +18,6 @@ public static class UniversityMapper
     public static List<UniversityDto> ToDtos(this List<University> universities)
     {
         return universities.Select(universitie => universitie.ToDto()).ToList();
-    }
-
-    public static University ToEntity(this UniversityDto universityDto)
-    {
-        ArgumentNullException.ThrowIfNull(universityDto);
-
-        return University.Create(universityDto.Name).Value;
-    }
-
-    public static List<University> ToEntities(this IEnumerable<UniversityDto> universityDtos)
-    {
-        return universityDtos.Select(universityDto => universityDto.ToEntity()).ToList();
     }
 
 }

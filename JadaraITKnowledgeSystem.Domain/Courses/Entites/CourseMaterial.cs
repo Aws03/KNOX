@@ -1,11 +1,7 @@
-﻿using JadaraITKnowledgeSystem.Domain.Common;
-using JadaraITKnowledgeSystem.Domain.Common.Results;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.IO;
-using System.Linq;
+using JadaraITKnowledgeSystem.Domain.Common;
+using JadaraITKnowledgeSystem.Domain.Common.Results;
 
 namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
 {
@@ -13,15 +9,15 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
     {
         [Required]
         [MaxLength(250)]
-        public string Title { get; private set; }
+        public string Title { get; private set; } = string.Empty;
 
         [Required]
         [MaxLength(500)]
-        public string ContentUrl { get; private set; }
+        public string ContentUrl { get; private set; } = string.Empty;
 
         [ForeignKey(nameof(Course))]
         public int CourseId { get; private set; }
-        public Course Course { get; private set; }
+        public Course Course { get; private set; } = null!;
 
         // New: Optional folder assignment
         [ForeignKey(nameof(Folder))]

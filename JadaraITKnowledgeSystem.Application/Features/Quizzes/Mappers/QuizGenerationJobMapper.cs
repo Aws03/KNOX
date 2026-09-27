@@ -18,7 +18,7 @@ public static class QuizGenerationJobMapper
             GeneratedQuizCount = job.GeneratedQuizCount,
             GeneratedQuizIds = job.GetGeneratedQuizIds(),
             ErrorMessage = job.ErrorMessage,
-            CreatedAt = job.CreatedAt.UtcDateTime,
+            CreatedAt = job.CreatedAt,
             CompletedAt = job.CompletedAt,
             Options = MapOptions(job.GetOptions())
         };

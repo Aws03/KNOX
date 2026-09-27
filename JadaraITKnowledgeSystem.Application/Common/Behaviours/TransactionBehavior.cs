@@ -1,9 +1,14 @@
-﻿using JadaraITKnowledgeSystem.Application.Interfaces;
+using JadaraITKnowledgeSystem.Application.Interfaces;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace JadaraITKnowledgeSystem.Application.Common.Behaviours;
 
+/// <summary>
+/// Wraps every request whose type name ends in "Command" in a database transaction.
+/// A command sent from inside another command joins the outer transaction instead of
+/// opening a second one (which EF rejects on a connection that already has one).
+/// </summary>
 public class TransactionBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
@@ -19,13 +24,15 @@ public class TransactionBehavior<TRequest, TResponse> : IPipelineBehavior<TReque
     }
 
     public async Task<TResponse> Handle(
-TRequest request,
-RequestHandlerDelegate<TResponse> next,
-CancellationToken cancellationToken)
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
     {
         var requestName = typeof(TRequest).Name;
 
-        if (!requestName.EndsWith("Command"))
+        if (!requestName.EndsWith("Command")
+            || request is INonTransactionalCommand
+            || _context.Database.CurrentTransaction is not null)
         {
             return await next();
         }
@@ -36,7 +43,7 @@ CancellationToken cancellationToken)
 
         return await strategy.ExecuteAsync(
             state: (context: _context, next, requestName),
-            operation: async (dbContext, state, ct) =>
+            operation: async (_, state, ct) =>
             {
                 await using var transaction = await state.context.Database.BeginTransactionAsync(ct);
 
@@ -57,10 +64,7 @@ CancellationToken cancellationToken)
                     throw;
                 }
             },
-            verifySucceeded: null, 
-            cancellationToken: cancellationToken
-        );
-
+            verifySucceeded: null,
+            cancellationToken: cancellationToken);
     }
-
 }

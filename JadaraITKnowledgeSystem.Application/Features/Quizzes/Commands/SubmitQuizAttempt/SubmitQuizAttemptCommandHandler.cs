@@ -5,6 +5,7 @@ using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using EmailAddress = JadaraITKnowledgeSystem.Domain.Users.ValueObjects.Email;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Quizzes.Commands.SubmitQuizAttempt;
 
@@ -26,7 +27,7 @@ public sealed class SubmitQuizAttemptCommandHandler
         }
 
         var domainUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email.Address == email, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email.Address == EmailAddress.Normalize(email), cancellationToken);
 
         if (domainUser is null)
         {

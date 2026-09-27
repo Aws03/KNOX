@@ -27,7 +27,7 @@ public sealed class GetEnrolledCoursesQueryHandler(
             request.PageNumber, request.PageSize, request.IsFinished);
 
         // Get current user
-        var userId = _currentUserService.UserId;
+        var userId = _currentUserService.DomainUserId;
         if (!userId.HasValue || userId.Value <= 0)
         {
             _logger.LogWarning("GetEnrolledCourses failed: User not authenticated");
@@ -56,8 +56,6 @@ public sealed class GetEnrolledCoursesQueryHandler(
                 Credits: e.Course.Credits,
                 IsFinished: e.IsFinished,
                 FinishedAt: e.FinishedAt,
-                // TODO: Grade functionality is temporarily disabled.
-                // Grade: e.Grade,
                 EnrolledAt: e.CreatedAt,
                 NumberOfMaterials: _context.CourseMaterials.Count(m => m.CourseId == e.CourseId),
                 NumberOfQuizzes: _context.Quizzes.Count(q => q.CourseId == e.CourseId)

@@ -1,0 +1,5 @@
+using JadaraITKnowledgeSystem.Application.Common.Validators;
+
+namespace JadaraITKnowledgeSystem.Application.Features.Majors.Queries.GetMajorsByFacultyId;
+
+public sealed class GetMajorsByFacultyIdQueryValidator : PaginatedRequestValidator<GetMajorsByFacultyIdQuery>;

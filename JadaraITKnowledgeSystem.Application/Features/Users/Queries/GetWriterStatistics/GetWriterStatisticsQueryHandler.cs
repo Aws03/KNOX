@@ -1,44 +1,52 @@
+using JadaraITKnowledgeSystem.Application.Common.Security;
 using JadaraITKnowledgeSystem.Application.Features.Users.Dtos;
 using JadaraITKnowledgeSystem.Application.Interfaces;
+using JadaraITKnowledgeSystem.Domain.Common.Results;
+using JadaraITKnowledgeSystem.Domain.Quizzes.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetWriterStatistics
+namespace JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetWriterStatistics;
+
+public sealed class GetWriterStatisticsQueryHandler(IApplicationDbContext context, ICurrentUserService currentUser)
+    : IRequestHandler<GetWriterStatisticsQuery, Result<WriterStatisticsDto>>
 {
-    public class GetWriterStatisticsQueryHandler : IRequestHandler<GetWriterStatisticsQuery, WriterStatisticsDto>
+    public async Task<Result<WriterStatisticsDto>> Handle(GetWriterStatisticsQuery request, CancellationToken cancellationToken)
     {
-        private readonly IApplicationDbContext _context;
-        public GetWriterStatisticsQueryHandler(IApplicationDbContext context)
+        var writerId = request.WriterId;
+
+        // Writers see their own dashboard; admins may look at anyone's.
+        var isAdmin = Roles.Highest(currentUser.Roles) is Roles.SuperAdmin or Roles.Admin;
+        if (!isAdmin && currentUser.DomainUserId != writerId)
+            return Error.Forbidden("WriterStatistics.Forbidden", "You can only view your own statistics.");
+
+        var writerEmail = await context.Users
+            .Where(u => u.Id == writerId)
+            .Select(u => u.Email.Address)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (writerEmail is null)
+            return Error.NotFound("User.NotFound", $"User {writerId} not found.");
+
+        // Materials have no writer FK; the audit interceptor stamps CreatedBy with the author's
+        // email as it appears in their token, while Users stores the normalized (upper-case) form.
+        var totalMaterials = await context.CourseMaterials.CountAsync(
+            m => m.CreatedBy.ToUpper() == writerEmail, cancellationToken);
+
+        var quizIds = context.Quizzes.Where(q => q.WriterId == writerId).Select(q => q.Id);
+        var questionIds = context.Questions.Where(q => quizIds.Contains(q.QuizId)).Select(q => q.Id);
+
+        return new WriterStatisticsDto
         {
-            _context = context;
-        }
-
-        public async Task<WriterStatisticsDto> Handle(GetWriterStatisticsQuery request, CancellationToken cancellationToken)
-        {
-            var writerId = request.WriterId;
-
-            var totalMaterials = await _context.CourseMaterials.CountAsync(m => m.Id == writerId, cancellationToken);
-            var quizzes = _context.Quizzes.Where(q => q.WriterId == writerId);
-            var totalQuizzes = await quizzes.CountAsync(cancellationToken);
-            var totalQuizAttempts = await _context.QuizAttempts.CountAsync(a => quizzes.Select(q => q.Id).Contains(a.QuizId), cancellationToken);
-            var totalQuizLikes = await _context.UserReactions.CountAsync(r => quizzes.Select(q => q.Id).Contains(r.QuizId) && r.ReactionType == Domain.Quizzes.Enums.ReactionType.Like, cancellationToken);
-            var totalQuizDislikes = await _context.UserReactions.CountAsync(r => quizzes.Select(q => q.Id).Contains(r.QuizId) && r.ReactionType == Domain.Quizzes.Enums.ReactionType.Dislike, cancellationToken);
-            var totalQuizQuestions = await _context.Questions.CountAsync(q => quizzes.Select(x => x.Id).Contains(q.QuizId), cancellationToken);
-            var totalQuizChoices = await _context.Choices.CountAsync(c => quizzes.Select(q => q.Id).Contains(c.Id), cancellationToken);
-
-            return new WriterStatisticsDto
-            {
-                TotalMaterials = totalMaterials,
-                TotalQuizzes = totalQuizzes,
-                TotalQuizAttempts = totalQuizAttempts,
-                TotalQuizLikes = totalQuizLikes,
-                TotalQuizDislikes = totalQuizDislikes,
-                TotalQuizQuestions = totalQuizQuestions,
-                TotalQuizChoices = totalQuizChoices
-            };
-        }
+            TotalMaterials = totalMaterials,
+            TotalQuizzes = await quizIds.CountAsync(cancellationToken),
+            TotalQuizAttempts = await context.QuizAttempts.CountAsync(a => quizIds.Contains(a.QuizId), cancellationToken),
+            TotalQuizLikes = await context.UserReactions.CountAsync(
+                r => quizIds.Contains(r.QuizId) && r.ReactionType == ReactionType.Like, cancellationToken),
+            TotalQuizDislikes = await context.UserReactions.CountAsync(
+                r => quizIds.Contains(r.QuizId) && r.ReactionType == ReactionType.Dislike, cancellationToken),
+            TotalQuizQuestions = await questionIds.CountAsync(cancellationToken),
+            TotalQuizChoices = await context.Choices.CountAsync(c => questionIds.Contains(c.QuestionId), cancellationToken)
+        };
     }
 }

@@ -1,0 +1,5 @@
+using JadaraITKnowledgeSystem.Application.Common.Validators;
+
+namespace JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetUsersWithDetails;
+
+public sealed class GetUsersWithDetailsQueryValidator : PaginatedRequestValidator<GetUsersWithDetailsQuery>;

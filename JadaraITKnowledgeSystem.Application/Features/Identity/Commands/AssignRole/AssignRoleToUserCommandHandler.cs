@@ -1,34 +1,50 @@
+using JadaraITKnowledgeSystem.Application.Common.Security;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Identity.Commands.AssignRole;
 
-public sealed class AssignRoleToUserCommandHandler
-    (IApplicationDbContext context, IIdentityUserService identityUserService, ILogger<AssignRoleToUserCommandHandler> logger)
+public sealed class AssignRoleToUserCommandHandler(
+    IIdentityUserService identityUserService,
+    ICurrentUserService currentUser,
+    ILogger<AssignRoleToUserCommandHandler> logger)
     : IRequestHandler<AssignRoleToUserCommand, Result<Success>>
 {
-    private readonly IApplicationDbContext _context = context;
-    private readonly IIdentityUserService _identityUserService = identityUserService;
-    private readonly ILogger<AssignRoleToUserCommandHandler> _logger = logger;
-
     public async Task<Result<Success>> Handle(AssignRoleToUserCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Assigning role {Role} to user {UserId}", request.RoleName, request.UserId);
+        var role = Roles.Normalize(request.RoleName);
+        if (role is null)
+            return Error.Validation("Role.Invalid", $"Role '{request.RoleName}' does not exist.");
 
-        var domainUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
-        if (domainUser is null)
+        var target = request.UserIdIsIdentityId
+            ? await identityUserService.FindByIdAsync(request.UserId)
+            : await identityUserService.FindByDomainUserIdAsync(request.UserId, cancellationToken);
+
+        if (target is null)
             return Error.NotFound("Users.NotFound", $"User {request.UserId} not found.");
 
-        // Enforce single role: remove all existing, add the requested role
-        var res = await _identityUserService.SetSingleRoleAsync(identityUserId: domainUser.Id, role: request.RoleName);
-        if (!res.IsSuccess)
-            return res.Errors;
+        // Only a SuperAdmin may create another SuperAdmin or change an existing one's role;
+        // otherwise any Admin could promote themselves to the top of the hierarchy.
+        var callerIsSuperAdmin = currentUser.Roles.Contains(Roles.SuperAdmin, StringComparer.OrdinalIgnoreCase);
+        if (!callerIsSuperAdmin)
+        {
+            var targetRoles = await identityUserService.GetRolesAsync(target.Id);
+            if (role == Roles.SuperAdmin || Roles.Highest(targetRoles) == Roles.SuperAdmin)
+            {
+                logger.LogWarning("User {CallerId} attempted to change SuperAdmin privileges of user {TargetId}",
+                    currentUser.UserId, target.Id);
+                return Error.Forbidden("Role.AssignmentForbidden", "Only a SuperAdmin can grant or revoke the SuperAdmin role.");
+            }
+        }
 
-        _logger.LogInformation("Assigned single role {Role} to user {UserId}", request.RoleName, request.UserId);
+        var result = await identityUserService.SetSingleRoleAsync(target.Id, role);
+        if (result.IsError)
+            return result.Errors;
+
+        logger.LogInformation("Assigned role {Role} to identity user {IdentityUserId}", role, target.Id);
         return Result.Success;
     }
 }

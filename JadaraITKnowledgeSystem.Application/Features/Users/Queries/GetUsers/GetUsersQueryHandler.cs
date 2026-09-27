@@ -1,6 +1,6 @@
 using JadaraITKnowledgeSystem.Application.Common.Models;
 using JadaraITKnowledgeSystem.Application.Features.Users.Dtos;
-using JadaraITKnowledgeSystem.Application.Features.Users.Mappings;
+using JadaraITKnowledgeSystem.Application.Features.Users.Mappers;
 using JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetUsers;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;

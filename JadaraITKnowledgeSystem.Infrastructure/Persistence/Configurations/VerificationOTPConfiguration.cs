@@ -24,6 +24,10 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
             builder.Property(v => v.IsUsed)
                 .IsRequired();
 
+            builder.Property(v => v.FailedAttempts)
+                .IsRequired()
+                .HasDefaultValue(0);
+
             builder.HasOne(v => v.User)
                 .WithMany()
                 .HasForeignKey(v => v.UserId)

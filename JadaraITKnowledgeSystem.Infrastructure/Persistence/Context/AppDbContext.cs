@@ -1,5 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Application.Interfaces;
-using JadaraITKnowledgeSystem.Domain.Common;
+using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Courses;
 using JadaraITKnowledgeSystem.Domain.Courses.Entites;
 using JadaraITKnowledgeSystem.Domain.Courses.Entities;
@@ -13,89 +12,47 @@ using JadaraITKnowledgeSystem.Domain.Universities.Entities;
 using JadaraITKnowledgeSystem.Domain.Users;
 using JadaraITKnowledgeSystem.Domain.Users.Entities;
 using JadaraITKnowledgeSystem.Infrastructure.Identity;
-using MediatR;
+using JadaraITKnowledgeSystem.Infrastructure.Persistence.Conventions;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Context
 {
-    public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, int>, IApplicationDbContext
+    public class AppDbContext(DbContextOptions<AppDbContext> options)
+        : IdentityDbContext<ApplicationUser, ApplicationRole, int>(options), IApplicationDbContext
     {
-        public virtual DbSet<User> Users { get; set; }
-        public virtual DbSet<Quiz> Quizzes { get; set; }
-        public virtual DbSet<Question> Questions { get; set; }
-        public virtual DbSet<QuizAttempt> QuizAttempts { get; set; }
-        public virtual DbSet<Choice> Choices { get; set; }
-        public virtual DbSet<UserReaction> UserReactions { get; set; }
-        public virtual DbSet<Course> Courses { get; set; }
-        public virtual DbSet<CourseRequirementMapping> MajorCourses { get; set; }
-        public virtual DbSet<Faculty> Faculties { get; set; }
-        public virtual DbSet<Major> Majors { get; set; }
-        public virtual DbSet<University> Universities { get; set; }
-        public virtual DbSet<CourseMaterial> CourseMaterials { get; set; }
-        public virtual DbSet<Folder> Folders { get; set; }
-        public virtual DbSet<CourseInfo> CourseInfos { get; set; }
-        public virtual DbSet<CourseResource> CourseResources { get; set; }
-        public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
-        public virtual DbSet<VerificationOTP> VerificationOTPs { get; set; }
-        public virtual DbSet<WriterApplication> WriterApplications { get; set; }
-        public virtual DbSet<Enrollment> Enrollments { get; set; }
-        public virtual DbSet<QuizGenerationJob> QuizGenerationJobs { get; set; }
-        public virtual DbSet<SystemSetting> SystemSettings { get; set; }
+        // Domain users; the Identity accounts are ApplicationUsers (IdentityDbContext.Users).
+        public new DbSet<User> Users => Set<User>();
+        public DbSet<Quiz> Quizzes => Set<Quiz>();
+        public DbSet<Question> Questions => Set<Question>();
+        public DbSet<QuizAttempt> QuizAttempts => Set<QuizAttempt>();
+        public DbSet<Choice> Choices => Set<Choice>();
+        public DbSet<UserReaction> UserReactions => Set<UserReaction>();
+        public DbSet<Course> Courses => Set<Course>();
+        public DbSet<CourseRequirementMapping> MajorCourses => Set<CourseRequirementMapping>();
+        public DbSet<Faculty> Faculties => Set<Faculty>();
+        public DbSet<Major> Majors => Set<Major>();
+        public DbSet<University> Universities => Set<University>();
+        public DbSet<CourseMaterial> CourseMaterials => Set<CourseMaterial>();
+        public DbSet<Folder> Folders => Set<Folder>();
+        public DbSet<CourseInfo> CourseInfos => Set<CourseInfo>();
+        public DbSet<CourseResource> CourseResources => Set<CourseResource>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+        public DbSet<VerificationOTP> VerificationOTPs => Set<VerificationOTP>();
+        public DbSet<WriterApplication> WriterApplications => Set<WriterApplication>();
+        public DbSet<Enrollment> Enrollments => Set<Enrollment>();
+        public DbSet<QuizGenerationJob> QuizGenerationJobs => Set<QuizGenerationJob>();
+        public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
-        private readonly IMediator _mediator;
-
-        public AppDbContext(DbContextOptions<AppDbContext> options, IMediator mediator)
-            : base(options)
+        protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
-            _mediator = mediator;
+            configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-
-            modelBuilder.Entity<ApplicationUser>()
-                .HasOne(au => au.DomainUser)
-                .WithOne()
-                .HasForeignKey<ApplicationUser>(au => au.DomainUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<RefreshToken>()
-                .HasIndex(rt => rt.Token)
-                .IsUnique();
-
-            modelBuilder.Entity<RefreshToken>()
-                .Property(rt => rt.Token)
-                .HasMaxLength(256)
-                .IsRequired();
-        }
-
-        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        {
-            await DispatchDomainEventsAsync(cancellationToken);
-            return await base.SaveChangesAsync(cancellationToken);
-        }
-
-        private async Task DispatchDomainEventsAsync(CancellationToken cancellationToken)
-        {
-            var domainEntities = ChangeTracker.Entries<BaseEntity>()
-                .Where(e => e.Entity.DomainEvents.Any())
-                .Select(e => e.Entity)
-                .ToList();
-
-            var domainEvents = domainEntities
-                .SelectMany(e => e.DomainEvents)
-                .ToList();
-
-            domainEntities.ForEach(e => e.ClearDomainEvents());
-
-            foreach (var domainEvent in domainEvents)
-            {
-                await _mediator.Publish(domainEvent, cancellationToken);
-            }
         }
     }
 }

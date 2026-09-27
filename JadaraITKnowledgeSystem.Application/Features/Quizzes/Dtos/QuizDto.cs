@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Quizzes.Dtos;
@@ -13,7 +13,7 @@ public sealed record QuizDto
     public string? Description { get; init; }
     public int Likes { get; init; }
     public int Dislikes { get; init; }
-    public DateTime CreatedAt { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
     public List<QuestionDto> Questions { get; init; } = new();
     public List<string> Tags { get; init; } = new();
 }

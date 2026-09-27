@@ -1,7 +1,7 @@
 ﻿using JadaraITKnowledgeSystem.Application.Common.Models;
 using JadaraITKnowledgeSystem.Application.Features.Majors.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Majors.Mappers;
-using JadaraITKnowledgeSystem.Application.Features.Majors.Queries.GetMajorByFacultyId;
+using JadaraITKnowledgeSystem.Application.Features.Majors.Queries.GetMajorsByFacultyId;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;

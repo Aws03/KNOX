@@ -1,0 +1,4 @@
+# Generated EF Core migrations: class names come from the migration names used when they were created.
+[*.cs]
+dotnet_diagnostic.CS8981.severity = none
+generated_code = true

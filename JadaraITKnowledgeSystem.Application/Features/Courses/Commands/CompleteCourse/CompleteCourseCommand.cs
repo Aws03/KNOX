@@ -5,12 +5,6 @@ using MediatR;
 namespace JadaraITKnowledgeSystem.Application.Features.Courses.Commands.CompleteCourse;
 
 /// <summary>
-/// Command to mark a course enrollment as completed/finished.
+/// Command to mark the current user's enrollment in a course as completed.
 /// </summary>
-// TODO: Grade functionality is temporarily disabled.
-// Universities may have different grading systems (A, A+, B, etc.)
-// Optionally includes a grade parameter.
-public sealed record CompleteCourseCommand(
-    int CourseId
-    // decimal? Grade = null
-) : IRequest<Result<EnrollmentDto>>;
+public sealed record CompleteCourseCommand(int CourseId) : IRequest<Result<EnrollmentDto>>;

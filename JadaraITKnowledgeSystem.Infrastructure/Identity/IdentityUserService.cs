@@ -1,7 +1,7 @@
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
-using JadaraITKnowledgeSystem.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace JadaraITKnowledgeSystem.Infrastructure.Identity
 {
@@ -9,14 +9,19 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Identity
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<ApplicationRole> _roleManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
 
-        public IdentityUserService(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager)
+        public IdentityUserService(
+            UserManager<ApplicationUser> userManager,
+            RoleManager<ApplicationRole> roleManager,
+            SignInManager<ApplicationUser> signInManager)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _signInManager = signInManager;
         }
 
-        public async Task<Result<(int identityUserId, IEnumerable<Error> errors)>> CreateAsync(string email, string fullName, int domainUserId, string? password)
+        public async Task<Result<int>> CreateAsync(string email, string fullName, int domainUserId, string? password)
         {
             var user = new ApplicationUser
             {
@@ -27,15 +32,11 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Identity
                 DateJoined = DateTime.UtcNow
             };
 
-            var pwd = password ?? GeneratePassword();
-            var result = await _userManager.CreateAsync(user, pwd);
+            var result = await _userManager.CreateAsync(user, password ?? GeneratePassword());
             if (!result.Succeeded)
-            {
-                var errors = result.Errors.Select(e => Error.Validation(e.Code, e.Description)).ToList();
-                return (0, errors);
-            }
+                return ToErrors(result);
 
-            return (user.Id, Enumerable.Empty<Error>());
+            return user.Id;
         }
 
         public async Task<Result<Success>> AddToRoleAsync(int identityUserId, string role)
@@ -45,10 +46,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Identity
 
             var result = await _userManager.AddToRoleAsync(user, role);
             if (!result.Succeeded)
-            {
-                var errors = result.Errors.Select(e => Error.Validation(e.Code, e.Description)).ToList();
-                return errors;
-            }
+                return ToErrors(result);
 
             return Result.Success;
         }
@@ -58,88 +56,91 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Identity
             var user = await _userManager.FindByIdAsync(identityUserId.ToString());
             if (user is null) return Error.NotFound(description: "Identity user not found");
 
-            // Validate role exists
-            var roleExists = await _roleManager.RoleExistsAsync(role);
-            if (!roleExists)
-            {
+            if (!await _roleManager.RoleExistsAsync(role))
                 return Error.Validation("Role.Invalid", $"Role '{role}' does not exist.");
-            }
 
             var currentRoles = await _userManager.GetRolesAsync(user);
             if (currentRoles.Any())
             {
                 var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
                 if (!removeResult.Succeeded)
-                {
-                    var errors = removeResult.Errors.Select(e => Error.Validation(e.Code, e.Description)).ToList();
-                    return errors;
-                }
+                    return ToErrors(removeResult);
             }
 
             var addResult = await _userManager.AddToRoleAsync(user, role);
             if (!addResult.Succeeded)
-            {
-                var errors = addResult.Errors.Select(e => Error.Validation(e.Code, e.Description)).ToList();
-                return errors;
-            }
+                return ToErrors(addResult);
 
             return Result.Success;
         }
 
         public async Task<Result<Success>> ResetPasswordAsync(string email, string newPassword)
         {
-            // Find the identity user by email
             var user = await _userManager.FindByEmailAsync(email);
             if (user is null)
-            {
                 return Error.NotFound("User.NotFound", "User not found");
-            }
 
-            // Generate a password reset token
+            // The caller has already proven ownership (OTP), so a reset token is minted and
+            // consumed immediately rather than being emailed.
             var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
-
-            // Reset the password using the token
             var result = await _userManager.ResetPasswordAsync(user, resetToken, newPassword);
-
             if (!result.Succeeded)
-            {
-                var errors = result.Errors
-                    .Select(e => Error.Validation("Password.Reset", e.Description))
-                    .ToList();
-                return errors;
-            }
+                return ToErrors(result, "Password.Reset");
 
             return Result.Success;
         }
 
         public async Task<Result<Success>> ChangePasswordAsync(int identityUserId, string currentPassword, string newPassword)
         {
-            // Find the identity user by ID
             var user = await _userManager.FindByIdAsync(identityUserId.ToString());
             if (user is null)
-            {
                 return Error.NotFound("User.NotFound", "User not found");
-            }
 
-            // Change the password using UserManager which validates the current password
             var result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
-
             if (!result.Succeeded)
-            {
-                var errors = result.Errors
-                    .Select(e => Error.Validation("Password.Change", e.Description))
-                    .ToList();
-                return errors;
-            }
+                return ToErrors(result, "Password.Change");
 
             return Result.Success;
         }
 
+        public async Task<IdentityUserInfo?> FindByIdAsync(int identityUserId) =>
+            ToInfo(await _userManager.FindByIdAsync(identityUserId.ToString()));
+
+        public async Task<IdentityUserInfo?> FindByEmailAsync(string email) =>
+            string.IsNullOrWhiteSpace(email) ? null : ToInfo(await _userManager.FindByEmailAsync(email));
+
+        public async Task<IdentityUserInfo?> FindByDomainUserIdAsync(int domainUserId, CancellationToken cancellationToken = default) =>
+            ToInfo(await _userManager.Users.FirstOrDefaultAsync(u => u.DomainUserId == domainUserId, cancellationToken));
+
+        public async Task<IReadOnlyList<string>> GetRolesAsync(int identityUserId)
+        {
+            var user = await _userManager.FindByIdAsync(identityUserId.ToString());
+            if (user is null)
+                return [];
+
+            return (await _userManager.GetRolesAsync(user)).ToList();
+        }
+
+        public async Task<bool> CheckPasswordAsync(int identityUserId, string password)
+        {
+            var user = await _userManager.FindByIdAsync(identityUserId.ToString());
+            if (user is null)
+                return false;
+
+            var result = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true);
+            return result.Succeeded;
+        }
+
+        private static IdentityUserInfo? ToInfo(ApplicationUser? user) =>
+            user is null ? null : new IdentityUserInfo(user.Id, user.DomainUserId, user.FullName, user.Email);
+
+        private static List<Error> ToErrors(IdentityResult result, string? code = null) =>
+            result.Errors.Select(e => Error.Validation(code ?? e.Code, e.Description)).ToList();
+
         private static string GeneratePassword()
         {
             var bytes = System.Security.Cryptography.RandomNumberGenerator.GetBytes(16);
-            var base64 = Convert.ToBase64String(bytes);
-            return base64 + "aA1";
+            return Convert.ToBase64String(bytes) + "aA1";
         }
     }
 }

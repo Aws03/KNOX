@@ -1,4 +1,4 @@
-using JadaraITKnowledgeSystem.Application.DTOs;
+using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Courses.Mappers;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;

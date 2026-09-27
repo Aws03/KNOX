@@ -1,24 +1,28 @@
-﻿using JadaraITKnowledgeSystem.Application.Common.Models;
+using JadaraITKnowledgeSystem.Application.Common.Models;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Mappers;
-using JadaraITKnowledgeSystem.Application.Features.Quizzes.Queries.GetQuizzes;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace JadaraITKnowledgeSystem.Application.Features.Quizzes.Queries.GetQuizzesByCourse;
+namespace JadaraITKnowledgeSystem.Application.Features.Quizzes.Queries.GetQuizzesByCourseId;
 
 public sealed class GetQuizzesByCourseIdQueryHandler
     : IRequestHandler<GetQuizzesByCourseIdQuery, Result<PaginatedList<QuizSummaryDto>>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUser;
     private readonly ILogger<GetQuizzesByCourseIdQueryHandler> _logger;
 
-    public GetQuizzesByCourseIdQueryHandler(IApplicationDbContext context, ILogger<GetQuizzesByCourseIdQueryHandler> logger)
+    public GetQuizzesByCourseIdQueryHandler(
+        IApplicationDbContext context,
+        ICurrentUserService currentUser,
+        ILogger<GetQuizzesByCourseIdQueryHandler> logger)
     {
         _context = context;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -28,13 +32,14 @@ public sealed class GetQuizzesByCourseIdQueryHandler
     {
         _logger.LogInformation("Getting quizzes for Course {CourseId}", request.CourseId);
 
-        var userId = request.UserId; // capture for EF translation
+        // The caller's own last score; anonymous callers get none.
+        var userId = _currentUser.DomainUserId;
 
         var query = _context.Quizzes
             .AsNoTracking()
             .Where(q => q.CourseId == request.CourseId)
             .OrderByDescending(q => q.CreatedAt)
-            .Select(q => new QuizSummaryDto //TODO : Use local mapper later (edit to toSummaryDto())
+            .Select(q => new QuizSummaryDto
             {
                 Id = q.Id,
                 Title = q.Title,

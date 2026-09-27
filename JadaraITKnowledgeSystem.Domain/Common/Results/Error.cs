@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace JadaraITKnowledgeSystem.Domain.Common.Results
 {
@@ -19,7 +15,7 @@ namespace JadaraITKnowledgeSystem.Domain.Common.Results
             Type = type;
         }
 
-        public static Error Failure (string code = nameof(Failure), string description = "Generial Failure.") =>
+        public static Error Failure (string code = nameof(Failure), string description = "General Failure.") =>
             new Error(code, description, ErrorKind.Failure);
 
         public static Error NotFound(string code = nameof(NotFound), string description = "Not Found.") =>
@@ -28,7 +24,7 @@ namespace JadaraITKnowledgeSystem.Domain.Common.Results
         public static Error Validation(string code = nameof(Validation), string description = "Validation Failed.") =>
             new Error(code, description, ErrorKind.Validation);
 
-        public static Error Unexpected(string code = nameof(Unexpected), string description = "Unexpacted Error") =>
+        public static Error Unexpected(string code = nameof(Unexpected), string description = "Unexpected Error") =>
             new Error(code, description, ErrorKind.Unexpected);
 
         public static Error Conflict(string code = nameof(Conflict), string description = "Conflict Error") =>

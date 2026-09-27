@@ -1,10 +1,7 @@
-﻿using JadaraITKnowledgeSystem.Domain.Common;
-using JadaraITKnowledgeSystem.Domain.Common.Results;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
+using JadaraITKnowledgeSystem.Domain.Common;
+using JadaraITKnowledgeSystem.Domain.Common.Results;
 
 namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
 {
@@ -12,11 +9,11 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
     {
         [Required]
         [MaxLength(200)]
-        public string Name { get; private set; }
+        public string Name { get; private set; } = string.Empty;
 
         [ForeignKey(nameof(Course))]
         public int CourseId { get; private set; }
-        public Course Course { get; private set; }
+        public Course Course { get; private set; } = null!;
 
         [ForeignKey(nameof(ParentFolder))]
         public int? ParentFolderId { get; private set; }
@@ -134,30 +131,6 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
 
             SetParentFolderId(newParentFolderId);
             return Result.Success;
-        }
-
-        // Helper to check if this folder is at root level
-        public bool IsRootFolder() => !ParentFolderId.HasValue;
-
-        // Helper to get full path (for display purposes)
-        public string GetPath(List<Folder> allFolders)
-        {
-            if (IsRootFolder())
-                return Name;
-
-            var path = new List<string> { Name };
-            var currentFolderId = ParentFolderId;
-
-            while (currentFolderId.HasValue)
-            {
-                var parent = allFolders.FirstOrDefault(f => f.Id == currentFolderId.Value);
-                if (parent == null) break;
-
-                path.Insert(0, parent.Name);
-                currentFolderId = parent.ParentFolderId;
-            }
-
-            return string.Join("/", path);
         }
     }
 }

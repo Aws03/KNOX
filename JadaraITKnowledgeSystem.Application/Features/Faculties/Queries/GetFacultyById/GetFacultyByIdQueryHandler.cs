@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Application.Features.Faculties.Dtos;
+using JadaraITKnowledgeSystem.Application.Features.Faculties.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Faculties.Mappers;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
@@ -18,7 +18,7 @@ public sealed class GetFacultyByIdQueryHandler(IApplicationDbContext context, IL
     public async Task<Result<FacultyDto>> Handle
         (GetFacultyByIdQuery request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Handling CreateFacultyCommand for UniversityId: {UniversityId}", request.facultyId);
+        _logger.LogInformation("Handling GetFacultyByIdQuery for FacultyId: {FacultyId}", request.facultyId);
 
         var faculty = await _context.Faculties
            .AsNoTracking()
@@ -26,7 +26,6 @@ public sealed class GetFacultyByIdQueryHandler(IApplicationDbContext context, IL
 
         if (faculty == null)
         {
-            // TODO : use application error insted of domain error later ...
             _logger.LogWarning("Faculty with ID {FacultyId} not found.", request.facultyId);
             return Error.NotFound(
                 "Faculty.NotFound",

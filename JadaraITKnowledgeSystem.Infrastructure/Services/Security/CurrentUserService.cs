@@ -1,6 +1,6 @@
+using System.Security.Claims;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
 
 namespace JadaraITKnowledgeSystem.Infrastructure.Services.Security
 {
@@ -13,34 +13,21 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Services.Security
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public int? UserId
-        {
-            get
-            {
-                var user = _httpContextAccessor.HttpContext?.User;
-                var id = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                    ?? user?.FindFirst(ClaimTypes.Sid)?.Value;
-                return int.TryParse(id, out var parsed) ? parsed : (int?)null;
-            }
-        }
+        private ClaimsPrincipal? User => _httpContextAccessor.HttpContext?.User;
 
-        public string? Email
-        {
-            get
-            {
-                var user = _httpContextAccessor.HttpContext?.User;
-                return user?.FindFirst(ClaimTypes.Email)?.Value;
-            }
-        }
+        public int? UserId =>
+            ParseInt(User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User?.FindFirst(ClaimTypes.Sid)?.Value);
 
-        public IReadOnlyList<string> Roles
-        {
-            get
-            {
-                var user = _httpContextAccessor.HttpContext?.User;
-                var roles = user?.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList() ?? new List<string>();
-                return roles;
-            }
-        }
+        // Tokens issued before the domain_user_id claim existed only carry the identity id;
+        // fall back to it so those sessions keep their previous behaviour until they expire.
+        public int? DomainUserId =>
+            ParseInt(User?.FindFirst(CustomClaimTypes.DomainUserId)?.Value) ?? UserId;
+
+        public string? Email => User?.FindFirst(ClaimTypes.Email)?.Value;
+
+        public IReadOnlyList<string> Roles =>
+            User?.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList() ?? [];
+
+        private static int? ParseInt(string? value) => int.TryParse(value, out var parsed) ? parsed : null;
     }
 }

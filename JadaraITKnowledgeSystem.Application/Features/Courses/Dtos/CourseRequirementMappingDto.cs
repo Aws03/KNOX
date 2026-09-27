@@ -1,6 +1,6 @@
 ﻿using JadaraITKnowledgeSystem.Domain.Courses.Enums;
 
-namespace JadaraITKnowledgeSystem.Application.DTOs;
+namespace JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
 
 public sealed record CourseRequirementMappingDto
 {

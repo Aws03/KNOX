@@ -1,19 +1,16 @@
-﻿using JadaraITKnowledgeSystem.Domain.Common;
+using System.ComponentModel.DataAnnotations;
+using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Courses.Entites;
 using JadaraITKnowledgeSystem.Domain.Courses.Entities;
 using JadaraITKnowledgeSystem.Domain.Courses.Enums;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
 
 namespace JadaraITKnowledgeSystem.Domain.Courses
 {
     public sealed class Course : AuditableEntity
     {
         [MaxLength(120)]
-        public string CourseName { get; private set; }
+        public string CourseName { get; private set; } = string.Empty;
 
         [MaxLength(500)]
         public string? Description { get; private set; }

@@ -1,34 +1,27 @@
 using JadaraITKnowledgeSystem.Application.Common.Models;
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
-using Microsoft.Extensions.Configuration;
+using JadaraITKnowledgeSystem.Infrastructure.Options;
 using Microsoft.Extensions.Hosting;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 
 namespace JadaraITKnowledgeSystem.Infrastructure.Services.Storage;
 
 /// <summary>
-/// Stores files on local disk under wwwroot/uploads, served back via the
-/// static files middleware at "{baseUrl}/uploads/...". Intended for local/
-/// development use in place of a CDN-backed provider.
+/// Stores files on local disk (Storage:RootPath, default wwwroot/uploads), served by the API's
+/// static-file mapping at "{BaseUrl}/uploads/...".
+/// Folder and file names can originate from request data, so every path is resolved
+/// and checked to stay inside the uploads root before touching the disk.
 /// </summary>
 public class LocalFileStorage : IStorageService
 {
-    private const string UploadsFolderName = "uploads";
-
     private readonly string _uploadsRootPath;
     private readonly string _baseUrl;
 
-    public LocalFileStorage(IHostEnvironment env, IConfiguration configuration)
+    public LocalFileStorage(IHostEnvironment env, IOptions<StorageOptions> options)
     {
-        _uploadsRootPath = Path.Combine(env.ContentRootPath, "wwwroot", UploadsFolderName);
+        _uploadsRootPath = options.Value.ResolveRootPath(env.ContentRootPath);
         Directory.CreateDirectory(_uploadsRootPath);
-
-        _baseUrl = configuration["Storage:BaseUrl"]?.TrimEnd('/')
-            ?? throw new ArgumentNullException("Storage:BaseUrl", "Storage BaseUrl is not configured.");
+        _baseUrl = options.Value.BaseUrl.TrimEnd('/') + StorageOptions.RequestPath;
     }
 
     public async Task<string> UploadAsync(
@@ -37,15 +30,13 @@ public class LocalFileStorage : IStorageService
         string? path = null,
         CancellationToken cancellationToken = default)
     {
-        var folderPath = BuildFolderPath(path);
-        Directory.CreateDirectory(folderPath);
-
-        var fullFilePath = Path.Combine(folderPath, fileName);
+        var fullFilePath = ResolveFilePath(fileName, path);
+        Directory.CreateDirectory(Path.GetDirectoryName(fullFilePath)!);
 
         if (fileStream.CanSeek)
             fileStream.Position = 0;
 
-        using var output = new FileStream(fullFilePath, FileMode.Create, FileAccess.Write);
+        await using var output = new FileStream(fullFilePath, FileMode.Create, FileAccess.Write);
         await fileStream.CopyToAsync(output, cancellationToken);
 
         return GetFileUrl(fileName, path);
@@ -56,7 +47,7 @@ public class LocalFileStorage : IStorageService
         string? path = null,
         CancellationToken cancellationToken = default)
     {
-        var fullFilePath = Path.Combine(BuildFolderPath(path), fileName);
+        var fullFilePath = ResolveFilePath(fileName, path);
 
         if (!File.Exists(fullFilePath))
             return Task.FromResult(false);
@@ -69,7 +60,7 @@ public class LocalFileStorage : IStorageService
         string? path,
         CancellationToken cancellationToken = default)
     {
-        var folderPath = BuildFolderPath(path);
+        var folderPath = ResolveFolderPath(path);
         var result = new List<StorageFileInfo>();
 
         if (!Directory.Exists(folderPath))
@@ -98,7 +89,7 @@ public class LocalFileStorage : IStorageService
         string? path = null,
         CancellationToken cancellationToken = default)
     {
-        var fullFilePath = Path.Combine(BuildFolderPath(path), fileName);
+        var fullFilePath = ResolveFilePath(fileName, path);
 
         if (!File.Exists(fullFilePath))
             return null;
@@ -110,12 +101,35 @@ public class LocalFileStorage : IStorageService
     public string GetFileUrl(string fileName, string? path = null)
     {
         return string.IsNullOrEmpty(path)
-            ? $"{_baseUrl}/{UploadsFolderName}/{fileName}"
-            : $"{_baseUrl}/{UploadsFolderName}/{path}/{fileName}";
+            ? $"{_baseUrl}/{fileName}"
+            : $"{_baseUrl}/{path}/{fileName}";
     }
 
-    private string BuildFolderPath(string? folder)
-        => string.IsNullOrEmpty(folder)
+    private string ResolveFilePath(string fileName, string? folder)
+    {
+        if (string.IsNullOrWhiteSpace(fileName)
+            || fileName != Path.GetFileName(fileName)
+            || fileName is "." or "..")
+        {
+            throw new ArgumentException("Invalid file name.", nameof(fileName));
+        }
+
+        return Path.Combine(ResolveFolderPath(folder), fileName);
+    }
+
+    private string ResolveFolderPath(string? folder)
+    {
+        if (string.IsNullOrEmpty(folder))
+            return _uploadsRootPath;
+
+        var fullPath = Path.GetFullPath(Path.Combine(_uploadsRootPath, folder.Replace('/', Path.DirectorySeparatorChar)));
+        var rootWithSeparator = _uploadsRootPath.EndsWith(Path.DirectorySeparatorChar)
             ? _uploadsRootPath
-            : Path.Combine(_uploadsRootPath, folder.Replace('/', Path.DirectorySeparatorChar));
+            : _uploadsRootPath + Path.DirectorySeparatorChar;
+
+        if (!fullPath.StartsWith(rootWithSeparator, StringComparison.Ordinal))
+            throw new ArgumentException("Invalid storage path.", nameof(folder));
+
+        return fullPath;
+    }
 }

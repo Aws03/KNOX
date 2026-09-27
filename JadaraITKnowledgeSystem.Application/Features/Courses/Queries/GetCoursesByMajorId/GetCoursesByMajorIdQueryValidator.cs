@@ -1,0 +1,5 @@
+using JadaraITKnowledgeSystem.Application.Common.Validators;
+
+namespace JadaraITKnowledgeSystem.Application.Features.Courses.Queries.GetCoursesByMajorId;
+
+public sealed class GetCoursesByMajorIdQueryValidator : PaginatedRequestValidator<GetCoursesByMajorIdQuery>;

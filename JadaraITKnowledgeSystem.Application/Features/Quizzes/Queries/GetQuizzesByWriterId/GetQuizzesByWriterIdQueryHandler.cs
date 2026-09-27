@@ -29,7 +29,7 @@ public sealed class GetQuizzesByWriterIdQueryHandler
         GetQuizzesByWriterIdQuery request,
         CancellationToken token)
     {
-        var userId = _currentUser.UserId;
+        var userId = _currentUser.DomainUserId;
         if (!userId.HasValue)
             return Error.Unauthorized("User.NotAuthenticated", "User is not authenticated.");
 

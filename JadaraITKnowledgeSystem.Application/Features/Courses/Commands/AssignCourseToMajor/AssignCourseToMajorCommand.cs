@@ -1,4 +1,4 @@
-using JadaraITKnowledgeSystem.Application.DTOs;
+using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Courses.Enums;
 using MediatR;

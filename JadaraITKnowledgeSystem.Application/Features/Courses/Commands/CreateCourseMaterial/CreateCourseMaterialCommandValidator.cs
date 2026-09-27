@@ -1,6 +1,4 @@
-﻿using System;
 using FluentValidation;
-using System.Linq;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Courses.Commands.CreateCourseMaterial;
 
@@ -12,7 +10,7 @@ public sealed class CreateCourseMaterialCommandValidator : AbstractValidator<Cre
             .NotEmpty().WithMessage("Title is required.")
             .MaximumLength(250).WithMessage("Title must not exceed 250 characters.");
 
-        RuleFor(x => x.ContemtUrl)
+        RuleFor(x => x.ContentUrl)
             .NotEmpty().WithMessage("Content URL is required.")
             .MaximumLength(500).WithMessage("Content URL must not exceed 500 characters.")
             .Must(url => Uri.TryCreate(url, UriKind.Absolute, out var uriResult)

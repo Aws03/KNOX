@@ -1,28 +1,22 @@
-﻿using JadaraITKnowledgeSystem.Domain.Common;
-using JadaraITKnowledgeSystem.Domain.Common.Results;
-using JadaraITKnowledgeSystem.Domain.Users;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using JadaraITKnowledgeSystem.Domain.Common;
+using JadaraITKnowledgeSystem.Domain.Common.Results;
+using JadaraITKnowledgeSystem.Domain.Users;
 
 namespace JadaraITKnowledgeSystem.Domain.Quizzes.Entites
 {
     public sealed class QuizAttempt : AuditableEntity
     {
-        //[Key]
-        //public int QuizAttemptId { get; private set; }
 
         [ForeignKey(nameof(Quiz))]
         public int QuizId { get; private set; }
-        public Quiz Quiz { get; private set; }
+        public Quiz Quiz { get; private set; } = null!;
 
         [ForeignKey(nameof(User))]
         public int UserId { get; private set; }
-        public User User { get; private set; }
+        public User User { get; private set; } = null!;
 
         public decimal Score { get; private set; }
         public DateTime AttemptDate { get; private set; }

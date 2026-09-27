@@ -1,6 +1,19 @@
-@JadaraITKnowledgeSystem.API_HostAddress = http://localhost:5257
+@baseUrl = http://localhost:5001
 
-GET {{JadaraITKnowledgeSystem.API_HostAddress}}/weatherforecast/
+### Log in with the seeded SuperAdmin
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@knox.com",
+  "password": "Admin@123456"
+}
+
+### Current user's profile
+GET {{baseUrl}}/api/users/me
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Universities (public)
+GET {{baseUrl}}/api/universities?pageNumber=1&pageSize=10
 Accept: application/json
-
-###

@@ -1,4 +1,5 @@
-﻿using JadaraITKnowledgeSystem.Application.Common.Models;
+using JadaraITKnowledgeSystem.Application.Common.Models;
+using JadaraITKnowledgeSystem.Application.Common.Queries;
 using JadaraITKnowledgeSystem.Application.Features.Faculties.Dtos;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
@@ -8,5 +9,5 @@ namespace JadaraITKnowledgeSystem.Application.Features.Faculties.Queries.GetFacu
 public sealed record GetFacultiesByUniversityIdQuery(
     int UniversityId,
     int PageNumber,
-    int PageSize) : IRequest<Result<PaginatedList<FacultyDto>>>;
+    int PageSize) : IRequest<Result<PaginatedList<FacultyDto>>>, IPaginatedRequest;
 

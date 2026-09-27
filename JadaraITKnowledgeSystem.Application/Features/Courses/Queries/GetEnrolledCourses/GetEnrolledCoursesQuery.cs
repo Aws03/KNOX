@@ -1,4 +1,5 @@
 using JadaraITKnowledgeSystem.Application.Common.Models;
+using JadaraITKnowledgeSystem.Application.Common.Queries;
 using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
@@ -12,4 +13,4 @@ public sealed record GetEnrolledCoursesQuery(
     int PageNumber = 1,
     int PageSize = 10,
     bool? IsFinished = null  // null = all, true = finished only, false = not finished only
-) : IRequest<Result<PaginatedList<EnrolledCourseSummaryDto>>>;
+) : IRequest<Result<PaginatedList<EnrolledCourseSummaryDto>>>, IPaginatedRequest;

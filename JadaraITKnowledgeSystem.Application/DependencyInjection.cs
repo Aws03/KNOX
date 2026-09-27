@@ -1,8 +1,9 @@
-﻿using FluentValidation;
+using System.Reflection;
+using FluentValidation;
 using JadaraITKnowledgeSystem.Application.Common.Behaviours;
+using JadaraITKnowledgeSystem.Application.Features.Auth.Services;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
 
 namespace JadaraITKnowledgeSystem.Application;
 
@@ -17,11 +18,9 @@ public static class DependencyInjection
         {
             cfg.RegisterServicesFromAssembly(assembly);
 
-            // All 5 behaviours are open generics over TRequest/TResponse directly
-            // (see ValidationBehavior's own comment for why that constraint matters -
-            // it used to be generic over TValue with TResponse hardcoded to
-            // Result<TValue>, which the DI container could never actually resolve).
-            cfg.AddOpenBehavior(typeof(ExceptionHandlingBehavior<,>));
+            // All behaviours are open generics over TRequest/TResponse directly
+            // (see ValidationBehavior's own comment for why that constraint matters).
+            // Unhandled exceptions are left to the API's ExceptionHandlingMiddleware.
             cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
             cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
             // Registered before TransactionBehavior so its post-`next()` code runs
@@ -32,6 +31,8 @@ public static class DependencyInjection
 
         // FluentValidation
         services.AddValidatorsFromAssembly(assembly);
+
+        services.AddScoped<AuthTokenIssuer>();
 
         return services;
     }

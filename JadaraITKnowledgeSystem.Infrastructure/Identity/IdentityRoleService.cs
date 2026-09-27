@@ -1,5 +1,6 @@
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace JadaraITKnowledgeSystem.Infrastructure.Identity
 {
@@ -12,9 +13,9 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Identity
             _roleManager = roleManager;
         }
 
-        public Task<List<string>> GetRolesAsync(CancellationToken cancellationToken)
+        public async Task<List<string>> GetRolesAsync(CancellationToken cancellationToken)
         {
-            return Task.FromResult(_roleManager.Roles.Select(r => r.Name!).ToList());
+            return await _roleManager.Roles.Select(r => r.Name!).ToListAsync(cancellationToken);
         }
     }
 }

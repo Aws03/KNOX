@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Application.Features.Quizzes.Dtos;
+using JadaraITKnowledgeSystem.Application.Features.Quizzes.Dtos;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Quizzes.Mappers;
@@ -20,19 +20,4 @@ public static class ChoiceMapper
     {
         return [.. choices.Select(c => c.ToDto())];
     }
-
-    public static Choice ToEntity(this ChoiceDto choiceDto)
-    {
-        ArgumentNullException.ThrowIfNull(choiceDto);
-        return Choice.Create(choiceDto.QuestionId, choiceDto.Text, choiceDto.IsCorrect, choiceDto.ImageUrl).Value;
-        
-    }
-
-    public static List<Choice> ToEntities(this IEnumerable<ChoiceDto> choiceDtos)
-    {
-        ArgumentNullException.ThrowIfNull(choiceDtos);
-        return [.. choiceDtos.Select(c => c.ToEntity())];
-    }
-
-
 }

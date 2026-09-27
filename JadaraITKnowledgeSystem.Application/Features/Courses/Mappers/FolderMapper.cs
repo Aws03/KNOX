@@ -1,8 +1,6 @@
-﻿using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
-using JadaraITKnowledgeSystem.Domain.Courses.Entites;
-using System;
-using System.Collections.Generic;
 using System.Text;
+using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
+using JadaraITKnowledgeSystem.Domain.Courses.Entites;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Courses.Mappers
 {
@@ -31,23 +29,6 @@ namespace JadaraITKnowledgeSystem.Application.Features.Courses.Mappers
                 folderDtos.Add(folder.ToDto());
             }
             return folderDtos;
-        }
-
-        public static Folder ToEntity(this FolderDto folderDto)
-        {
-            ArgumentNullException.ThrowIfNull(folderDto, nameof(folderDto));
-            return Folder.Create(folderDto.Name, folderDto.CourseId, folderDto.ParentFolderId, folderDto.Description).Value;
-        }
-
-        public static List<Folder> ToEntities(this IEnumerable<FolderDto> folderDtos)
-        {
-            ArgumentNullException.ThrowIfNull(folderDtos, nameof(folderDtos));
-            var folders = new List<Folder>();
-            foreach (var folderDto in folderDtos)
-            {
-                folders.Add(folderDto.ToEntity());
-            }
-            return folders;
         }
     }
 }

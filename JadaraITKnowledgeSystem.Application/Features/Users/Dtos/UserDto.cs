@@ -1,4 +1,3 @@
-﻿using JadaraITKnowledgeSystem.Domain.Users.Enums;
 using JadaraITKnowledgeSystem.Domain.Users.ValueObjects;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Users.Dtos;
@@ -10,4 +9,4 @@ public sealed record UserDto
     public required Email Email { get; init; }
     public string? ProfilePictureUrl { get; init; }
     public int MajorId { get; init; }
-    }
+}

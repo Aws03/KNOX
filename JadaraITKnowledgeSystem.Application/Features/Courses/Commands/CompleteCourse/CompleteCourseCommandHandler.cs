@@ -24,7 +24,7 @@ public sealed class CompleteCourseCommandHandler(
             request.CourseId);
 
         // Get current user
-        var userId = _currentUserService.UserId;
+        var userId = _currentUserService.DomainUserId;
         if (!userId.HasValue || userId.Value <= 0)
         {
             _logger.LogWarning("CompleteCourse failed: User not authenticated");
@@ -43,18 +43,6 @@ public sealed class CompleteCourseCommandHandler(
             return Error.NotFound("Enrollment.NotFound", "User is not enrolled in this course.");
         }
 
-        // Complete the course
-        // TODO: Grade functionality is temporarily disabled.
-        // Universities may have different grading systems (A, A+, B, etc.)
-        // Result<Success> result;
-        // if (request.Grade.HasValue)
-        // {
-        //     result = enrollment.CompleteWithGrade(request.Grade.Value);
-        // }
-        // else
-        // {
-        //     result = enrollment.Complete();
-        // }
         var result = enrollment.Complete();
 
         if (result.IsError)

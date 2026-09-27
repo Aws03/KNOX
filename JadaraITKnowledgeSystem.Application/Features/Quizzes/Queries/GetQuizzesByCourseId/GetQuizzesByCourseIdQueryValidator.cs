@@ -1,0 +1,5 @@
+using JadaraITKnowledgeSystem.Application.Common.Validators;
+
+namespace JadaraITKnowledgeSystem.Application.Features.Quizzes.Queries.GetQuizzesByCourseId;
+
+public sealed class GetQuizzesByCourseIdQueryValidator : PaginatedRequestValidator<GetQuizzesByCourseIdQuery>;

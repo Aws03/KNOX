@@ -1,9 +1,12 @@
+using JadaraITKnowledgeSystem.Application.Common.Security;
 using JadaraITKnowledgeSystem.Application.Features.Users.Dtos;
+using JadaraITKnowledgeSystem.Application.Features.Users.Mappers;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using EmailAddress = JadaraITKnowledgeSystem.Domain.Users.ValueObjects.Email;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Users.Commands.UpdateProfilePicture;
 
@@ -37,7 +40,7 @@ public sealed class UpdateProfilePictureCommandHandler
             .Include(u => u.Major)
                 .ThenInclude(m => m.Faculty)
                     .ThenInclude(f => f.University)
-            .FirstOrDefaultAsync(u => u.Email.Address == userEmail, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email.Address == EmailAddress.Normalize(userEmail), cancellationToken);
 
         if (user is null)
             return Error.NotFound("User.NotFound", "User not found.");
@@ -61,27 +64,7 @@ public sealed class UpdateProfilePictureCommandHandler
 
         _logger.LogInformation("Profile picture updated successfully for User {UserId}", userId.Value);
 
-        var role = _currentUser.Roles.FirstOrDefault() ?? "User";
-
-        var dto = new UserProfileDto
-        {
-            IdentityUserId = userId.Value,
-            DomainUserId = user.Id,
-            Email = userEmail,
-            FullName = user.Name.ToString(),
-            DateJoined = user.CreatedAt.UtcDateTime,
-            Role = role,
-            IsActive = user.IsActive,
-            IsVerified = user.IsVerified,
-            VerificationDate = user.VerificationDate,
-            ProfilePictureUrl = user.ProfilePictureUrl,
-            UniversityId = user.Major.Faculty.University.Id,
-            UniversityName = user.Major.Faculty.University.Name,
-            FacultyId = user.Major.Faculty.Id,
-            FacultyName = user.Major.Faculty.Name,
-            MajorId = user.Major.Id,
-            MajorName = user.Major.Name
-        };
+        var dto = user.ToProfileDto(userId.Value, userEmail, Roles.Highest(_currentUser.Roles));
 
         return dto;
     }

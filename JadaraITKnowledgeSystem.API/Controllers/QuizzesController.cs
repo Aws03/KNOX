@@ -1,10 +1,14 @@
-﻿using JadaraITKnowledgeSystem.Application.Features.Quizzes.Commands.AddReaction;
+using JadaraITKnowledgeSystem.API.Contracts;
+using JadaraITKnowledgeSystem.Application.Common.Models;
+using JadaraITKnowledgeSystem.Application.Common.Security;
+using JadaraITKnowledgeSystem.Application.Features.Quizzes.Commands.AddReaction;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Commands.CreateQuiz;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Commands.SubmitQuizAttempt;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Queries.GetQuizById;
-using JadaraITKnowledgeSystem.Application.Features.Quizzes.Queries.GetQuizzes;
+using JadaraITKnowledgeSystem.Application.Features.Quizzes.Queries.GetQuizzesByCourseId;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Queries.GetQuizzesByWriterId;
+using JadaraITKnowledgeSystem.Application.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,165 +16,53 @@ using Microsoft.AspNetCore.Mvc;
 namespace JadaraITKnowledgeSystem.API.Controllers;
 
 [Route("api/quizzes")]
-[ApiController]
-[Produces("application/json")]
-public class QuizzesController(IMediator mediator) : ControllerBase
+public sealed class QuizzesController(ISender sender, ICurrentUserService currentUser) : ApiControllerBase(sender)
 {
-    private readonly IMediator _mediator = mediator;
-
+    /// <summary>Creates a quiz authored by the caller.</summary>
     [HttpPost]
-    [Authorize(Roles = "Writer,Admin,SuperAdmin")]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Create(
-        CreateQuizCommand command,
-        CancellationToken cancellationToken)
+    [Authorize(Roles = Roles.WriterOrAbove)]
+    [ProducesResponseType<QuizDto>(StatusCodes.Status201Created)]
+    public async Task<IActionResult> Create([FromBody] CreateQuizRequest request, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(command, cancellationToken);
+        var command = new CreateQuizCommand(
+            request.Title, currentUser.DomainUserId ?? 0, request.CourseId, request.Description, request.Questions, request.Tags);
 
-        return result.Match<IActionResult>(
-            onValue: quiz => CreatedAtAction(nameof(GetById), new { id = quiz.Id }, quiz),
-            onError: errors => BadRequest(new { errors })
-        );
+        return ResultOrProblem(await Sender.Send(command, cancellationToken),
+            quiz => CreatedAtAction(nameof(GetById), new { id = quiz.Id }, quiz));
     }
 
-    [HttpGet("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(
-        int id,
-        CancellationToken cancellationToken)
-    {
-        var result = await _mediator.Send(
-            new GetQuizByIdQuery(id),
-            cancellationToken);
+    [HttpGet("{id:int}")]
+    [ProducesResponseType<QuizDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken) =>
+        OkOrProblem(await Sender.Send(new GetQuizByIdQuery(id), cancellationToken));
 
-        return result.Match<IActionResult>(
-            onValue: quiz => Ok(quiz),
-            onError: errors => NotFound(new { errors })
-        );
-    }
-
-    [HttpGet("by-course/{courseId}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    /// <summary>Quizzes of a course; for a signed-in caller each item carries their last score.</summary>
+    [HttpGet("by-course/{courseId:int}")]
+    [ProducesResponseType<PaginatedList<QuizSummaryDto>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByCourseId(
-        int courseId,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] int? userId = null,
-        CancellationToken cancellationToken = default)
-    {
-        var query = new GetQuizzesByCourseIdQuery(
-            CourseId: courseId,
-            UserId: userId,
-            PageNumber: pageNumber,
-            PageSize: pageSize);
+        int courseId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default) =>
+        OkOrProblem(await Sender.Send(new GetQuizzesByCourseIdQuery(courseId, pageNumber, pageSize), cancellationToken));
 
-        var result = await _mediator.Send(query, cancellationToken);
-
-        return result.Match<IActionResult>(
-            onValue: quizzes => Ok(quizzes),
-            onError: errors => BadRequest(new { errors })
-        );
-    }
-
-    /// <summary>
-    /// Get quizzes created by the current writer for a specific course.
-    /// Only accessible to writers, admins, and superadmins.
-    /// </summary>
-    [HttpGet("by-course/{courseId}/my-quizzes")]
-    [Authorize(Roles = "Writer,Admin,SuperAdmin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    /// <summary>Quizzes of a course written by the caller.</summary>
+    [HttpGet("by-course/{courseId:int}/my-quizzes")]
+    [Authorize(Roles = Roles.WriterOrAbove)]
+    [ProducesResponseType<PaginatedList<QuizSummaryDto>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByCourseIdAndWriter(
-        int courseId,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10,
-        CancellationToken cancellationToken = default)
-    {
-        var query = new GetQuizzesByWriterIdQuery(
-            CourseId: courseId,
-            PageNumber: pageNumber,
-            PageSize: pageSize);
+        int courseId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default) =>
+        OkOrProblem(await Sender.Send(new GetQuizzesByWriterIdQuery(courseId, pageNumber, pageSize), cancellationToken));
 
-        var result = await _mediator.Send(query, cancellationToken);
-
-        return result.Match<IActionResult>(
-            onValue: quizzes => Ok(quizzes),
-            onError: errors =>
-            {
-                var top = errors.FirstOrDefault();
-                return top.Code switch
-                {
-                    "User.NotAuthenticated" => Unauthorized(new { errors }),
-                    _ => BadRequest(new { errors })
-                };
-            });
-    }
-
-    [HttpPost("{quizId}/reactions")]
+    [HttpPost("{quizId:int}/reactions")]
     [Authorize]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> AddReaction(
-    int quizId,
-    [FromBody] AddReactionDto dto,
-    CancellationToken cancellationToken)
-    {
-        var command = new AddReactionCommand(
-            quizId,
-            dto.ReactionType
-        );
+    [ProducesResponseType<ReactionResultDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AddReaction(int quizId, [FromBody] AddReactionDto dto, CancellationToken cancellationToken) =>
+        OkOrProblem(await Sender.Send(new AddReactionCommand(quizId, dto.ReactionType), cancellationToken));
 
-        var result = await _mediator.Send(command, cancellationToken);
-
-        return result.Match<IActionResult>(
-            onValue: reactionResult => Ok(reactionResult),
-            onError: errors =>
-            {
-                var top = errors.FirstOrDefault();
-                return top.Code switch
-                {
-                    "User.NotAuthenticated" => Unauthorized(new { errors }),
-                    _ => BadRequest(new { errors })
-                };
-            }
-        );
-    }
-
-    /// <summary>
-    /// Records (or updates) the current user's score for a quiz attempt.
-    /// Tracking is best-effort from the client's perspective, but the endpoint
-    /// itself must exist and succeed for that tracking to mean anything.
-    /// </summary>
-    [HttpPost("{quizId}/attempts")]
+    /// <summary>Records (or replaces) the caller's score for a quiz.</summary>
+    [HttpPost("{quizId:int}/attempts")]
     [Authorize]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> SubmitAttempt(
-        int quizId,
-        [FromBody] SubmitQuizAttemptDto dto,
-        CancellationToken cancellationToken)
-    {
-        var command = new SubmitQuizAttemptCommand(quizId, dto.Score);
-
-        var result = await _mediator.Send(command, cancellationToken);
-
-        return result.Match<IActionResult>(
-            onValue: attempt => Ok(attempt),
-            onError: errors =>
-            {
-                var top = errors.FirstOrDefault();
-                return top.Code switch
-                {
-                    "User.NotAuthenticated" => Unauthorized(new { errors }),
-                    "Quiz.NotFound" => NotFound(new { errors }),
-                    _ => BadRequest(new { errors })
-                };
-            }
-        );
-    }
-
+    [ProducesResponseType<QuizAttemptDto>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> SubmitAttempt(int quizId, [FromBody] SubmitQuizAttemptDto dto, CancellationToken cancellationToken) =>
+        OkOrProblem(await Sender.Send(new SubmitQuizAttemptCommand(quizId, dto.Score), cancellationToken));
 }

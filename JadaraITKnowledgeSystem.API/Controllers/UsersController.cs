@@ -1,156 +1,60 @@
-﻿using JadaraITKnowledgeSystem.Application.Common.Models;
+using JadaraITKnowledgeSystem.API.Contracts;
+using JadaraITKnowledgeSystem.Application.Common.Models;
+using JadaraITKnowledgeSystem.Application.Common.Security;
+using JadaraITKnowledgeSystem.Application.Features.Identity.Commands.AssignRole;
+using JadaraITKnowledgeSystem.Application.Features.Identity.Queries.GetRoles;
+using JadaraITKnowledgeSystem.Application.Features.Users.Commands.ActivateUser;
+using JadaraITKnowledgeSystem.Application.Features.Users.Commands.BlockUser;
+using JadaraITKnowledgeSystem.Application.Features.Users.Commands.DeleteProfilePicture;
+using JadaraITKnowledgeSystem.Application.Features.Users.Commands.UpdateProfilePicture;
+using JadaraITKnowledgeSystem.Application.Features.Users.Commands.UpdateUserProfile;
 using JadaraITKnowledgeSystem.Application.Features.Users.Dtos;
+using JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetCurrentUserProfile;
 using JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetUsers;
 using JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetUsersWithDetails;
-using JadaraITKnowledgeSystem.Application.Features.Users.Commands.BlockUser;
-using JadaraITKnowledgeSystem.Application.Features.Users.Commands.ActivateUser;
-using JadaraITKnowledgeSystem.Application.Features.Users.Commands.UpdateUserProfile;
-using JadaraITKnowledgeSystem.Application.Features.Users.Commands.UpdateProfilePicture;
-using JadaraITKnowledgeSystem.Application.Features.Users.Commands.DeleteProfilePicture;
-using JadaraITKnowledgeSystem.Application.Features.Identity.Queries.GetRoles;
-using JadaraITKnowledgeSystem.Application.Features.Identity.Commands.AssignRole;
-using JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetCurrentUserProfile;
+using JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetWriterStatistics;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JadaraITKnowledgeSystem.API.Controllers;
 
-[Route("api/[controller]")]
-[ApiController]
-[Produces("application/json")]
-public class UsersController(IMediator mediator) : ControllerBase
+[Route("api/users")]
+public sealed class UsersController(ISender sender) : ApiControllerBase(sender)
 {
-    private readonly IMediator _mediator = mediator;
-
-    /// <summary>
-    /// Returns the current authenticated user's full profile.
-    /// </summary>
     [HttpGet("me")]
     [Authorize]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GetMe(CancellationToken cancellationToken = default)
-    {
-        var result = await _mediator.Send(new GetCurrentUserProfileQuery(), cancellationToken);
-        return result.Match<IActionResult>(
-            onValue: profile => Ok(profile),
-            onError: errors =>
-            {
-                var top = errors.FirstOrDefault();
-                if (top != null && top.Code == "Auth.Unauthorized") return Unauthorized(new { message = top.Description });
-                return BadRequest(new { errors });
-            }
-        );
-    }
+    [ProducesResponseType<UserProfileDto>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMe(CancellationToken cancellationToken) =>
+        OkOrProblem(await Sender.Send(new GetCurrentUserProfileQuery(), cancellationToken));
 
-    /// <summary>
-    /// Updates the current authenticated user's profile (full name and/or major).
-    /// </summary>
+    /// <summary>Updates the caller's full name and/or major.</summary>
     [HttpPut("me")]
     [Authorize]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateProfile(
-        [FromBody] UpdateProfileRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        var command = new UpdateUserProfileCommand(request.FullName, request.MajorId);
-        var result = await _mediator.Send(command, cancellationToken);
+    [ProducesResponseType<UserProfileDto>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken) =>
+        OkOrProblem(await Sender.Send(new UpdateUserProfileCommand(request.FullName, request.MajorId), cancellationToken));
 
-        return result.Match<IActionResult>(
-            onValue: profile => Ok(profile),
-            onError: errors =>
-            {
-                var top = errors.FirstOrDefault();
-                if (top == null) return BadRequest(new { errors });
-                
-                return top.Code switch
-                {
-                    "User.NotAuthenticated" => Unauthorized(new { errors }),
-                    "User.NotFound" or "Major.NotFound" => NotFound(new { errors }),
-                    _ => BadRequest(new { errors })
-                };
-            }
-        );
-    }
-
-    /// <summary>
-    /// Uploads or updates the current user's profile picture.
-    /// </summary>
+    /// <summary>Uploads or replaces the caller's profile picture (max 5 MB; jpg, png, gif, webp).</summary>
     [HttpPost("me/profile-picture")]
     [Authorize]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> UpdateProfilePicture(
-        IFormFile image,
-        CancellationToken cancellationToken = default)
+    [RequestSizeLimit(6_000_000)]
+    [ProducesResponseType<UserProfileDto>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateProfilePicture(IFormFile image, CancellationToken cancellationToken)
     {
-        if (image == null || image.Length == 0)
-            return BadRequest(new { errors = new[] { new { code = "Image.Required", description = "Image file is required." } } });
-
-        using var stream = image.OpenReadStream();
-        var command = new UpdateProfilePictureCommand(stream, image.FileName);
-        var result = await _mediator.Send(command, cancellationToken);
-
-        return result.Match<IActionResult>(
-            onValue: profile => Ok(profile),
-            onError: errors =>
-            {
-                var top = errors.FirstOrDefault();
-                if (top == null) return BadRequest(new { errors });
-                
-                return top.Code switch
-                {
-                    "User.NotAuthenticated" => Unauthorized(new { errors }),
-                    "User.NotFound" => NotFound(new { errors }),
-                    _ => BadRequest(new { errors })
-                };
-            }
-        );
+        await using var stream = image.OpenReadStream();
+        return OkOrProblem(await Sender.Send(new UpdateProfilePictureCommand(stream, image.FileName), cancellationToken));
     }
 
-    /// <summary>
-    /// Deletes the current user's profile picture.
-    /// </summary>
     [HttpDelete("me/profile-picture")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteProfilePicture(CancellationToken cancellationToken = default)
-    {
-        var command = new DeleteProfilePictureCommand();
-        var result = await _mediator.Send(command, cancellationToken);
+    public async Task<IActionResult> DeleteProfilePicture(CancellationToken cancellationToken) =>
+        NoContentOrProblem(await Sender.Send(new DeleteProfilePictureCommand(), cancellationToken));
 
-        return result.Match<IActionResult>(
-            onValue: _ => NoContent(),
-            onError: errors =>
-            {
-                var top = errors.FirstOrDefault();
-                if (top == null) return BadRequest(new { errors });
-                
-                return top.Code switch
-                {
-                    "User.NotAuthenticated" => Unauthorized(new { errors }),
-                    "User.NotFound" or "ProfilePicture.NotFound" => NotFound(new { errors }),
-                    _ => BadRequest(new { errors })
-                };
-            }
-        );
-    }
-
-    /// <summary>
-    /// Retrieves a paginated list of users with optional filters.
-    /// </summary>
     [HttpGet]
-    [Authorize(Roles = "SuperAdmin,Admin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [Authorize(Roles = Roles.AdminOrAbove)]
+    [ProducesResponseType<PaginatedList<UserDto>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetUsers(
         [FromQuery] int? universityId,
         [FromQuery] int? facultyId,
@@ -159,25 +63,13 @@ public class UsersController(IMediator mediator) : ControllerBase
         [FromQuery] int? id,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
-        CancellationToken cancellationToken = default)
-    {
-        var result = await _mediator.Send(
-            new GetUsersQuery(universityId, facultyId, majorId, email, id, pageNumber, pageSize),
-            cancellationToken);
+        CancellationToken cancellationToken = default) =>
+        OkOrProblem(await Sender.Send(
+            new GetUsersQuery(universityId, facultyId, majorId, email, id, pageNumber, pageSize), cancellationToken));
 
-        return result.Match<IActionResult>(
-            onValue: users => Ok(users),
-            onError: errors => BadRequest(new { errors })
-        );
-    }
-
-    /// <summary>
-    /// Retrieves a paginated list of users with detailed info and optional filters.
-    /// </summary>
     [HttpGet("details")]
-    [Authorize(Roles = "SuperAdmin,Admin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [Authorize(Roles = Roles.AdminOrAbove)]
+    [ProducesResponseType<PaginatedList<UserDetailsDto>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetUsersWithDetails(
         [FromQuery] int? universityId,
         [FromQuery] int? facultyId,
@@ -188,95 +80,43 @@ public class UsersController(IMediator mediator) : ControllerBase
         [FromQuery] bool? isVerified,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
-        CancellationToken cancellationToken = default)
-    {
-        var result = await _mediator.Send(
+        CancellationToken cancellationToken = default) =>
+        OkOrProblem(await Sender.Send(
             new GetUsersWithDetailsQuery(universityId, facultyId, majorId, email, id, isActive, isVerified, pageNumber, pageSize),
-            cancellationToken);
+            cancellationToken));
 
-        return result.Match<IActionResult>(
-            onValue: users => Ok(users),
-            onError: errors => BadRequest(new { errors })
-        );
-    }
+    /// <summary>Blocks a user: they can no longer sign in or refresh their session.</summary>
+    [HttpPost("{id:int}/block")]
+    [Authorize(Roles = Roles.AdminOrAbove)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> BlockUser(int id, CancellationToken cancellationToken) =>
+        NoContentOrProblem(await Sender.Send(new BlockUserCommand(id), cancellationToken));
 
-    /// <summary>
-    /// Suspends (blocks) a user.
-    /// </summary>
-    [HttpPost("{id}/block")]
-    [Authorize(Roles = "SuperAdmin,Admin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> BlockUser(int id, CancellationToken cancellationToken)
-    {
-        var result = await _mediator.Send(new BlockUserCommand(id), cancellationToken);
-        return result.Match<IActionResult>(
-            onValue: _ => Ok(new { success = true }),
-            onError: errors => NotFound(new { errors })
-        );
-    }
+    [HttpPost("{id:int}/activate")]
+    [Authorize(Roles = Roles.AdminOrAbove)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> ActivateUser(int id, CancellationToken cancellationToken) =>
+        NoContentOrProblem(await Sender.Send(new ActivateUserCommand(id), cancellationToken));
 
-    /// <summary>
-    /// Activates a user.
-    /// </summary>
-    [HttpPost("{id}/activate")]
-    [Authorize(Roles = "SuperAdmin,Admin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ActivateUser(int id, CancellationToken cancellationToken)
-    {
-        var result = await _mediator.Send(new ActivateUserCommand(id), cancellationToken);
-        return result.Match<IActionResult>(
-            onValue: _ => Ok(new { success = true }),
-            onError: errors => NotFound(new { errors })
-        );
-    }
-
-    /// <summary>
-    /// Gets available user roles.
-    /// </summary>
     [HttpGet("roles")]
-    [Authorize(Roles = "SuperAdmin,Admin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetRoles(CancellationToken cancellationToken = default)
-    {
-        var result = await _mediator.Send(new GetRolesQuery(), cancellationToken);
-        return result.Match<IActionResult>(
-            onValue: roles => Ok(roles),
-            onError: errors => BadRequest(new { errors })
-        );
-    }
+    [Authorize(Roles = Roles.AdminOrAbove)]
+    [ProducesResponseType<List<string>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetRoles(CancellationToken cancellationToken) =>
+        OkOrProblem(await Sender.Send(new GetRolesQuery(), cancellationToken));
 
-    /// <summary>
-    /// Assigns a role to a user by domain user id.
-    /// </summary>
-    [HttpPost("{id}/assign-role")]
-    [Authorize(Roles = "SuperAdmin,Admin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> AssignRole(int id, [FromBody] string roleName, CancellationToken cancellationToken)
-    {
-        var result = await _mediator.Send(new AssignRoleToUserCommand(id, roleName), cancellationToken);
-        return result.Match<IActionResult>(
-            onValue: _ => Ok(new { success = true }),
-            onError: errors => NotFound(new { errors })
-        );
-    }
+    /// <summary>Replaces the user's role (body: the role name as a JSON string). Only a SuperAdmin can grant or revoke SuperAdmin.</summary>
+    [HttpPost("{id:int}/assign-role")]
+    [Authorize(Roles = Roles.AdminOrAbove)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> AssignRole(int id, [FromBody] string roleName, CancellationToken cancellationToken) =>
+        NoContentOrProblem(await Sender.Send(new AssignRoleToUserCommand(id, roleName), cancellationToken));
 
-    /// <summary>
-    /// Returns statistics for a writer (for dashboard).
-    /// </summary>
-    [HttpGet("{id}/writer-statistics")]
-    [Authorize(Roles = "Writer,Admin,SuperAdmin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetWriterStatistics(int id, CancellationToken cancellationToken = default)
-    {
-        var result = await _mediator.Send(new Application.Features.Users.Queries.GetWriterStatistics.GetWriterStatisticsQuery(id), cancellationToken);
-        if (result == null)
-            return NotFound();
-        return Ok(result);
-    }
-
-    public sealed record UpdateProfileRequest(string? FullName = null, int? MajorId = null);
+    /// <summary>Dashboard statistics for a writer (writers can only see their own).</summary>
+    [HttpGet("{id:int}/writer-statistics")]
+    [Authorize(Roles = Roles.WriterOrAbove)]
+    [ProducesResponseType<WriterStatisticsDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetWriterStatistics(int id, CancellationToken cancellationToken) =>
+        OkOrProblem(await Sender.Send(new GetWriterStatisticsQuery(id), cancellationToken));
 }

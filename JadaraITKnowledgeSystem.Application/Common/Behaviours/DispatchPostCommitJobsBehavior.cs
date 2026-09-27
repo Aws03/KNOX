@@ -8,25 +8,28 @@ namespace JadaraITKnowledgeSystem.Application.Common.Behaviours;
 /// Registered so it wraps (executes outside) TransactionBehavior in the pipeline.
 /// Only after `next()` returns - which for a *Command means TransactionBehavior has
 /// already committed - does it drain anything handlers staged via
-/// IPostCommitDispatcher and hand it to the real IBackgroundJobQueue. This is what
-/// replaces the old "Task.Run + Task.Delay(100) and hope the transaction committed
-/// by then" pattern: the work is only ever queued once the commit has genuinely
-/// happened, so no arbitrary delay is needed.
+/// IPostCommitDispatcher and hand it to the real IBackgroundJobQueue, so background
+/// work never runs against rows that might still be rolled back.
+/// A nested command that joined an outer transaction leaves its staged work in place;
+/// the outermost request drains it once that transaction has committed.
 /// </summary>
 public class DispatchPostCommitJobsBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
     private readonly IPostCommitDispatcher _dispatcher;
     private readonly IBackgroundJobQueue _jobQueue;
+    private readonly IApplicationDbContext _context;
     private readonly ILogger<DispatchPostCommitJobsBehavior<TRequest, TResponse>> _logger;
 
     public DispatchPostCommitJobsBehavior(
         IPostCommitDispatcher dispatcher,
         IBackgroundJobQueue jobQueue,
+        IApplicationDbContext context,
         ILogger<DispatchPostCommitJobsBehavior<TRequest, TResponse>> logger)
     {
         _dispatcher = dispatcher;
         _jobQueue = jobQueue;
+        _context = context;
         _logger = logger;
     }
 
@@ -36,6 +39,9 @@ public class DispatchPostCommitJobsBehavior<TRequest, TResponse> : IPipelineBeha
         CancellationToken cancellationToken)
     {
         var response = await next();
+
+        if (_context.Database.CurrentTransaction is not null)
+            return response;
 
         var pendingWork = _dispatcher.DrainPendingWork();
         if (pendingWork.Count > 0)

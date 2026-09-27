@@ -1,7 +1,7 @@
-﻿using JadaraITKnowledgeSystem.Domain.Common;
+using System.ComponentModel.DataAnnotations;
+using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Courses.Enums;
-using System.ComponentModel.DataAnnotations;
 
 namespace JadaraITKnowledgeSystem.Domain.Courses.Entities
 {
@@ -13,13 +13,13 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entities
         public int CourseInfoId { get; private set; }
 
         [MaxLength(200)]
-        public string Title { get; private set; }
+        public string Title { get; private set; } = string.Empty;
 
         public ResourceType Type { get; private set; }
 
         // Main resource URL (course URL, video URL, article URL, etc.)
         [MaxLength(1000)]
-        public string Url { get; private set; }
+        public string Url { get; private set; } = string.Empty;
 
         [MaxLength(1000)]
         public string? Description { get; private set; }

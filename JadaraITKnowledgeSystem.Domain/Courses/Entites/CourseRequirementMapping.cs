@@ -1,30 +1,24 @@
-﻿using JadaraITKnowledgeSystem.Domain.Common;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text;
+using System.Text.RegularExpressions;
+using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Courses.Enums;
 using JadaraITKnowledgeSystem.Domain.Universities.Entities;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
 {
     public sealed class CourseRequirementMapping : AuditableEntity
     {
-        //[Key]
-        //public int MappingId { get; private set; }
 
         [ForeignKey(nameof(Course))]
         public int CourseId { get; private set; }
-        public Course Course { get; private set; }
+        public Course Course { get; private set; } = null!;
 
         [ForeignKey(nameof(Major))]
         public int MajorId { get; private set; }
-        public Major Major { get; private set; }
+        public Major Major { get; private set; } = null!;
 
         public RequirementType RequirementType { get; private set; } // (University, Faculty, Major, Remedial)
         public RequirementNature RequirementNature { get; private set; } // (Compulsory, Elective)

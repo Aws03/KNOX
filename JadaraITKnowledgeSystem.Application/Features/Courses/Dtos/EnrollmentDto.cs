@@ -11,9 +11,6 @@ public sealed record EnrollmentDto(
     string? CourseCode,
     bool IsFinished,
     DateTimeOffset? FinishedAt,
-    // TODO: Grade functionality is temporarily disabled.
-    // Universities may have different grading systems (A, A+, B, etc.)
-    // decimal? Grade,
     string? Notes,
     DateTimeOffset EnrolledAt
 );
@@ -30,9 +27,6 @@ public sealed record EnrolledCourseSummaryDto(
     int? Credits,
     bool IsFinished,
     DateTimeOffset? FinishedAt,
-    // TODO: Grade functionality is temporarily disabled.
-    // Universities may have different grading systems (A, A+, B, etc.)
-    // decimal? Grade,
     DateTimeOffset EnrolledAt,
     int NumberOfMaterials,
     int NumberOfQuizzes

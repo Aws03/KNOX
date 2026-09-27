@@ -1,4 +1,5 @@
-﻿using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
+using System.Text;
+using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Courses.Mappers;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
@@ -6,9 +7,6 @@ using JadaraITKnowledgeSystem.Domain.Courses;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Courses.Commands.CreateFolder
 {
@@ -26,7 +24,7 @@ namespace JadaraITKnowledgeSystem.Application.Features.Courses.Commands.CreateFo
                 .FirstOrDefaultAsync(c => c.Id == request.CourseId, cancellationToken);
 
             if (course == null)
-                return Error.NotFound($"Course with id {request.CourseId} not found");
+                return Error.NotFound("Course.NotFound", $"Course with id {request.CourseId} not found");
 
             var folderResult = course.AddFolder(request.Name, request.ParentFolderId, request.Description);
             if (folderResult.IsError)

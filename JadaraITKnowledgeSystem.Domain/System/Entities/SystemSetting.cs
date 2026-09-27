@@ -1,4 +1,3 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
@@ -9,11 +8,11 @@ public sealed class SystemSetting : AuditableEntity
 {
     [Required]
     [MaxLength(100)]
-    public string Key { get; private set; }
+    public string Key { get; private set; } = string.Empty;
 
     [Required]
     [MaxLength(500)]
-    public string Value { get; private set; }
+    public string Value { get; private set; } = string.Empty;
 
     [MaxLength(200)]
     public string? Description { get; private set; }

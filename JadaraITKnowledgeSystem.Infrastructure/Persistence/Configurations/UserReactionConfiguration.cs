@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
+using JadaraITKnowledgeSystem.Domain.Quizzes.Entites;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,6 +13,9 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
             builder.HasKey(ur => ur.Id);
 
             builder.Property(ur => ur.ReactionType).IsRequired();
+
+            // One reaction per user per quiz.
+            builder.HasIndex(ur => new { ur.UserId, ur.QuizId }).IsUnique();
 
             builder.HasOne(ur => ur.User)
                 .WithMany()

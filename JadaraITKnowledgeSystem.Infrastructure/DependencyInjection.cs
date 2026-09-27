@@ -1,76 +1,72 @@
-﻿using JadaraITKnowledgeSystem.Application.Interfaces;
+using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
+using JadaraITKnowledgeSystem.Infrastructure.Identity;
 using JadaraITKnowledgeSystem.Infrastructure.Interceptors;
+using JadaraITKnowledgeSystem.Infrastructure.Options;
+using JadaraITKnowledgeSystem.Infrastructure.Persistence;
 using JadaraITKnowledgeSystem.Infrastructure.Persistence.Context;
+using JadaraITKnowledgeSystem.Infrastructure.Persistence.Seed;
 using JadaraITKnowledgeSystem.Infrastructure.Services.AI;
 using JadaraITKnowledgeSystem.Infrastructure.Services.BackgroundJobs;
+using JadaraITKnowledgeSystem.Infrastructure.Services.Email;
 using JadaraITKnowledgeSystem.Infrastructure.Services.FileManagement;
-using JadaraITKnowledgeSystem.Infrastructure.Services.FileMangment;
 using JadaraITKnowledgeSystem.Infrastructure.Services.JWT;
 using JadaraITKnowledgeSystem.Infrastructure.Services.Security;
-using JadaraITKnowledgeSystem.Infrastructure.Services.Email;
 using JadaraITKnowledgeSystem.Infrastructure.Services.Storage;
-using JadaraITKnowledgeSystem.Infrastructure.Services.System;
+using JadaraITKnowledgeSystem.Infrastructure.Services.FeatureFlags;
 using JadaraITKnowledgeSystem.Infrastructure.Services.TextExtraction;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace JadaraITKnowledgeSystem.Infrastructure
 {
-    public static class ServiceRegistration
+    public static class DependencyInjection
     {
-        public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+        public const string ConnectionStringName = "DefaultConnection";
+
+        /// <remarks>
+        /// Nothing here reads configuration eagerly: every setting is bound through the options
+        /// system and resolved when first used, so hosts (and tests) can layer configuration freely.
+        /// </remarks>
+        public static IServiceCollection AddInfrastructure(this IServiceCollection services)
         {
             services.AddSingleton(TimeProvider.System);
+            services.AddValidatedOptions<JwtOptions>(JwtOptions.SectionName);
+            services.AddValidatedOptions<StorageOptions>(StorageOptions.SectionName);
+            services.AddOptions<OpenAIOptions>().BindConfiguration(OpenAIOptions.SectionName);
+            services.AddOptions<BrevoOptions>().BindConfiguration(BrevoOptions.SectionName);
+            services.AddOptions<AhaSendOptions>().BindConfiguration(AhaSendOptions.SectionName);
+            services.AddOptions<DatabaseOptions>().BindConfiguration(DatabaseOptions.SectionName);
 
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
-            ArgumentNullException.ThrowIfNullOrEmpty(connectionString);
+            AddPersistence(services);
 
-            // Register the AuditableEntityInterceptor as scoped
-            services.AddScoped<AuditableEntityInterceptor>();
-
-            // Register DbContext with interceptor
-            services.AddDbContext<AppDbContext>((serviceProvider, options) =>
-            {
-                var interceptor = serviceProvider.GetRequiredService<AuditableEntityInterceptor>();
-                options.UseSqlServer(connectionString)
-                       .AddInterceptors(interceptor);
-            });
-
-            services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());
-            services.AddHostedService<TempFileCleanupJob>();
-
-            services.AddScoped<IFileManager, FileManager>();
-            services.AddScoped<IStorageService, LocalFileStorage>();
-            services.AddScoped<IJwtTokenService, JwtTokenService>();
-            services.AddScoped<IIdentityUserService, Identity.IdentityUserService>();
-            services.AddScoped<IRefreshTokenService, RefreshTokenService>();
-
-            // Brevo is the primary email provider; fall back to AhaSend if Brevo isn't configured.
-            if (!string.IsNullOrWhiteSpace(configuration["Brevo:ApiKey"]))
-                services.AddHttpClient<IEmailService, BrevoEmailService>();
-            else
-                services.AddHttpClient<IEmailService, EmailService>();
-
-            services.AddScoped<IOTPService, OTPService>();
-            services.AddScoped<IIdentityRoleService, Identity.IdentityRoleService>();
-
+            // Identity, tokens and the current caller
             services.AddHttpContextAccessor();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddScoped<IIdentityUserService, IdentityUserService>();
+            services.AddScoped<IIdentityRoleService, IdentityRoleService>();
+            services.AddScoped<IJwtTokenService, JwtTokenService>();
+            services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+            services.AddScoped<IOTPService, OTPService>();
 
-            // Quiz Generation Services
+            AddEmail(services);
+
+            // Files
+            services.AddScoped<IStorageService, LocalFileStorage>();
+            services.AddScoped<IFileManager, FileManager>();
+            services.AddHostedService<TempFileCleanupJob>();
+
+            // Quiz generation
             services.AddScoped<ITextExtractionService, TextExtractionService>();
-            services.AddHttpClient<IOpenAIService, OpenAIService>();
+            services.AddHttpClient<IOpenAIService, OpenAIService>(client => client.Timeout = TimeSpan.FromMinutes(2));
             services.AddScoped<IFeatureFlagService, FeatureFlagService>();
-            services.AddMemoryCache(); // Required for feature flag caching
+            services.AddMemoryCache();
 
-            // Post-commit background job dispatch (replaces Task.Run + Task.Delay(100)).
-            // PostCommitDispatcher is scoped (per-request staging area, drained by
-            // DispatchPostCommitJobsBehavior after the request's transaction commits).
-            // BackgroundJobQueue is a process-wide singleton; it's registered under its
-            // concrete type too so QueuedBackgroundService can consume it directly
-            // while command handlers only ever see it through the IBackgroundJobQueue port.
+            // Post-commit background jobs. PostCommitDispatcher is a per-request staging area
+            // (drained by DispatchPostCommitJobsBehavior after the transaction commits);
+            // BackgroundJobQueue is the process-wide queue QueuedBackgroundService consumes.
             services.AddScoped<IPostCommitDispatcher, PostCommitDispatcher>();
             services.AddSingleton<BackgroundJobQueue>();
             services.AddSingleton<IBackgroundJobQueue>(sp => sp.GetRequiredService<BackgroundJobQueue>());
@@ -78,5 +74,44 @@ namespace JadaraITKnowledgeSystem.Infrastructure
 
             return services;
         }
+
+        private static void AddPersistence(IServiceCollection services)
+        {
+            services.AddScoped<AuditableEntityInterceptor>();
+            services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+            {
+                var connectionString = serviceProvider.GetRequiredService<IConfiguration>().GetConnectionString(ConnectionStringName);
+                if (string.IsNullOrWhiteSpace(connectionString))
+                    throw new InvalidOperationException($"ConnectionStrings:{ConnectionStringName} is not configured.");
+
+                options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure(maxRetryCount: 5))
+                       .AddInterceptors(serviceProvider.GetRequiredService<AuditableEntityInterceptor>());
+            });
+            services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<AppDbContext>());
+
+            services.AddScoped<RoleSeeder>();
+            services.AddScoped<DataSeeder>();
+            services.AddScoped<DatabaseInitializer>();
+        }
+
+        private static void AddEmail(IServiceCollection services)
+        {
+            services.AddHttpClient<BrevoEmailService>();
+            services.AddHttpClient<AhaSendEmailService>();
+            services.AddScoped<LoggingEmailService>();
+
+            // Brevo first, then AhaSend; with neither configured emails are only logged.
+            services.AddScoped<IEmailService>(sp =>
+                sp.GetRequiredService<IOptions<BrevoOptions>>().Value.IsConfigured ? sp.GetRequiredService<BrevoEmailService>()
+                : sp.GetRequiredService<IOptions<AhaSendOptions>>().Value.IsConfigured ? sp.GetRequiredService<AhaSendEmailService>()
+                : sp.GetRequiredService<LoggingEmailService>());
+        }
+
+        private static void AddValidatedOptions<TOptions>(this IServiceCollection services, string section)
+            where TOptions : class =>
+            services.AddOptions<TOptions>()
+                .BindConfiguration(section)
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
     }
 }

@@ -1,18 +1,16 @@
-﻿using JadaraITKnowledgeSystem.Domain.Common;
+using System.ComponentModel.DataAnnotations.Schema;
+using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Errors;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace JadaraITKnowledgeSystem.Domain.Quizzes.Entites
 {
     public sealed class Choice : AuditableEntity
     {
-        //[Key]
-        //public int ChoiceId { get; private set; }
         [ForeignKey(nameof(Question))]
         public int QuestionId { get; private set; }
-        public Question Question { get; private set; }
-        public string Text { get; private set; }
+        public Question Question { get; private set; } = null!;
+        public string Text { get; private set; } = string.Empty;
 
         public string? ImageUrl { get; private set; }
         public bool IsCorrect { get; private set; }

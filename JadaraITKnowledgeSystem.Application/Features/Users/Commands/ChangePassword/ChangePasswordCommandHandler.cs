@@ -4,6 +4,7 @@ using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using EmailAddress = JadaraITKnowledgeSystem.Domain.Users.ValueObjects.Email;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Users.Commands.ChangePassword;
 
@@ -46,7 +47,7 @@ public sealed class ChangePasswordCommandHandler : IRequestHandler<ChangePasswor
 
         // Verify domain user exists
         var domainUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email.Address == userEmail, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email.Address == EmailAddress.Normalize(userEmail), cancellationToken);
         
         if (domainUser == null)
         {

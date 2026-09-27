@@ -1,15 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Commands.CreateQuiz;
 using JadaraITKnowledgeSystem.Application.Features.Quizzes.Dtos;
-using JadaraITKnowledgeSystem.Application.Features.Quizzes.Mappers;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
+using JadaraITKnowledgeSystem.Domain.Courses.Entites;
+using JadaraITKnowledgeSystem.Domain.Quizzes.Entities;
 using JadaraITKnowledgeSystem.Domain.Quizzes.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -89,18 +84,20 @@ public sealed class ProcessQuizGenerationJobCommandHandler
                 "Text extracted successfully. JobId={JobId}, TextLength={Length}",
                 job.Id, extractedText.Length);
 
+            var options = job.GetOptions();
+
             // Step 3: Chunk text intelligently
             var chunks = await _textExtractor.ChunkTextIntelligentlyAsync(
                 extractedText,
                 new ChunkingOptions
                 {
                     MaxCharsPerChunk = 4000,
-                    QuestionsPerChunk = job.GetOptions().QuestionsPerQuiz
+                    QuestionsPerChunk = options.QuestionsPerQuiz
                 },
                 cancellationToken);
 
             // Limit chunks based on job options
-            var maxChunks = Math.Min(chunks.Count, job.GetOptions().MaxQuizzes);
+            var maxChunks = Math.Min(chunks.Count, options.MaxQuizzes);
             _logger.LogInformation(
                 "Text chunked into {ChunkCount} chunks, processing {MaxChunks} quizzes",
                 chunks.Count, maxChunks);
@@ -117,6 +114,7 @@ public sealed class ProcessQuizGenerationJobCommandHandler
                     chunks[i],
                     material,
                     job,
+                    options,
                     i + 1,
                     maxChunks,
                     cancellationToken);
@@ -165,7 +163,7 @@ public sealed class ProcessQuizGenerationJobCommandHandler
     }
 
     private async Task<Result<string>> ExtractTextFromMaterial(
-        Domain.Courses.Entites.CourseMaterial material,
+        CourseMaterial material,
         CancellationToken cancellationToken)
     {
         try
@@ -203,8 +201,7 @@ public sealed class ProcessQuizGenerationJobCommandHandler
 
             _logger.LogInformation("Downloading file from storage. FileName={FileName}, Folder={Folder}", fileName, folder);
 
-            // Download file from storage
-            var fileStream = await _storage.DownloadAsync(fileName, folder, cancellationToken);
+            await using var fileStream = await _storage.DownloadAsync(fileName, folder, cancellationToken);
             if (fileStream == null)
             {
                 return Error.NotFound("File.NotFound", "Material file not found in storage");
@@ -213,15 +210,7 @@ public sealed class ProcessQuizGenerationJobCommandHandler
             var extension = Path.GetExtension(fileName);
             _logger.LogInformation("Extracting text from file. Extension={Extension}", extension);
 
-            // Extract text
-            var extractionResult = await _textExtractor.ExtractTextAsync(fileStream, extension, cancellationToken);
-            
-            if (fileStream != null)
-            {
-                await fileStream.DisposeAsync();
-            }
-
-            return extractionResult;
+            return await _textExtractor.ExtractTextAsync(fileStream, extension, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -232,8 +221,9 @@ public sealed class ProcessQuizGenerationJobCommandHandler
 
     private async Task<Result<QuizDto>> GenerateQuizFromChunk(
         TextChunk chunk,
-        Domain.Courses.Entites.CourseMaterial material,
-        Domain.Quizzes.Entities.QuizGenerationJob job,
+        CourseMaterial material,
+        QuizGenerationJob job,
+        QuizGenerationOptions options,
         int partNumber,
         int totalParts,
         CancellationToken cancellationToken)
@@ -244,8 +234,8 @@ public sealed class ProcessQuizGenerationJobCommandHandler
             var aiRequest = new GenerateQuizRequest
             {
                 Text = chunk.Text,
-                QuestionCount = job.GetOptions().QuestionsPerQuiz,
-                Difficulty = job.GetOptions().Difficulty,
+                QuestionCount = options.QuestionsPerQuiz,
+                Difficulty = options.Difficulty,
                 ChunkIndex = partNumber - 1,
                 TotalChunks = totalParts
             };
@@ -283,16 +273,17 @@ public sealed class ProcessQuizGenerationJobCommandHandler
             );
 
             var quizResult = await _mediator.Send(createQuizCommand, cancellationToken);
+            if (quizResult.IsError)
+                return quizResult;
 
-            if (quizResult.IsSuccess)
+            var quiz = await _context.Quizzes.FindAsync([quizResult.Value.Id], cancellationToken);
+            if (quiz is not null)
             {
-                // Update the quiz to mark it as AI-generated
-                var quiz = await _context.Quizzes.FindAsync(quizResult.Value.Id);
-                if (quiz != null)
-                {
-                    // You'll need to add a method to Quiz entity to update source
-                    // For now, this will be handled in the database update
-                }
+                var markResult = quiz.MarkAsAiGenerated(material.Id, partNumber, totalParts);
+                if (markResult.IsError)
+                    return markResult.Errors;
+
+                await _context.SaveChangesAsync(cancellationToken);
             }
 
             return quizResult;
@@ -304,8 +295,8 @@ public sealed class ProcessQuizGenerationJobCommandHandler
         }
     }
 
-    private string GenerateQuizTitle(
-        Domain.Courses.Entites.CourseMaterial material,
+    private static string GenerateQuizTitle(
+        CourseMaterial material,
         int partNumber,
         int totalParts,
         string? topic)
@@ -322,8 +313,8 @@ public sealed class ProcessQuizGenerationJobCommandHandler
         return title.Length > 250 ? title.Substring(0, 247) + "..." : title;
     }
 
-    private string GenerateFallbackDescription(
-        Domain.Courses.Entites.CourseMaterial material,
+    private static string GenerateFallbackDescription(
+        CourseMaterial material,
         int partNumber,
         int totalParts)
     {
@@ -336,7 +327,7 @@ public sealed class ProcessQuizGenerationJobCommandHandler
         return desc.Length > 500 ? desc.Substring(0, 497) + "..." : desc;
     }
 
-    private List<string> MergeTags(
+    private static List<string> MergeTags(
         IEnumerable<string>? materialTags,
         IEnumerable<string>? aiTags,
         IEnumerable<string> metadataTags)

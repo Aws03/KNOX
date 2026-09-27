@@ -1,7 +1,5 @@
-﻿using FluentValidation;
-using System;
-using System.Collections.Generic;
 using System.Text;
+using FluentValidation;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Courses.Commands.CreateFolder
 {
@@ -11,15 +9,17 @@ namespace JadaraITKnowledgeSystem.Application.Features.Courses.Commands.CreateFo
         {
             RuleFor(x => x.Name)
                 .NotEmpty()
-                .WithMessage("Folder name is required.");
+                .WithMessage("Folder name is required.")
+                .MaximumLength(200)
+                .WithMessage("Folder name must not exceed 200 characters.");
 
             RuleFor(x => x.CourseId)
-                .NotEmpty()
-                .WithMessage("Course ID is required.");
+                .GreaterThan(0)
+                .WithMessage("Course ID must be a positive integer.");
 
             RuleFor(x => x.ParentFolderId)
-                .NotEmpty()
-                .WithMessage("Parent folder ID is required.")
+                .GreaterThan(0)
+                .WithMessage("Parent folder ID must be a positive integer.")
                 .When(x => x.ParentFolderId.HasValue);
 
             RuleFor(x => x.Description)

@@ -1,10 +1,9 @@
-﻿using FluentValidation;
-using System.Linq;
+using FluentValidation;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Quizzes.Commands.CreateQuiz;
 
 public sealed class CreateQuizCommandValidator : AbstractValidator<CreateQuizCommand>
-{   
+{
     public CreateQuizCommandValidator()
     {
         RuleFor(x => x.Title)
@@ -13,6 +12,31 @@ public sealed class CreateQuizCommandValidator : AbstractValidator<CreateQuizCom
 
         RuleFor(x => x.Description)
             .MaximumLength(1000).WithMessage("Quiz description must not exceed 1000 characters.");
+
+        RuleFor(x => x.CourseId)
+            .GreaterThan(0).WithMessage("CourseId must be a positive integer.");
+
+        RuleFor(x => x.WriterId)
+            .GreaterThan(0).WithMessage("WriterId must be a positive integer.");
+
+        RuleFor(x => x.Questions)
+            .NotNull().WithMessage("Questions are required.");
+
+        RuleForEach(x => x.Questions).ChildRules(question =>
+        {
+            question.RuleFor(q => q.Text)
+                .NotEmpty().WithMessage("Question text is required.");
+
+            question.RuleFor(q => q.Type)
+                .IsInEnum().WithMessage("Question type is invalid.");
+
+            question.RuleForEach(q => q.Choices).ChildRules(choice =>
+            {
+                choice.RuleFor(c => c.Text)
+                    .NotEmpty().WithMessage("Choice text is required.")
+                    .MaximumLength(500).WithMessage("Choice text must not exceed 500 characters.");
+            });
+        });
 
         RuleForEach(x => x.Tags)
             .NotEmpty().WithMessage("Tag cannot be empty.")

@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Application.DTOs;
+﻿using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Majors.Dtos;
 

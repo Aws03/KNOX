@@ -17,7 +17,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -399,7 +399,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
 
                     b.Property<string>("CreatedByIp")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("datetime2");
@@ -411,20 +412,25 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("RevokedByIp")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
-                    b.Property<string>("Token")
+                    b.Property<string>("TokenHash")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("char(64)")
+                        .IsFixedLength();
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Token")
+                    b.HasIndex("TokenHash")
                         .IsUnique();
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("RefreshTokens");
                 });
@@ -553,7 +559,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
 
                     b.HasIndex("QuizId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "QuizId")
+                        .IsUnique();
 
                     b.ToTable("QuizAttempts", (string)null);
                 });
@@ -593,7 +600,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
 
                     b.HasIndex("QuizId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "QuizId")
+                        .IsUnique();
 
                     b.ToTable("UserReactions", (string)null);
                 });
@@ -680,8 +688,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(100)
@@ -702,6 +710,11 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
 
                     b.Property<int?>("PartNumber")
                         .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<int>("Source")
                         .HasColumnType("int");
@@ -947,6 +960,11 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
 
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("FailedAttempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<bool>("IsUsed")
                         .HasColumnType("bit");
@@ -1542,6 +1560,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Migrations
                                 .HasColumnName("Email");
 
                             b1.HasKey("UserId");
+
+                            b1.HasIndex("Address");
 
                             b1.ToTable("Users");
 

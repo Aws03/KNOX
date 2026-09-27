@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using JadaraITKnowledgeSystem.Application.Features.Dashboard.Dtos;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
@@ -93,7 +88,6 @@ public sealed class GetSystemStatisticsQueryHandler : IRequestHandler<GetSystemS
             .Where(a => a.CreatedAt >= utcNow.Date.AddDays(-30))
             .CountAsync(cancellationToken);
 
-        var courseCount = await _db.Courses.CountAsync(cancellationToken);
         var materialsPerCourse = await _db.CourseMaterials
             .GroupBy(m => m.CourseId)
             .Select(g => g.Count())
@@ -103,8 +97,8 @@ public sealed class GetSystemStatisticsQueryHandler : IRequestHandler<GetSystemS
             .Select(g => g.Count())
             .ToListAsync(cancellationToken);
 
-        var avgMaterialsPerCourse = courseCount == 0 ? 0 : materialsPerCourse.DefaultIfEmpty(0).Average();
-        var avgQuizzesPerCourse = courseCount == 0 ? 0 : quizzesPerCourse.DefaultIfEmpty(0).Average();
+        var avgMaterialsPerCourse = totalCourses == 0 ? 0 : materialsPerCourse.DefaultIfEmpty(0).Average();
+        var avgQuizzesPerCourse = totalCourses == 0 ? 0 : quizzesPerCourse.DefaultIfEmpty(0).Average();
 
         var dto = new SystemStatisticsDto
         {

@@ -1,26 +1,23 @@
-﻿using JadaraITKnowledgeSystem.Domain.Common;
-using JadaraITKnowledgeSystem.Domain.Common.Results;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using JadaraITKnowledgeSystem.Domain.Common;
+using JadaraITKnowledgeSystem.Domain.Common.Results;
 
 namespace JadaraITKnowledgeSystem.Domain.Universities.Entities
 {
     public sealed class Faculty : AuditableEntity
     {
-        //[Key]
-        //public int FacultyId { get; private set; }
 
         [Required]
         [MaxLength(120)]
-        public string Name { get; private set; }
+        public string Name { get; private set; } = string.Empty;
 
         [ForeignKey(nameof(University))]
         public int UniversityId { get; private set; }
-        public University University { get; private set; }
+        public University University { get; private set; } = null!;
 
         private Faculty() { }
 
-        //change to public
         private Faculty(string name, int universityId)
         {
             SetName(name);

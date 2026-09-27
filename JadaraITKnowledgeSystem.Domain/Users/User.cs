@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Domain.Common;
+using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Universities.Entities;
 using JadaraITKnowledgeSystem.Domain.Users.ValueObjects;
@@ -7,12 +7,12 @@ namespace JadaraITKnowledgeSystem.Domain.Users
 {
     public sealed class User : AuditableEntity
     {
-        public FullName Name { get; private set; }
-        public Email Email { get; private set; }
+        public FullName Name { get; private set; } = null!;
+        public Email Email { get; private set; } = null!;
         //public DateTime DateJoined { get; private set; } // no need , there is an auditable mechanisime
 
         public int MajorId { get; private set; }
-        public Major Major { get; private set; }
+        public Major Major { get; private set; } = null!;
 
         public bool IsVerified { get; private set; } = false;
         public DateTime? VerificationDate { get; private set; } = null;

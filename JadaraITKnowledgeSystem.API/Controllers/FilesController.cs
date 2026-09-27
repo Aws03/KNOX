@@ -1,103 +1,76 @@
-﻿using JadaraITKnowledgeSystem.Application.Interfaces;
+using System.Text.RegularExpressions;
+using JadaraITKnowledgeSystem.API.Contracts;
+using JadaraITKnowledgeSystem.Application.Common.Security;
+using JadaraITKnowledgeSystem.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JadaraITKnowledgeSystem.API.Controllers;
 
+/// <summary>
+/// File uploads. A thin pass-through to the Application's IFileManager port; there is no
+/// business logic to route through a command.
+/// </summary>
 [ApiController]
 [Route("api/files")]
 [Authorize]
-public class FilesController : ControllerBase
+public sealed partial class FilesController(IFileManager fileManager, TimeProvider timeProvider) : ControllerBase
 {
-    private readonly IFileManager _fileManager;
-    private readonly ILogger<FilesController> _logger;
+    private const string QuizImageCategory = "quiz-question";
 
-    public FilesController(IFileManager fileManager, ILogger<FilesController> logger)
-    {
-        _fileManager = fileManager;
-        _logger = logger;
-    }
-
+    /// <summary>Uploads a quiz image to temporary storage; creating the quiz moves it to permanent storage.</summary>
     [HttpPost("upload/temporary")]
-    [RequestSizeLimit(10_000_000)] // 10MB
-    public async Task<IActionResult> UploadTemporaryFile(
-        IFormFile file,
-        //[FromForm] string fileCategory, // "quiz-question", "quiz-choice", "material", etc.
-        CancellationToken cancellationToken)
-    {
-        if (file == null || file.Length == 0)
-            return BadRequest("No file uploaded");
+    [RequestSizeLimit(10_000_000)]
+    [ProducesResponseType<UploadedFileResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public Task<IActionResult> UploadTemporaryFile(IFormFile file, CancellationToken cancellationToken) =>
+        UploadAsync(file, QuizImageCategory, "temp", cancellationToken);
 
-        var allowedExtensions = GetAllowedExtensions("quiz-question");
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-        if (!allowedExtensions.Contains(extension))
-            return BadRequest($"File type {extension} not allowed for this type of files");
-
-        using var stream = file.OpenReadStream();
-
-        // Upload to temporary folder
-        var fileUrl = await _fileManager.UploadAsync(
-            stream,
-            extension,
-            folder: $"temp",
-            cancellationToken
-        );
-
-        return Ok(new 
-        {
-            FileUrl = fileUrl,
-            FileName = file.FileName,
-            FileSize = file.Length,
-            UploadedAt = DateTime.UtcNow
-        });
-    }
-
+    /// <summary>Uploads straight to permanent storage (course materials).</summary>
     [HttpPost("upload/permanent")]
-    public async Task<IActionResult> UploadPermanentFile(
-        IFormFile file,
-        [FromForm] string fileCategory,
-        CancellationToken cancellationToken)
+    [Authorize(Roles = Roles.WriterOrAbove)]
+    [ProducesResponseType<UploadedFileResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public Task<IActionResult> UploadPermanentFile(IFormFile file, [FromForm] string fileCategory, CancellationToken cancellationToken)
     {
-        // Similar to above but uploads to permanent folder directly
-        // Used for materials that are uploaded one at a time
+        // The category becomes a folder name on disk, so it must be a single plain segment.
+        if (string.IsNullOrWhiteSpace(fileCategory) || !CategoryPattern().IsMatch(fileCategory))
+            return Task.FromResult<IActionResult>(Problem(detail: "Invalid file category.", statusCode: StatusCodes.Status400BadRequest));
 
-        using var stream = file.OpenReadStream();
-
-        var fileUrl = await _fileManager.UploadAsync(
-            stream,
-            Path.GetExtension(file.FileName).ToLowerInvariant(),
-            folder: $"permanent/{fileCategory}", // "materials", "profiles", etc.
-            cancellationToken
-        );
-
-        return Ok(new 
-        {
-            FileUrl = fileUrl,
-            FileName = file.FileName,
-            FileSize = file.Length,
-            UploadedAt = DateTime.UtcNow
-        });
+        return UploadAsync(file, fileCategory, $"permanent/{fileCategory}", cancellationToken);
     }
 
     [HttpDelete]
-    public async Task<ActionResult> DeleteFile(
-        [FromQuery] string fileUrl,
-        CancellationToken cancellationToken)
+    [Authorize(Roles = Roles.WriterOrAbove)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteFile([FromQuery] string fileUrl, CancellationToken cancellationToken) =>
+        await fileManager.DeleteAsync(fileUrl, cancellationToken)
+            ? NoContent()
+            : Problem(detail: "File not found.", statusCode: StatusCodes.Status404NotFound);
+
+    private async Task<IActionResult> UploadAsync(IFormFile? file, string category, string folder, CancellationToken cancellationToken)
     {
-        var result = await _fileManager.DeleteAsync(fileUrl, cancellationToken);
+        if (file is null || file.Length == 0)
+            return Problem(detail: "No file uploaded.", statusCode: StatusCodes.Status400BadRequest);
 
-        if (!result)
-            return NotFound("File not found");
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!AllowedExtensions(category).Contains(extension))
+            return Problem(detail: $"File type '{extension}' is not allowed here.", statusCode: StatusCodes.Status400BadRequest);
 
-        return NoContent();
+        await using var stream = file.OpenReadStream();
+        var fileUrl = await fileManager.UploadAsync(stream, extension, folder, cancellationToken);
+
+        return Ok(new UploadedFileResponse(fileUrl, file.FileName, file.Length, timeProvider.GetUtcNow()));
     }
 
-    private static HashSet<string> GetAllowedExtensions(string category) => category switch
+    private static HashSet<string> AllowedExtensions(string category) => category switch
     {
-        "quiz-question" or "quiz-choice" => new() { ".jpg", ".jpeg", ".png", ".gif" },
-        "material" => new() { ".pdf", ".jpg", ".jpeg", ".png", ".docx", ".pptx", ".mp4" },
-        _ => new() { ".jpg", ".jpeg", ".png" }
+        "quiz-question" or "quiz-choice" => [".jpg", ".jpeg", ".png", ".gif"],
+        "material" => [".pdf", ".jpg", ".jpeg", ".png", ".docx", ".pptx", ".mp4"],
+        _ => [".jpg", ".jpeg", ".png"]
     };
-}
 
+    [GeneratedRegex("^[A-Za-z0-9_-]{1,50}$")]
+    private static partial Regex CategoryPattern();
+}

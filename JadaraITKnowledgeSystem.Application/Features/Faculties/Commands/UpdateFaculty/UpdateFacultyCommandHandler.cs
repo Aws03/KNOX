@@ -28,6 +28,12 @@ public sealed class UpdateFacultyCommandHandler
             return Error.NotFound("Faculty.NotFound", $"Faculty with ID {request.Id} was not found.");
         }
 
+        if (faculty.UniversityId != request.UniversityId
+            && !await _context.Universities.AnyAsync(u => u.Id == request.UniversityId, cancellationToken))
+        {
+            return Error.NotFound("University.NotFound", $"University with ID {request.UniversityId} was not found.");
+        }
+
         faculty.UpdateName(request.Name);
         faculty.UpdateUniversity(request.UniversityId);
         await _context.SaveChangesAsync(cancellationToken);

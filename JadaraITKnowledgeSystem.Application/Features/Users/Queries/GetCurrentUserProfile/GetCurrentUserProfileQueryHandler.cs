@@ -1,9 +1,12 @@
+using JadaraITKnowledgeSystem.Application.Common.Security;
 using JadaraITKnowledgeSystem.Application.Features.Users.Dtos;
+using JadaraITKnowledgeSystem.Application.Features.Users.Mappers;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using EmailAddress = JadaraITKnowledgeSystem.Domain.Users.ValueObjects.Email;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetCurrentUserProfile
 {
@@ -29,7 +32,7 @@ namespace JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetCurrentU
                 .Include(u => u.Major)
                     .ThenInclude(m => m.Faculty)
                         .ThenInclude(f => f.University)
-                .FirstOrDefaultAsync(u => u.Email.Address == email, cancellationToken);
+                .FirstOrDefaultAsync(u => u.Email.Address == EmailAddress.Normalize(email), cancellationToken);
 
             if (domainUser is null)
             {
@@ -37,27 +40,7 @@ namespace JadaraITKnowledgeSystem.Application.Features.Users.Queries.GetCurrentU
                 return Error.NotFound("Users.DomainNotFound", "Domain user not found.");
             }
 
-            var role = _currentUser.Roles.FirstOrDefault() ?? "User";
-
-            var dto = new UserProfileDto
-            {
-                IdentityUserId = identityUserId.Value,
-                DomainUserId = domainUser.Id,
-                Email = email,
-                FullName = domainUser.Name.ToString(),
-                DateJoined = domainUser.CreatedAt.UtcDateTime,
-                Role = role,
-                IsActive = domainUser.IsActive,
-                IsVerified = domainUser.IsVerified,
-                VerificationDate = domainUser.VerificationDate,
-                ProfilePictureUrl = domainUser.ProfilePictureUrl,
-                UniversityId = domainUser.Major.Faculty.University.Id,
-                UniversityName = domainUser.Major.Faculty.University.Name,
-                FacultyId = domainUser.Major.Faculty.Id,
-                FacultyName = domainUser.Major.Faculty.Name,
-                MajorId = domainUser.Major.Id,
-                MajorName = domainUser.Major.Name
-            };
+            var dto = domainUser.ToProfileDto(identityUserId.Value, email, Roles.Highest(_currentUser.Roles));
 
             return dto;
         }

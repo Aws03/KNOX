@@ -1,4 +1,4 @@
-using JadaraITKnowledgeSystem.Application.Features.Users.Commands.CreateUser;
+using JadaraITKnowledgeSystem.Application.Common.Security;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
@@ -14,13 +14,15 @@ namespace JadaraITKnowledgeSystem.Application.Features.Users.Commands.CreateUser
         (IApplicationDbContext context, IIdentityUserService identityService, ILogger<CreateUserCommandHandler> logger)
         : IRequestHandler<CreateUserCommand, Result<CreateUserResultDto>>
     {
+        private const string DefaultRole = Roles.User;
+
         private readonly IApplicationDbContext _context = context;
         private readonly IIdentityUserService _identityService = identityService;
         private readonly ILogger<CreateUserCommandHandler> _logger = logger;
 
         public async Task<Result<CreateUserResultDto>> Handle(CreateUserCommand request, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("[CreateUser] Starting for Email={Email}, MajorId={MajorId}", request.Email, request.MajorId);
+            _logger.LogInformation("[CreateUser] Starting for MajorId={MajorId}", request.MajorId);
 
             var majorExists = await _context.Majors.AsNoTracking().AnyAsync(m => m.Id == request.MajorId, cancellationToken);
             if (!majorExists)
@@ -32,21 +34,16 @@ namespace JadaraITKnowledgeSystem.Application.Features.Users.Commands.CreateUser
             Result<User> domainUserResult;
             try
             {
-                var nameVo = new FullName(request.FullName);
-                var emailVo = new Email(request.Email);
-                domainUserResult = User.Create(nameVo, emailVo, request.MajorId);
+                domainUserResult = User.Create(new FullName(request.FullName), new Email(request.Email), request.MajorId);
             }
-            catch (Exception ex)
+            catch (ArgumentException ex)
             {
-                _logger.LogWarning(ex, "[CreateUser] Invalid value objects for Email={Email}", request.Email);
+                _logger.LogWarning(ex, "[CreateUser] Invalid user data");
                 return Error.Validation(description: "Invalid user data.");
             }
 
-            if (!domainUserResult.IsSuccess)
-            {
-                _logger.LogWarning("[CreateUser] Domain creation failed: {Errors}", string.Join("; ", domainUserResult.Errors.Select(e => e.Description)));
+            if (domainUserResult.IsError)
                 return domainUserResult.Errors;
-            }
 
             var domainUser = domainUserResult.Value;
 
@@ -57,50 +54,49 @@ namespace JadaraITKnowledgeSystem.Application.Features.Users.Commands.CreateUser
             try
             {
                 var identityCreate = await _identityService.CreateAsync(request.Email, request.FullName, domainUser.Id, request.Password);
-                if (!identityCreate.IsSuccess)
+                if (identityCreate.IsError)
                 {
-                    _logger.LogWarning("[CreateUser] Identity creation failed for DomainUserId={DomainUserId}: {Errors}", domainUser.Id, string.Join("; ", identityCreate.Errors.Select(e => e.Description)));
-
-                    _context.Users.Remove(domainUser);
-                    await _context.SaveChangesAsync(cancellationToken);
-                    _logger.LogInformation("[CreateUser] Rolled back DomainUser Id={DomainUserId}", domainUser.Id);
-
+                    _logger.LogWarning("[CreateUser] Identity creation failed for DomainUserId={DomainUserId}: {Errors}",
+                        domainUser.Id, string.Join("; ", identityCreate.Errors.Select(e => e.Description)));
+                    await RemoveDomainUserAsync(domainUser, cancellationToken);
                     return identityCreate.Errors;
                 }
 
-                var identityUserId = identityCreate.Value.identityUserId;
-                _logger.LogInformation("[CreateUser] Identity user created Id={IdentityUserId} for DomainUserId={DomainUserId}", identityUserId, domainUser.Id);
+                var identityUserId = identityCreate.Value;
 
-                const string defaultRole = "User";
-                var roleResult = await _identityService.AddToRoleAsync(identityUserId, defaultRole);
-                if (!roleResult.IsSuccess)
+                var roleResult = await _identityService.AddToRoleAsync(identityUserId, DefaultRole);
+                if (roleResult.IsError)
                 {
-                    _logger.LogWarning("[CreateUser] Adding role '{Role}' failed for IdentityUserId={IdentityUserId}: {Errors}", defaultRole, identityUserId, string.Join("; ", roleResult.Errors.Select(e => e.Description)));
-
-                    _context.Users.Remove(domainUser);
-                    await _context.SaveChangesAsync(cancellationToken);
-                    _logger.LogInformation("[CreateUser] Rolled back DomainUser Id={DomainUserId} after role failure", domainUser.Id);
-
+                    _logger.LogWarning("[CreateUser] Adding role '{Role}' failed for IdentityUserId={IdentityUserId}: {Errors}",
+                        DefaultRole, identityUserId, string.Join("; ", roleResult.Errors.Select(e => e.Description)));
+                    await RemoveDomainUserAsync(domainUser, cancellationToken);
                     return roleResult.Errors;
                 }
 
-                _logger.LogInformation("[CreateUser] User created successfully. DomainUserId={DomainUserId}, IdentityUserId={IdentityUserId}, Role={Role}", domainUser.Id, identityUserId, defaultRole);
+                _logger.LogInformation("[CreateUser] User created. DomainUserId={DomainUserId}, IdentityUserId={IdentityUserId}",
+                    domainUser.Id, identityUserId);
 
-                var dto = new CreateUserResultDto(
+                return new CreateUserResultDto(
                     DomainUserId: domainUser.Id,
                     IdentityUserId: identityUserId,
                     Email: request.Email,
-                    AssignedRole: defaultRole);
-
-                return dto;
+                    AssignedRole: DefaultRole);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[CreateUser] Unexpected error. Rolling back DomainUser Id={DomainUserId}", domainUser.Id);
-                _context.Users.Remove(domainUser);
-                await _context.SaveChangesAsync(cancellationToken);
+                await RemoveDomainUserAsync(domainUser, cancellationToken);
                 return Error.Unexpected(description: "Unexpected error during user creation.");
             }
+        }
+
+        // The command's transaction commits even when a failure Result is returned,
+        // so the half-created domain user has to be removed explicitly.
+        private async Task RemoveDomainUserAsync(User domainUser, CancellationToken cancellationToken)
+        {
+            _context.Users.Remove(domainUser);
+            await _context.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("[CreateUser] Rolled back DomainUser Id={DomainUserId}", domainUser.Id);
         }
     }
 }

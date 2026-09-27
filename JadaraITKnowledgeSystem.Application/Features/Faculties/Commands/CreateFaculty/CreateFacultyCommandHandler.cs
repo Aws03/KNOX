@@ -1,24 +1,27 @@
-﻿using JadaraITKnowledgeSystem.Application.Features.Faculties.Dtos;
+using JadaraITKnowledgeSystem.Application.Features.Faculties.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Faculties.Mappers;
-using JadaraITKnowledgeSystem.Application.Features.Universities.Commands.CreateUniversity;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Universities.Entities;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Faculties.Commands.CreateFaculty;
 
 public sealed class CreateFacultyCommandHandler
-    (IApplicationDbContext applicationDbContext, ILogger<CreateUniversityCommandHandler> logger)
+    (IApplicationDbContext applicationDbContext, ILogger<CreateFacultyCommandHandler> logger)
     : IRequestHandler<CreateFacultyCommand, Result<FacultyDto>>
 {
     private readonly IApplicationDbContext _context = applicationDbContext;
-    private readonly ILogger<CreateUniversityCommandHandler> _logger = logger;
+    private readonly ILogger<CreateFacultyCommandHandler> _logger = logger;
 
     public async Task<Result<FacultyDto>> Handle(CreateFacultyCommand request, CancellationToken ct)
     {
         _logger.LogInformation("Handling CreateFacultyCommand for UniversityId: {UniversityId}, Name: {Name}", request.UniversityId, request.Name);
+
+        if (!await _context.Universities.AnyAsync(u => u.Id == request.UniversityId, ct))
+            return Error.NotFound("University.NotFound", $"University with ID {request.UniversityId} was not found.");
 
         var faculty = Faculty.Create(request.Name, request.UniversityId);
 

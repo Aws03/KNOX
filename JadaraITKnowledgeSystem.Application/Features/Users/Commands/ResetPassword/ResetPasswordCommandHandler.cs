@@ -4,6 +4,7 @@ using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using EmailAddress = JadaraITKnowledgeSystem.Domain.Users.ValueObjects.Email;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Users.Commands.ResetPassword;
 
@@ -31,7 +32,7 @@ public sealed class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordC
         _logger.LogInformation("[ResetPasswordCommand] Resetting password for {Email}", request.Email);
 
         // Step 1: Validate OTP
-        var otpResult = await _otpService.ValidateOtpAsync(request.Email, request.Otp);
+        var otpResult = await _otpService.ValidateOtpAsync(request.Email, request.Otp, cancellationToken);
         if (otpResult.IsError)
         {
             _logger.LogWarning("[ResetPasswordCommand] OTP validation failed for {Email}: {Errors}",
@@ -41,7 +42,7 @@ public sealed class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordC
 
         // Step 2: Verify domain user exists
         var domainUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email.Address == request.Email, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email.Address == EmailAddress.Normalize(request.Email), cancellationToken);
         
         if (domainUser == null)
         {

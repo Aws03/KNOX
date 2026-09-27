@@ -1,3 +1,4 @@
+using JadaraITKnowledgeSystem.Application.Common.Security;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
@@ -26,7 +27,7 @@ public class DataSeeder(
     private const string SuperAdminEmail = "admin@knox.com";
     private const string SuperAdminPassword = "Admin@123456";
     private const string SuperAdminFullName = "System Administrator";
-    private const string SuperAdminRole = "SuperAdmin";
+    private const string SuperAdminRole = Roles.SuperAdmin;
 
     private const string UniversityName = "Jadara University";
     private const string FacultyName = "Faculty of Information Technology";
@@ -126,18 +127,16 @@ public class DataSeeder(
         var identityCreate = await identityService.CreateAsync(
             SuperAdminEmail, SuperAdminFullName, domainUser.Id, SuperAdminPassword);
 
-        // Note: CreateAsync's Result.IsSuccess is always true for this call (both
-        // branches return through the value-tuple conversion) - the real signal is
-        // an empty identityUserId / non-empty errors inside the tuple itself.
-        var (identityUserId, identityErrors) = identityCreate.Value;
-        if (identityUserId == 0 || identityErrors.Any())
+        if (identityCreate.IsError)
         {
             context.Users.Remove(domainUser);
             await context.SaveChangesAsync(ct);
             throw new InvalidOperationException(
                 $"[DataSeeder] Failed to create seed SuperAdmin identity user: " +
-                string.Join("; ", identityErrors.Select(e => e.Description)));
+                string.Join("; ", identityCreate.Errors.Select(e => e.Description)));
         }
+
+        var identityUserId = identityCreate.Value;
 
         var roleResult = await identityService.AddToRoleAsync(identityUserId, SuperAdminRole);
 

@@ -1,7 +1,7 @@
-﻿using JadaraITKnowledgeSystem.Application.Interfaces;
+using System.Diagnostics;
+using JadaraITKnowledgeSystem.Application.Interfaces;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 
 namespace JadaraITKnowledgeSystem.Application.Common.Behaviours;
 
@@ -26,35 +26,28 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
     {
         var requestName = typeof(TRequest).Name;
         var userId = _currentUser.UserId ?? 0;
-        var userEmail = _currentUser.Email ?? "Anonymous";
-        var userRoles = _currentUser.Roles != null && _currentUser.Roles.Any() 
-            ? string.Join(", ", _currentUser.Roles) 
-            : "None";
 
-        _logger.LogInformation(
-            "Handling {RequestName} for User {UserId} ({UserEmail}) with Roles [{UserRoles}]",
-            requestName, userId, userEmail, userRoles);
+        _logger.LogInformation("Handling {RequestName} for User {UserId}", requestName, userId);
 
         var stopwatch = Stopwatch.StartNew();
 
         try
         {
             var response = await next();
-            stopwatch.Stop();
 
             _logger.LogInformation(
-                "Handled {RequestName} successfully in {ElapsedMs}ms for User {UserId}",
+                "Handled {RequestName} in {ElapsedMs}ms for User {UserId}",
                 requestName, stopwatch.ElapsedMilliseconds, userId);
 
             return response;
         }
         catch (Exception ex)
         {
-            stopwatch.Stop();
-
-            _logger.LogError(ex,
-                "Error handling {RequestName} after {ElapsedMs}ms for User {UserId} ({UserEmail}): {ErrorMessage}",
-                requestName, stopwatch.ElapsedMilliseconds, userId, userEmail, ex.Message);
+            // Logged once more (with the stack) by the API's exception middleware;
+            // this entry adds the request name and timing.
+            _logger.LogWarning(
+                "{RequestName} failed after {ElapsedMs}ms for User {UserId}: {ExceptionType}",
+                requestName, stopwatch.ElapsedMilliseconds, userId, ex.GetType().Name);
 
             throw;
         }

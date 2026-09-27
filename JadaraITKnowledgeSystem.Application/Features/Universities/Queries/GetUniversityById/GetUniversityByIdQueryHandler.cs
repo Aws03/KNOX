@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Application.Features.Universities.Dtos;
+using JadaraITKnowledgeSystem.Application.Features.Universities.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Universities.Mappers;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
@@ -27,7 +27,6 @@ public sealed class GetUniversityByIdQueryHandler
 
         if (university == null)
         {
-            // TODO : use application error insted of domain error later ...
             _logger.LogWarning("University with ID {UniversityId} not found.", request.UniversityId);
             return Error.NotFound(
                 "University.NotFound",

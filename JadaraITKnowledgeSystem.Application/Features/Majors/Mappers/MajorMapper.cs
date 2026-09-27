@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Application.Features.Majors.Dtos;
+using JadaraITKnowledgeSystem.Application.Features.Majors.Dtos;
 using JadaraITKnowledgeSystem.Domain.Universities.Entities;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Majors.Mappers;
@@ -20,17 +20,5 @@ public static class MajorMapper
     public static List<MajorDto> ToDtos(this IEnumerable<Major> majors)
     {
         return majors.Select(major => major.ToDto()).ToList();
-    }
-
-    public static Major ToEntity(this MajorDto majorDto)
-    {
-        ArgumentNullException.ThrowIfNull(majorDto);
-
-        return Major.Create(majorDto.Name, majorDto.FacultyId).Value;
-    }
-
-    public static List<Major> ToEntities(this IEnumerable<MajorDto> majorDtos)
-    {
-        return majorDtos.Select(majorDto => majorDto.ToEntity()).ToList();
     }
 }

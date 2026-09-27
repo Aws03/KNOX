@@ -28,6 +28,12 @@ public sealed class UpdateMajorCommandHandler
             return Error.NotFound("Major.NotFound", $"Major with ID {request.Id} was not found.");
         }
 
+        if (major.FacultyId != request.FacultyId
+            && !await _context.Faculties.AnyAsync(f => f.Id == request.FacultyId, cancellationToken))
+        {
+            return Error.NotFound("Faculty.NotFound", $"Faculty with ID {request.FacultyId} was not found.");
+        }
+
         major.UpdateName(request.Name);
         major.UpdateFaculty(request.FacultyId);
         await _context.SaveChangesAsync(cancellationToken);

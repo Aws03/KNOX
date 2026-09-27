@@ -24,7 +24,7 @@ public sealed class EnrollCourseCommandHandler(
         _logger.LogInformation("Handling EnrollCourse: CourseId={CourseId}", request.CourseId);
 
         // Get current user
-        var userId = _currentUserService.UserId;
+        var userId = _currentUserService.DomainUserId;
         if (!userId.HasValue || userId.Value <= 0)
         {
             _logger.LogWarning("EnrollCourse failed: User not authenticated");

@@ -1,6 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 using JadaraITKnowledgeSystem.Domain.Courses.Entites;
 using Microsoft.EntityFrameworkCore;
@@ -37,7 +34,7 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
                    .HasDefaultValue(0);
 
             var tagsComparer = new ValueComparer<List<string>>(
-                (c1, c2) => c1.SequenceEqual(c2, StringComparer.OrdinalIgnoreCase),
+                (c1, c2) => c1!.SequenceEqual(c2!, StringComparer.OrdinalIgnoreCase),
                 c => c.Aggregate(0, (a, v) => HashCode.Combine(a, StringComparer.OrdinalIgnoreCase.GetHashCode(v))),
                 c => c.ToList());
 

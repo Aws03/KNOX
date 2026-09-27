@@ -1,8 +1,8 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using JadaraITKnowledgeSystem.Domain.Common;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using JadaraITKnowledgeSystem.Domain.Users;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace JadaraITKnowledgeSystem.Domain.Courses.Entites;
 
@@ -31,15 +31,8 @@ public sealed class Enrollment : AuditableEntity
     /// </summary>
     public DateTimeOffset? FinishedAt { get; private set; }
 
-    // TODO: Grade functionality is temporarily disabled.
-    // Universities may have different grading systems (A, A+, B, etc.)
-    // This needs to be redesigned to support flexible grading systems.
-    // /// <summary>
-    // /// Optional grade assigned after course completion.
-    // /// Value should be between 0 and 100 (percentage) or null if not graded.
-    // /// </summary>
-    // [Range(0, 100)]
-    // public decimal? Grade { get; private set; }
+    // Grading is intentionally not modelled yet: universities use different grading
+    // schemes (A/A+/B..., percentages), so it needs its own design before it lands here.
 
     /// <summary>
     /// Optional notes or feedback about the enrollment.
@@ -55,7 +48,6 @@ public sealed class Enrollment : AuditableEntity
         CourseId = courseId;
         IsFinished = false;
         FinishedAt = null;
-        // Grade = null;
     }
 
     /// <summary>
@@ -85,45 +77,6 @@ public sealed class Enrollment : AuditableEntity
         return Result.Success;
     }
 
-    // TODO: Grade functionality is temporarily disabled.
-    // Universities may have different grading systems (A, A+, B, etc.)
-    // This needs to be redesigned to support flexible grading systems.
-    // /// <summary>
-    // /// Sets the grade for a finished course.
-    // /// </summary>
-    // /// <param name="grade">Grade value between 0 and 100.</param>
-    // public Result<Success> SetGrade(decimal grade)
-    // {
-    //     if (!IsFinished)
-    //         return Error.Validation("Enrollment.NotFinished", "Cannot set grade for a course that is not finished.");
-    // 
-    //     if (grade < 0 || grade > 100)
-    //         return Error.Validation("Enrollment.Grade.Invalid", "Grade must be between 0 and 100.");
-    // 
-    //     Grade = grade;
-    //     return Result.Success;
-    // }
-
-    // TODO: Grade functionality is temporarily disabled.
-    // Universities may have different grading systems (A, A+, B, etc.)
-    // This needs to be redesigned to support flexible grading systems.
-    // /// <summary>
-    // /// Completes the course and sets the grade in one operation.
-    // /// </summary>
-    // public Result<Success> CompleteWithGrade(decimal grade)
-    // {
-    //     if (IsFinished)
-    //         return Error.Conflict("Enrollment.AlreadyFinished", "This enrollment is already marked as finished.");
-    // 
-    //     if (grade < 0 || grade > 100)
-    //         return Error.Validation("Enrollment.Grade.Invalid", "Grade must be between 0 and 100.");
-    // 
-    //     IsFinished = true;
-    //     FinishedAt = DateTimeOffset.UtcNow;
-    //     Grade = grade;
-    //     return Result.Success;
-    // }
-
     /// <summary>
     /// Updates the notes for this enrollment.
     /// </summary>
@@ -143,7 +96,6 @@ public sealed class Enrollment : AuditableEntity
     {
         IsFinished = false;
         FinishedAt = null;
-        // Grade = null;
         return Result.Success;
     }
 }

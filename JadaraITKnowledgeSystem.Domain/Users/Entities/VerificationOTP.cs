@@ -1,19 +1,26 @@
-﻿using JadaraITKnowledgeSystem.Domain.Common;
-using System;
-using System.ComponentModel.DataAnnotations.Schema;
+using System.Security.Cryptography;
+using System.Text;
+using JadaraITKnowledgeSystem.Domain.Common;
 
 namespace JadaraITKnowledgeSystem.Domain.Users.Entities
 {
+    /// <summary>
+    /// A one-time code emailed to a user for account verification or password reset.
+    /// A code is consumed by a correct guess, and burned after <see cref="MaxFailedAttempts"/>
+    /// wrong ones so it cannot be brute-forced within its lifetime.
+    /// </summary>
     public class VerificationOTP : AuditableEntity
     {
+        public const int MaxFailedAttempts = 5;
+
         public string OTP { get; private set; } = string.Empty;
 
-        [ForeignKey(nameof(User))]
         public int UserId { get; private set; }
-        public User User { get; private set; } = default!;
+        public User User { get; private set; } = null!;
 
         public DateTime ExpiresAt { get; private set; }
         public bool IsUsed { get; private set; }
+        public int FailedAttempts { get; private set; }
 
         private VerificationOTP() { }
 
@@ -25,20 +32,34 @@ namespace JadaraITKnowledgeSystem.Domain.Users.Entities
             UserId = userId;
             OTP = otp;
             ExpiresAt = expiresAt;
-            IsUsed = false;
         }
 
+        public static VerificationOTP Create(int userId, string otp, DateTime expiresAt) => new(userId, otp, expiresAt);
 
-        public static VerificationOTP Create(int userId, string otp, DateTime expiresAt)
+        public bool IsActive(DateTime utcNow) => !IsUsed && utcNow < ExpiresAt;
+
+        /// <summary>Checks <paramref name="code"/>; returns true (and consumes the code) only on a match.</summary>
+        public bool TryVerify(string code, DateTime utcNow)
         {
-            return new VerificationOTP(userId, otp, expiresAt);
+            if (!IsActive(utcNow))
+                return false;
+
+            var matches = CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(OTP), Encoding.UTF8.GetBytes(code ?? string.Empty));
+
+            if (matches)
+            {
+                IsUsed = true;
+                return true;
+            }
+
+            FailedAttempts++;
+            if (FailedAttempts >= MaxFailedAttempts)
+                IsUsed = true;
+
+            return false;
         }
 
-        public void MarkUsed()
-        {
-            IsUsed = true;
-        }
-
-        public bool IsExpired() => DateTime.UtcNow > ExpiresAt;
+        public void MarkUsed() => IsUsed = true;
     }
 }

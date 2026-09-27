@@ -1,11 +1,10 @@
-﻿using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
+using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Courses.Mappers;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-
 
 namespace JadaraITKnowledgeSystem.Application.Features.Courses.Queries.GetCourseById;
 
@@ -24,9 +23,8 @@ public sealed class GetCourseByIdQueryHandler
 
         var course = await _context.Courses
             .AsNoTracking()
-            .Where(c => c.Id == request.CourseId)
-            .Select(c => c.ToDto())
-            .FirstOrDefaultAsync(cancellationToken);
+            .Include(c => c.Requirements)
+            .FirstOrDefaultAsync(c => c.Id == request.CourseId, cancellationToken);
 
         if (course is null)
         {
@@ -35,6 +33,6 @@ public sealed class GetCourseByIdQueryHandler
                 $"No course found with ID {request.CourseId}");
         }
 
-        return course;
+        return course.ToDto();
     }
 }

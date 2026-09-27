@@ -3,7 +3,9 @@
 **/.vs/
 **/.vscode/
 **/*.user
+**/node_modules/
+**/wwwroot/uploads/
 .git/
-.gitignore
-.gitattributes
+.github/
+tests/
 *.md

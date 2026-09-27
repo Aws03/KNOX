@@ -27,11 +27,11 @@ The backend is a .NET 10 solution built strictly to Clean Architecture, and the 
 
 ## Tech Stack
 
-**Backend** — .NET 10, Clean Architecture (Domain / Application / Infrastructure / API), EF Core 10 + SQL Server, ASP.NET Identity + JWT, MediatR (CQRS), FluentValidation, AutoMapper, Swagger.
+**Backend** — .NET 10, Clean Architecture (Domain / Application / Infrastructure / API), EF Core 10 + SQL Server, ASP.NET Identity + JWT, MediatR 12 (CQRS), FluentValidation, OpenAPI + Swagger UI, RFC 7807 problem details, health checks; xUnit test suites (integration tests on real SQL Server via Testcontainers).
 
 **Frontend** (`../KNOX_Frontend/uni-hub`, sibling directory) — React 19, TypeScript, Vite 7, React Router 7, TanStack Query, Axios, Tailwind v4 + shadcn/ui, react-i18next.
 
-**Infrastructure** — Docker Compose, SQL Server, local disk storage served via ASP.NET static files, Brevo (primary) / AhaSend (fallback) for transactional email, OpenAI for AI quiz generation.
+**Infrastructure** — Docker Compose (SQL Server 2022, API, nginx-served SPA), local disk storage served via ASP.NET static files, Brevo (primary) / AhaSend (fallback) for transactional email, OpenAI for AI quiz generation.
 
 ## Architecture
 
@@ -41,12 +41,12 @@ The backend follows Clean Architecture with a strict dependency direction — in
 flowchart TD
     subgraph API["API — composition root"]
         Controllers["Controllers (thin — HTTP ↔ MediatR only)"]
-        Program["Program.cs — DI wiring, Kestrel, middleware pipeline"]
+        Program["Program.cs — DI wiring, middleware pipeline, startup migration/seed"]
     end
 
     subgraph Application["Application — use cases (CQRS)"]
         Commands["Commands / Queries + Handlers"]
-        Behaviours["MediatR pipeline: Exception → Logging → Validation → PostCommitDispatch → Transaction"]
+        Behaviours["MediatR pipeline: Logging → Validation → PostCommitDispatch → Transaction"]
         Ports["Interfaces (ports): IApplicationDbContext, IStorageService, IEmailService, IOpenAIService..."]
     end
 
@@ -76,7 +76,10 @@ KNOX_Backend/
 ├── JadaraITKnowledgeSystem.Domain/          # Entities, value objects, domain logic. Zero external dependencies.
 ├── JadaraITKnowledgeSystem.Application/     # Use cases (CQRS): Commands/Queries, interfaces, MediatR pipeline
 ├── JadaraITKnowledgeSystem.Infrastructure/  # EF Core, Identity, email/storage/AI services, background jobs
-└── JadaraITKnowledgeSystem.API/             # Composition root: controllers, middleware, Program.cs
+└── JadaraITKnowledgeSystem.API/             # Composition root: controllers, request contracts, error handling, Program.cs
+tests/
+├── JadaraITKnowledgeSystem.UnitTests/        # Domain, validators, pipeline behaviours, infrastructure services (no database)
+└── JadaraITKnowledgeSystem.IntegrationTests/ # Handlers, migrations and the HTTP API against real SQL Server (Testcontainers)
 
 KNOX_Frontend/uni-hub/                        # React 19 + TypeScript SPA (sibling repo)
 ├── src/features/                             # auth, courses, quizzes, profile, dashboard, ...
@@ -90,39 +93,82 @@ Key patterns: every use case is a MediatR `Command`/`Query` + `Handler`; domain 
 
 ### Prerequisites
 
-- [Docker](https://www.docker.com/) and Docker Compose
-- A running SQL Server instance reachable from the containers (see note below)
+- [Docker](https://www.docker.com/) with Docker Compose v2 (the whole stack, including SQL Server, runs in containers)
+- For local development without containers: .NET SDK 10 and Node.js 22
 
 ### Quick Start (Docker)
 
 ```bash
-# From the parent folder that contains both KNOX_Backend/ and KNOX_Frontend/
-cp .env.example .env    # fill in real secrets (JWT secret, SQL connection string, OpenAI/Brevo keys)
+# From SP/, the folder that contains docker-compose.yml, KNOX_Backend/ and KNOX_Frontend/
+cp .env.example .env    # set DB_SA_PASSWORD and JWT_SECRET at minimum
 docker compose up --build -d
 ```
 
-- Frontend: **http://localhost:5173**
-- Backend API + Swagger: **http://localhost:5001**
+- App: **http://localhost:5173**. nginx serves the SPA and proxies `/api` and `/uploads` to the API.
+- API (loopback only): **http://127.0.0.1:5001**. Set `OPENAPI_ENABLED=true` for Swagger UI at `/swagger`.
+- Health: `/health/live` (process) and `/health/ready` (database reachable).
 
-The backend container connects to SQL Server via `host.docker.internal` — this repo's `docker-compose.yml` does not define its own database service, so point `DB_CONNECTION_STRING` in `.env` at whichever SQL Server instance you're running (a local container, LocalDB, etc.).
+Compose starts SQL Server 2022 (volume `knox-sqldata`), then the API, which applies EF Core migrations and seeds on startup (volume `knox-uploads` holds uploaded files), and then the frontend. Each service waits until the one before it is healthy. SQL Server has no arm64 image, so on Apple Silicon it runs under emulation.
 
-On first boot, `RoleSeeder` and `DataSeeder` run automatically and idempotently to create the roles, a starter university/faculty/major hierarchy, and a SuperAdmin account.
-
-### Running Locally (no Docker)
+### Running Locally (no Docker for the app)
 
 ```bash
-# Backend
+# A throwaway SQL Server for development
+docker run -d --name knox-sql -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD='Your_strong_pw1' \
+  -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+
 cd JadaraITKnowledgeSystem.API
-dotnet user-secrets list   # verify JWT/OpenAI/Brevo/SQL secrets are set
-dotnet run                 # http://localhost:5001
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" \
+  "Server=localhost,1433;Database=KnoxDb;User ID=sa;Password=Your_strong_pw1;TrustServerCertificate=True"
+dotnet run                 # http://localhost:5001, Swagger at /swagger; migrates + seeds in Development
 
 # Frontend (separate terminal)
-cd ../KNOX_Frontend/uni-hub
-npm install
+cd ../../KNOX_Frontend/uni-hub
+npm ci
 npm run dev                # http://localhost:5173
 ```
 
-Secrets are managed via `dotnet user-secrets` locally — `appsettings.json` only holds placeholders (see `appsettings.json.example`).
+`appsettings.Development.json` holds a development-only JWT key. Real secrets never go in `appsettings*.json`: use user-secrets locally and environment variables in containers.
+
+### Configuration
+
+Every option is bound and validated at startup. A missing or invalid required value stops the app with a clear error.
+
+| Section (env var prefix) | Keys | Notes |
+|---|---|---|
+| `ConnectionStrings` | `DefaultConnection` | Required. |
+| `JwtSettings` | `Secret`, `Issuer`, `Audience`, `ExpirationMinutes`, `RefreshTokenDays` | `Secret` is required and must be 32+ characters. |
+| `Database` | `MigrateOnStartup`, `SeedOnStartup` | Migrations run automatically only when enabled (Development and Compose do). |
+| `Storage` | `BaseUrl`, `RootPath`, `RequestPath` | `BaseUrl` is the public origin used in upload URLs. |
+| `Cors` | `AllowedOrigins` | |
+| `AuthSettings` | `RequireEmailVerification` | Needs an email provider when true. |
+| `Brevo` / `AhaSend` | API keys and sender | Brevo is used if configured, else AhaSend, else emails are only logged. |
+| `OpenAI` | `ApiKey`, `Model`, ... | Optional. Without a key, generation jobs fail with `OpenAI.NotConfigured`. |
+| `ForwardedHeaders` | `Enabled` | Enable only behind a trusted reverse proxy (Compose does). |
+| `OpenApi` | `Enabled` | Defaults to on in Development only. |
+
+In environment variables, `:` becomes `__`, for example `JwtSettings__Secret`.
+
+### Database Migrations
+
+```bash
+dotnet tool install -g dotnet-ef   # once
+export KNOX_MIGRATIONS_CONNECTION="Server=localhost,1433;Database=KnoxDb;User ID=sa;Password=...;TrustServerCertificate=True"
+dotnet ef migrations add <Name> -p JadaraITKnowledgeSystem.Infrastructure -s JadaraITKnowledgeSystem.Infrastructure -o Migrations
+```
+
+The integration suite fails if the model has changes with no migration, and it runs an upgrade test from the previous schema with dirty data.
+
+### Running the Tests
+
+```bash
+dotnet test JadaraITKnowledgeSystem.sln   # Docker must be running
+```
+
+- **Unit tests**: no external dependencies.
+- **Integration tests**: Testcontainers starts a SQL Server 2022 container once per run. They cover handlers, transactions, every migration and the HTTP API end to end: auth flows, token rotation and reuse detection, OTP limits, uploads, concurrency and problem details. The OpenAI call is the only external dependency that is not exercised.
+
+CI (`.github/workflows/ci.yml`) runs the build with warnings as errors, both test suites, and a Docker image build.
 
 ## Seeded Accounts
 
@@ -130,14 +176,20 @@ Secrets are managed via `dotnet user-secrets` locally — `appsettings.json` onl
 |---|---|---|
 | SuperAdmin | `admin@knox.com` | `Admin@123456` |
 
-Seeded academic hierarchy: **Jadara University** → **Faculty of Information Technology** → **Computer Science** / **Information Technology**.
+**Change this password immediately on any shared or production deployment.** Seeded academic hierarchy: **Jadara University** → **Faculty of Information Technology** → **Computer Science** / **Information Technology**.
+
+## API Conventions
+
+- Routes are lower-case (`/api/users/me`, `/api/courses/{id}/contents`). Enums are sent and returned as strings (numbers are also accepted).
+- Errors are always `application/problem+json` (RFC 7807) with `traceId`. Business errors add a `code` (for example `Auth.InvalidCredentials`), and validation errors add `errors` keyed by field.
+- Actions that return nothing respond with `204 No Content`.
+- Auth endpoints are rate limited per client IP: login and register at 5 per minute; sending, verifying and redeeming OTPs at 3 per minute.
 
 ## Known Limitations
 
-- **AI quiz generation requires a funded OpenAI API key.** Text extraction, chunking, and the background job pipeline all work independently of OpenAI and are fully verified; only the final "generate questions from text" call needs a working key with available quota.
-- **No automated test suite** (backend or frontend) and no CI pipeline yet.
-- **AutoMapper 12.0.1** has a known high-severity advisory (`GHSA-rvv3-g6hj-g44x`); a version upgrade is pending.
-- Password reset is **OTP-based** (a 6-digit code emailed to the user), not a clickable magic link.
+- **AI quiz generation needs an OpenAI API key.** Everything up to the OpenAI call (extraction, chunking, the background job, failure handling) is tested.
+- **Two user id spaces**: the ASP.NET Identity id (JWT `sub`) and the domain `Users` id (`domain_user_id` claim).
+- Password reset is **OTP-based** (a 6-digit code emailed to the user), not a magic link.
 
 ## License
 

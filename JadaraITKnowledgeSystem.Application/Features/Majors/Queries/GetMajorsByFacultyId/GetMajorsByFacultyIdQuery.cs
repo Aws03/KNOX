@@ -6,6 +6,6 @@ using MediatR;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Majors.Queries.GetMajorsByFacultyId;
 
-public sealed record GetMajorsByFacultyIdQuery(int FacultyId, int PageNumber, int PageSize)
+public sealed record GetMajorsByFacultyIdQuery(int FacultyId, int PageNumber, int PageSize, string? Name = null)
     : IRequest<Result<PaginatedList<MajorDto>>>, IPaginatedRequest;
 

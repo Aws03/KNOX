@@ -151,18 +151,32 @@ public sealed class AuthCommandTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Logout_OnlyRevokesTheCallersOwnToken()
+    public async Task Logout_WithTheRefreshToken_WorksWithoutAnAccessToken()
     {
         await SeedLinkedUserAsync();
         var tokens = (await LoginHandler().Handle(new LoginCommand(_email, Password, "ip"), default)).Value;
-        var stranger = new LogoutCommandHandler(TestCurrentUser.InRole(Roles.User, identityUserId: _identityUserId + 1), _refreshTokens);
-        var owner = new LogoutCommandHandler(TestCurrentUser.InRole(Roles.User, identityUserId: _identityUserId), _refreshTokens);
+        var anonymous = new LogoutCommandHandler(TestCurrentUser.Anonymous(), _refreshTokens);
 
-        await stranger.Handle(new LogoutCommand(tokens.RefreshToken, "ip"), default);
-        var stillValid = await _context.RefreshTokens.AnyAsync(t => t.UserId == _identityUserId && !t.IsRevoked);
-        await owner.Handle(new LogoutCommand(null, "ip"), default);
+        var result = await anonymous.Handle(new LogoutCommand(tokens.RefreshToken, "ip"), default);
 
-        Assert.True(stillValid);
+        Assert.True(result.IsSuccess);
+        Assert.Null(await _refreshTokens.RedeemAsync(tokens.RefreshToken, "ip"));
+    }
+
+    [Fact]
+    public async Task LogoutEverywhere_RequiresASignedInCaller_AndRevokesAllTheirTokens()
+    {
+        await SeedLinkedUserAsync();
+        await LoginHandler().Handle(new LoginCommand(_email, Password, "ip"), default);
+        await LoginHandler().Handle(new LoginCommand(_email, Password, "ip"), default);
+
+        var anonymous = await new LogoutCommandHandler(TestCurrentUser.Anonymous(), _refreshTokens).Handle(new LogoutCommand(null, "ip"), default);
+        var stillValid = await _context.RefreshTokens.CountAsync(t => t.UserId == _identityUserId && !t.IsRevoked);
+        await new LogoutCommandHandler(TestCurrentUser.InRole(Roles.User, identityUserId: _identityUserId), _refreshTokens)
+            .Handle(new LogoutCommand(null, "ip"), default);
+
+        Assert.Equal("Auth.InvalidUser", anonymous.TopError.Code);
+        Assert.Equal(2, stillValid);
         Assert.False(await _context.RefreshTokens.AnyAsync(t => t.UserId == _identityUserId && !t.IsRevoked));
     }
 }

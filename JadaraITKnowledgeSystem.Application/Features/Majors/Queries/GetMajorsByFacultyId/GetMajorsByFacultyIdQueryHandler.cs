@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Application.Common.Models;
+using JadaraITKnowledgeSystem.Application.Common.Models;
 using JadaraITKnowledgeSystem.Application.Features.Majors.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Majors.Mappers;
 using JadaraITKnowledgeSystem.Application.Features.Majors.Queries.GetMajorsByFacultyId;
@@ -29,6 +29,7 @@ public sealed class GetMajorsByFacultyIdQueryHandler
         var query = _context.Majors
             .AsNoTracking()
             .Where(m => m.FacultyId == request.FacultyId)
+            .Where(m => string.IsNullOrWhiteSpace(request.Name) || m.Name.Contains(request.Name.Trim()))
             .OrderBy(m => m.Name)
             .Select(m => m.ToDto());
 

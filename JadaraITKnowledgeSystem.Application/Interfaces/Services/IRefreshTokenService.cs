@@ -11,8 +11,8 @@ public interface IRefreshTokenService
     /// </summary>
     Task<int?> RedeemAsync(string token, string ipAddress, CancellationToken cancellationToken = default);
 
-    /// <summary>Revokes <paramref name="token"/> only if it belongs to <paramref name="identityUserId"/>.</summary>
-    Task RevokeAsync(string token, int identityUserId, string ipAddress, CancellationToken cancellationToken = default);
+    /// <summary>Revokes one refresh token. Possessing the token is proof enough, so no user id is needed.</summary>
+    Task RevokeAsync(string token, string ipAddress, CancellationToken cancellationToken = default);
 
     Task RevokeAllAsync(int identityUserId, string ipAddress, CancellationToken cancellationToken = default);
 }

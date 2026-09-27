@@ -31,6 +31,7 @@ namespace JadaraITKnowledgeSystem.API.Controllers;
 [Route("api/courses")]
 public sealed class CoursesController(ISender sender) : ApiControllerBase(sender)
 {
+    /// <summary>Creates a course and assigns it to a major with its requirement type and nature.</summary>
     [HttpPost]
     [Authorize(Roles = Roles.WriterOrAbove)]
     [ProducesResponseType<CourseDto>(StatusCodes.Status201Created)]
@@ -38,18 +39,21 @@ public sealed class CoursesController(ISender sender) : ApiControllerBase(sender
         ResultOrProblem(await Sender.Send(command, cancellationToken),
             course => CreatedAtAction(nameof(GetById), new { id = course.Id }, course));
 
+    /// <summary>Gets a course by id.</summary>
     [HttpGet("{id:int}")]
     [ProducesResponseType<CourseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken) =>
         OkOrProblem(await Sender.Send(new GetCourseByIdQuery(id), cancellationToken));
 
+    /// <summary>Gets a course by its code (e.g. CS101); 404 when no course has it.</summary>
     [HttpGet("by-code/{courseCode}")]
     [ProducesResponseType<CourseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByCode(string courseCode, CancellationToken cancellationToken) =>
         OkOrProblem(await Sender.Send(new GetCourseByCodeQuery(courseCode), cancellationToken));
 
+    /// <summary>Pages through a major's courses, optionally filtered by requirement type and nature.</summary>
     [HttpGet("by-major/{majorId:int}")]
     [ProducesResponseType<PaginatedList<CourseSummaryDto>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByMajorId(
@@ -74,6 +78,7 @@ public sealed class CoursesController(ISender sender) : ApiControllerBase(sender
 
     // ===== Course info =====
 
+    /// <summary>Gets the course's description and learning resources.</summary>
     [HttpGet("{courseId:int}/info")]
     [ProducesResponseType<CourseInfoDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -87,6 +92,7 @@ public sealed class CoursesController(ISender sender) : ApiControllerBase(sender
     public async Task<IActionResult> GetCourseInfoByWriter(int courseId, CancellationToken cancellationToken) =>
         OkOrProblem(await Sender.Send(new GetCourseInfoByWriterIdQuery(courseId), cancellationToken));
 
+    /// <summary>Creates the course description.</summary>
     [HttpPost("{courseId:int}/info")]
     [Authorize(Roles = Roles.WriterOrAbove)]
     [ProducesResponseType<CourseInfoDto>(StatusCodes.Status201Created)]
@@ -96,6 +102,7 @@ public sealed class CoursesController(ISender sender) : ApiControllerBase(sender
                 request.DemonstrationVideoUrl, request.DemonstrationVideoTitle), cancellationToken),
             info => CreatedAtAction(nameof(GetCourseInfo), new { courseId }, info));
 
+    /// <summary>Updates the course description.</summary>
     [HttpPut("{courseId:int}/info")]
     [Authorize(Roles = Roles.WriterOrAbove)]
     [ProducesResponseType<CourseInfoDto>(StatusCodes.Status200OK)]
@@ -105,6 +112,7 @@ public sealed class CoursesController(ISender sender) : ApiControllerBase(sender
 
     // ===== Course resources =====
 
+    /// <summary>Adds a learning resource (link) to the course.</summary>
     [HttpPost("{courseId:int}/resources")]
     [Authorize(Roles = Roles.WriterOrAbove)]
     [ProducesResponseType<CourseResourceDto>(StatusCodes.Status201Created)]
@@ -114,6 +122,7 @@ public sealed class CoursesController(ISender sender) : ApiControllerBase(sender
                 request.Description, request.DemonstrationVideoUrl), cancellationToken),
             resource => CreatedAtAction(nameof(GetCourseInfo), new { courseId }, resource));
 
+    /// <summary>Updates a learning resource.</summary>
     [HttpPut("{courseId:int}/resources/{resourceId:int}")]
     [Authorize(Roles = Roles.WriterOrAbove)]
     [ProducesResponseType<CourseResourceDto>(StatusCodes.Status200OK)]
@@ -122,6 +131,7 @@ public sealed class CoursesController(ISender sender) : ApiControllerBase(sender
         OkOrProblem(await Sender.Send(new UpdateCourseResourceCommand(courseId, resourceId, request.Title, request.Type,
             request.Url, request.Description, request.DemonstrationVideoUrl), cancellationToken));
 
+    /// <summary>Deletes a learning resource.</summary>
     [HttpDelete("{courseId:int}/resources/{resourceId:int}")]
     [Authorize(Roles = Roles.WriterOrAbove)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -130,6 +140,7 @@ public sealed class CoursesController(ISender sender) : ApiControllerBase(sender
 
     // ===== Materials and folders =====
 
+    /// <summary>Creates a course material from a finished direct upload (see POST api/files/material-uploads). Returns the material with a signed contentUrl.</summary>
     [HttpPost("{courseId:int}/materials")]
     [Authorize(Roles = Roles.WriterOrAbove)]
     [ProducesResponseType<CourseMaterialDto>(StatusCodes.Status201Created)]
@@ -139,6 +150,7 @@ public sealed class CoursesController(ISender sender) : ApiControllerBase(sender
                 request.Description, request.Tags), cancellationToken),
             material => CreatedAtAction(nameof(GetContents), new { courseId, folderId = material.FolderId }, material));
 
+    /// <summary>Creates a folder, optionally inside another folder of the same course.</summary>
     [HttpPost("{courseId:int}/folders")]
     [Authorize(Roles = Roles.WriterOrAbove)]
     [ProducesResponseType<FolderDto>(StatusCodes.Status201Created)]
@@ -149,6 +161,7 @@ public sealed class CoursesController(ISender sender) : ApiControllerBase(sender
 
     /// <summary>Folders and materials at one level of the course tree (root when folderId is omitted).</summary>
     [HttpGet("{courseId:int}/contents")]
+    [Authorize] // hands out signed URLs for private course files
     [ProducesResponseType<CourseContentsDto>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetContents(int courseId, [FromQuery] int? folderId, CancellationToken cancellationToken) =>
         OkOrProblem(await Sender.Send(new GetCourseContentsQuery(courseId, folderId), cancellationToken));
@@ -162,6 +175,7 @@ public sealed class CoursesController(ISender sender) : ApiControllerBase(sender
 
     // ===== Enrollment =====
 
+    /// <summary>Enrolls the caller in the course.</summary>
     [HttpPost("{courseId:int}/enroll")]
     [Authorize]
     [ProducesResponseType<EnrollmentDto>(StatusCodes.Status201Created)]
@@ -179,6 +193,7 @@ public sealed class CoursesController(ISender sender) : ApiControllerBase(sender
     public async Task<IActionResult> Complete(int courseId, CancellationToken cancellationToken) =>
         OkOrProblem(await Sender.Send(new CompleteCourseCommand(courseId), cancellationToken));
 
+    /// <summary>Pages through the caller's enrollments, optionally only finished or unfinished ones.</summary>
     [HttpGet("my-enrollments")]
     [Authorize]
     [ProducesResponseType<PaginatedList<EnrolledCourseSummaryDto>>(StatusCodes.Status200OK)]

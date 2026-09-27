@@ -28,6 +28,18 @@ public class AssignRoleToUserCommandTests
         new(_identity, TestCurrentUser.InRole(callerRole), NullLogger<AssignRoleToUserCommandHandler>.Instance);
 
     [Fact]
+    public async Task AnAdministrator_CannotChangeTheirOwnRole()
+    {
+        var self = new AssignRoleToUserCommandHandler(
+            _identity, TestCurrentUser.InRole(Roles.SuperAdmin, identityUserId: IdentityUserId), NullLogger<AssignRoleToUserCommandHandler>.Instance);
+
+        var result = await self.Handle(new AssignRoleToUserCommand(DomainUserId, Roles.Writer), default);
+
+        Assert.Equal("Role.CannotChangeOwn", result.TopError.Code);
+        await _identity.DidNotReceiveWithAnyArgs().SetSingleRoleAsync(default, default!);
+    }
+
+    [Fact]
     public async Task DomainUserId_IsResolvedToTheLinkedIdentityAccount()
     {
         var result = await Handler(Roles.Admin).Handle(new AssignRoleToUserCommand(DomainUserId, "writer"), default);

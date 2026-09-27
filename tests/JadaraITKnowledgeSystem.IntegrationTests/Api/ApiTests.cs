@@ -406,6 +406,50 @@ public class ApiTests(InfrastructureFixture database)
     }
 
     [Fact]
+    public async Task CourseContents_RequireSignIn_AndCourseDetailsCountMaterials()
+    {
+        var admin = await AsAdminAsync();
+        var courseId = (await CreateCourseAsync(admin)).GetProperty("id").GetInt32();
+        var uploadKey = await UploadMaterialAsync(admin, "notes.pdf", RandomBytes(100));
+        await admin.PostAsJsonAsync($"/api/courses/{courseId}/materials", new { title = "Notes", uploadKey });
+
+        // Listing hands out signed URLs for private files, so it is not public.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Anonymous().GetAsync($"/api/courses/{courseId}/contents")).StatusCode);
+
+        var course = await (await Anonymous().GetAsync($"/api/courses/{courseId}")).ReadJsonAsync();
+        Assert.Equal(1, course.GetProperty("numberOfMaterials").GetInt32());
+        Assert.Equal(0, course.GetProperty("numberOfQuizzes").GetInt32());
+    }
+
+    [Fact]
+    public async Task Universities_CanBeSearchedByName()
+    {
+        var admin = await AsAdminAsync();
+        var name = TestData.Unique("Searchable");
+        await admin.PostAsJsonAsync("/api/universities", new { name });
+
+        var found = await (await Anonymous().GetAsync($"/api/universities?name={Uri.EscapeDataString(name[..^2])}")).ReadJsonAsync();
+
+        var item = Assert.Single(found.GetProperty("items").EnumerateArray());
+        Assert.Equal(name.ToLowerInvariant(), item.GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public async Task UserDetails_ArePlainStrings()
+    {
+        var admin = await AsAdminAsync();
+        var email = TestData.UniqueEmail();
+        await Anonymous().RegisterAsync(email);
+
+        var page = await (await admin.GetAsync($"/api/users/details?email={Uri.EscapeDataString(email)}")).ReadJsonAsync();
+        var user = Assert.Single(page.GetProperty("items").EnumerateArray());
+
+        Assert.Equal(email.ToLowerInvariant(), user.GetProperty("email").GetString());
+        Assert.Equal(JsonValueKind.String, user.GetProperty("name").ValueKind);
+        Assert.DoesNotMatch(@"^\d+-", user.GetProperty("majorName").GetString()); // no "{id}-" prefix
+    }
+
+    [Fact]
     public async Task Enrollment_ListingAndCompletion_Work()
     {
         var admin = await AsAdminAsync();
@@ -450,6 +494,17 @@ public class ApiTests(InfrastructureFixture database)
     }
 
     [Fact]
+    public async Task AnAdministrator_CannotBlockThemselves()
+    {
+        var superAdmin = await AsAdminAsync();
+
+        var response = await superAdmin.PostAsync($"/api/users/{await CurrentDomainUserIdAsync(superAdmin)}/block", null);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal("Users.CannotBlockSelf", ErrorCode(await response.ReadJsonAsync()));
+    }
+
+    [Fact]
     public async Task BlockedUser_CanNeitherLogInNorRefresh()
     {
         var superAdmin = await AsAdminAsync();
@@ -488,7 +543,7 @@ public class ApiTests(InfrastructureFixture database)
     {
         var admin = await AsAdminAsync();
         var courseId = (await CreateCourseAsync(admin)).GetProperty("id").GetInt32();
-        var uploadKey = await UploadMaterialAsync(admin, "notes.pdf", "%PDF-1.4 not really a pdf"u8.ToArray());
+        var uploadKey = await UploadMaterialAsync(admin, "notes.pdf", OnePagePdf("TCP adds reliable, ordered delivery on top of IP."));
         var material = await (await admin.PostAsJsonAsync($"/api/courses/{courseId}/materials", new { title = "AI source", uploadKey }))
             .ReadJsonAsync();
 
@@ -507,9 +562,9 @@ public class ApiTests(InfrastructureFixture database)
             await Task.Delay(250);
         }
 
-        // The upload is not a real PDF, so extraction fails before any AI call is attempted.
+        // Text extraction succeeds; the OpenAI step then fails cleanly and says why.
         Assert.Equal("Failed", job.GetProperty("status").GetString());
-        Assert.False(string.IsNullOrEmpty(job.GetProperty("errorMessage").GetString()));
+        Assert.Contains("not configured", job.GetProperty("errorMessage").GetString());
     }
 
     private static async Task<JsonElement> CreateCourseAsync(HttpClient admin)
@@ -551,6 +606,33 @@ public class ApiTests(InfrastructureFixture database)
         problem.TryGetProperty("code", out var code) ? code.GetString()
         : problem.TryGetProperty("errors", out var errors) ? errors.EnumerateObject().First().Name
         : null;
+
+    /// <summary>A minimal, valid one-page PDF containing <paramref name="text"/>.</summary>
+    private static byte[] OnePagePdf(string text)
+    {
+        var content = $"BT /F1 11 Tf 40 760 Td ({text}) Tj ET";
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+            $"<< /Length {content.Length} >>\nstream\n{content}\nendstream",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
+        ];
+        var pdf = new System.Text.StringBuilder("%PDF-1.4\n");
+        var offsets = new List<int>();
+        for (var i = 0; i < objects.Length; i++)
+        {
+            offsets.Add(pdf.Length);
+            pdf.Append($"{i + 1} 0 obj\n{objects[i]}\nendobj\n");
+        }
+        var xref = pdf.Length;
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (var offset in offsets)
+            pdf.Append($"{offset:D10} 00000 n \n");
+        pdf.Append($"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return System.Text.Encoding.ASCII.GetBytes(pdf.ToString());
+    }
 
     private static byte[] RandomBytes(int length)
     {

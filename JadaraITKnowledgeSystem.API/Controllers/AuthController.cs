@@ -29,6 +29,7 @@ public sealed class AuthController(ISender sender) : ApiControllerBase(sender)
             new RegisterCommand(request.FullName, request.Email, request.MajorId, request.Password, ClientIpAddress),
             cancellationToken));
 
+    /// <summary>Signs in with email and password; returns an access token (JWT) and a refresh token.</summary>
     [HttpPost("login")]
     [EnableRateLimiting(RateLimitPolicies.Auth)]
     [ProducesResponseType<AuthTokensDto>(StatusCodes.Status200OK)]
@@ -43,9 +44,8 @@ public sealed class AuthController(ISender sender) : ApiControllerBase(sender)
     public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken) =>
         OkOrProblem(await Sender.Send(new RefreshTokenCommand(request.RefreshToken, ClientIpAddress), cancellationToken));
 
-    /// <summary>Revokes the given refresh token, or all of the caller's refresh tokens.</summary>
+    /// <summary>Revokes the given refresh token (no access token needed), or, for a signed-in caller who sends none, all of their refresh tokens.</summary>
     [HttpPost("logout")]
-    [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Logout([FromBody] LogoutRequest? request, CancellationToken cancellationToken) =>
         NoContentOrProblem(await Sender.Send(new LogoutCommand(request?.RefreshToken, ClientIpAddress), cancellationToken));
@@ -58,6 +58,7 @@ public sealed class AuthController(ISender sender) : ApiControllerBase(sender)
     public async Task<IActionResult> SendVerificationOtp([FromBody] SendOtpRequest request, CancellationToken cancellationToken) =>
         NoContentOrProblem(await Sender.Send(new SendVerificationOtpCommand(request.Email), cancellationToken));
 
+    /// <summary>Verifies the account with the emailed one-time code.</summary>
     [HttpPost("verify-account")]
     [EnableRateLimiting(RateLimitPolicies.Otp)]
     [ProducesResponseType<AuthTokensDto>(StatusCodes.Status200OK)]
@@ -65,6 +66,7 @@ public sealed class AuthController(ISender sender) : ApiControllerBase(sender)
     public async Task<IActionResult> VerifyAccount([FromBody] VerifyOtpRequest request, CancellationToken cancellationToken) =>
         OkOrProblem(await Sender.Send(new VerifyAccountCommand(request.Email, request.Otp, ClientIpAddress), cancellationToken));
 
+    /// <summary>Sets a new password using the one-time code emailed by send-verification-otp.</summary>
     [HttpPost("reset-password")]
     [EnableRateLimiting(RateLimitPolicies.Otp)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -72,6 +74,7 @@ public sealed class AuthController(ISender sender) : ApiControllerBase(sender)
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken cancellationToken) =>
         NoContentOrProblem(await Sender.Send(new ResetPasswordCommand(request.Email, request.Otp, request.NewPassword), cancellationToken));
 
+    /// <summary>Changes the caller's password (the current password is required).</summary>
     [HttpPost("change-password")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

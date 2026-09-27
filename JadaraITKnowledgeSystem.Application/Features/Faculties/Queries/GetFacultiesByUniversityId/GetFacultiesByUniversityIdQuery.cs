@@ -9,5 +9,6 @@ namespace JadaraITKnowledgeSystem.Application.Features.Faculties.Queries.GetFacu
 public sealed record GetFacultiesByUniversityIdQuery(
     int UniversityId,
     int PageNumber,
-    int PageSize) : IRequest<Result<PaginatedList<FacultyDto>>>, IPaginatedRequest;
+    int PageSize,
+    string? Name = null) : IRequest<Result<PaginatedList<FacultyDto>>>, IPaginatedRequest;
 

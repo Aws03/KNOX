@@ -22,6 +22,7 @@ namespace JadaraITKnowledgeSystem.API.Controllers;
 [Route("api/users")]
 public sealed class UsersController(ISender sender) : ApiControllerBase(sender)
 {
+    /// <summary>The caller's profile, role and academic affiliation.</summary>
     [HttpGet("me")]
     [Authorize]
     [ProducesResponseType<UserProfileDto>(StatusCodes.Status200OK)]
@@ -46,12 +47,14 @@ public sealed class UsersController(ISender sender) : ApiControllerBase(sender)
         return OkOrProblem(await Sender.Send(new UpdateProfilePictureCommand(stream, image.FileName), cancellationToken));
     }
 
+    /// <summary>Removes the caller's profile picture.</summary>
     [HttpDelete("me/profile-picture")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> DeleteProfilePicture(CancellationToken cancellationToken) =>
         NoContentOrProblem(await Sender.Send(new DeleteProfilePictureCommand(), cancellationToken));
 
+    /// <summary>Pages through users, optionally filtered by university, faculty, major, email or id.</summary>
     [HttpGet]
     [Authorize(Roles = Roles.AdminOrAbove)]
     [ProducesResponseType<PaginatedList<UserDto>>(StatusCodes.Status200OK)]
@@ -67,6 +70,7 @@ public sealed class UsersController(ISender sender) : ApiControllerBase(sender)
         OkOrProblem(await Sender.Send(
             new GetUsersQuery(universityId, facultyId, majorId, email, id, pageNumber, pageSize), cancellationToken));
 
+    /// <summary>Pages through users with academic details and status (same filters plus isActive/isVerified).</summary>
     [HttpGet("details")]
     [Authorize(Roles = Roles.AdminOrAbove)]
     [ProducesResponseType<PaginatedList<UserDetailsDto>>(StatusCodes.Status200OK)]
@@ -92,12 +96,14 @@ public sealed class UsersController(ISender sender) : ApiControllerBase(sender)
     public async Task<IActionResult> BlockUser(int id, CancellationToken cancellationToken) =>
         NoContentOrProblem(await Sender.Send(new BlockUserCommand(id), cancellationToken));
 
+    /// <summary>Re-activates a blocked user.</summary>
     [HttpPost("{id:int}/activate")]
     [Authorize(Roles = Roles.AdminOrAbove)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> ActivateUser(int id, CancellationToken cancellationToken) =>
         NoContentOrProblem(await Sender.Send(new ActivateUserCommand(id), cancellationToken));
 
+    /// <summary>The roles that can be assigned.</summary>
     [HttpGet("roles")]
     [Authorize(Roles = Roles.AdminOrAbove)]
     [ProducesResponseType<List<string>>(StatusCodes.Status200OK)]

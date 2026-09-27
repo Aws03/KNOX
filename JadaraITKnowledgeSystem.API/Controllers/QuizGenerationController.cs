@@ -23,12 +23,14 @@ public sealed class QuizGenerationController(ISender sender, ICurrentUserService
             await Sender.Send(new GenerateQuizFromMaterialCommand(materialId, currentUser.DomainUserId ?? 0, options), cancellationToken),
             job => AcceptedAtAction(nameof(GetJobStatus), new { jobId = job.Id }, job));
 
+    /// <summary>Status of a quiz generation job (Pending, Extracting, GeneratingQuizzes, Completed, Failed).</summary>
     [HttpGet("jobs/{jobId:int}")]
     [ProducesResponseType<QuizGenerationJobDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetJobStatus(int jobId, CancellationToken cancellationToken) =>
         OkOrProblem(await Sender.Send(new GetQuizGenerationJobStatusQuery(jobId), cancellationToken));
 
+    /// <summary>All quiz generation jobs for a material, newest first.</summary>
     [HttpGet("materials/{materialId:int}/jobs")]
     [ProducesResponseType<List<QuizGenerationJobDto>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMaterialJobs(int materialId, CancellationToken cancellationToken) =>

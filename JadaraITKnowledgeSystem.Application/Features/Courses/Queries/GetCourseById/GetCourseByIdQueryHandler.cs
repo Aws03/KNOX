@@ -33,6 +33,10 @@ public sealed class GetCourseByIdQueryHandler
                 $"No course found with ID {request.CourseId}");
         }
 
-        return course.ToDto();
+        return course.ToDto() with
+        {
+            NumberOfMaterials = await _context.CourseMaterials.CountAsync(m => m.CourseId == course.Id, cancellationToken),
+            NumberOfQuizzes = await _context.Quizzes.CountAsync(q => q.CourseId == course.Id, cancellationToken)
+        };
     }
 }

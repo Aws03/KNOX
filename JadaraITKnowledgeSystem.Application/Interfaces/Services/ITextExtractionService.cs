@@ -22,7 +22,6 @@ public sealed class ChunkingOptions
 {
     public int MaxCharsPerChunk { get; set; } = 4000;
     public int MinCharsPerChunk { get; set; } = 1000;
-    public int QuestionsPerChunk { get; set; } = 8;
     public bool SplitBySection { get; set; } = true;
     public int OverlapPercentage { get; set; } = 10;
 }

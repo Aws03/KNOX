@@ -89,11 +89,7 @@ public sealed class ProcessQuizGenerationJobCommandHandler
             // Step 3: Chunk text intelligently
             var chunks = await _textExtractor.ChunkTextIntelligentlyAsync(
                 extractedText,
-                new ChunkingOptions
-                {
-                    MaxCharsPerChunk = 4000,
-                    QuestionsPerChunk = options.QuestionsPerQuiz
-                },
+                new ChunkingOptions(),
                 cancellationToken);
 
             // Limit chunks based on job options
@@ -108,6 +104,7 @@ public sealed class ProcessQuizGenerationJobCommandHandler
 
             // Step 5: Generate quizzes for each chunk
             var createdQuizzes = new List<QuizDto>();
+            Error? firstError = null;
             for (int i = 0; i < maxChunks; i++)
             {
                 var quizResult = await GenerateQuizFromChunk(
@@ -129,6 +126,7 @@ public sealed class ProcessQuizGenerationJobCommandHandler
                 }
                 else
                 {
+                    firstError ??= quizResult.TopError;
                     _logger.LogWarning(
                         "Failed to generate quiz for chunk {Index}: {Errors}",
                         i + 1, string.Join(", ", quizResult.Errors.Select(e => e.Description)));
@@ -138,7 +136,10 @@ public sealed class ProcessQuizGenerationJobCommandHandler
             // Step 6: Mark job completed or failed
             if (createdQuizzes.Count == 0)
             {
-                job.MarkFailed("No quizzes were successfully generated");
+                // Surface the cause (e.g. OpenAI.NotConfigured) instead of a generic message.
+                job.MarkFailed(firstError is null
+                    ? "No quizzes were successfully generated"
+                    : $"No quizzes were generated: {firstError.Value.Description}");
                 await _context.SaveChangesAsync(cancellationToken);
                 return Error.Failure("QuizGeneration.NoResults", "Failed to generate any quizzes");
             }

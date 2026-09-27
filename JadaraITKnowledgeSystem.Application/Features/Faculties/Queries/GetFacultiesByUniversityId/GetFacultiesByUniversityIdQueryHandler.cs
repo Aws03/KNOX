@@ -26,6 +26,7 @@ public sealed class GetFacultiesByUniversityIdQueryHandler
         var query = _context.Faculties
             .AsNoTracking()
             .Where(f => f.UniversityId == request.UniversityId)
+            .Where(f => string.IsNullOrWhiteSpace(request.Name) || f.Name.Contains(request.Name.Trim()))
             .OrderBy(f => f.Name)
             .Select(f => f.ToDto());
 

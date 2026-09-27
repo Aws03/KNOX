@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace JadaraITKnowledgeSystem.Application.Features.Users.Commands.BlockUser;
 
 public sealed class BlockUserCommandHandler
-    (IApplicationDbContext context, ILogger<BlockUserCommandHandler> logger)
+    (IApplicationDbContext context, ICurrentUserService currentUser, ILogger<BlockUserCommandHandler> logger)
     : IRequestHandler<BlockUserCommand, Result<Success>>
 {
     private readonly IApplicationDbContext _context = context;
@@ -16,6 +16,9 @@ public sealed class BlockUserCommandHandler
     public async Task<Result<Success>> Handle(BlockUserCommand request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Blocking user {UserId}", request.UserId);
+
+        if (currentUser.DomainUserId == request.UserId)
+            return Error.Forbidden("Users.CannotBlockSelf", "You cannot block your own account.");
 
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
         if (user is null)

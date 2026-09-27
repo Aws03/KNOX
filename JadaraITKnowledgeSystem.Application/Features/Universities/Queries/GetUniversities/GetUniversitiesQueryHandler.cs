@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Application.Common.Models;
+using JadaraITKnowledgeSystem.Application.Common.Models;
 using JadaraITKnowledgeSystem.Application.Features.Universities.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Universities.Mappers;
 using JadaraITKnowledgeSystem.Application.Interfaces;
@@ -28,6 +28,7 @@ public sealed class GetUniversitiesQueryHandler
         // Project the query to UniversityDto before pagination
         var query = _context.Universities
             .AsNoTracking()
+            .Where(u => string.IsNullOrWhiteSpace(request.Name) || u.Name.Contains(request.Name.Trim()))
             .OrderBy(u => u.Name)
             .Select(u => u.ToDto());
 

@@ -21,8 +21,6 @@ public static class ServiceCollectionExtensions
     public const string FrontendCorsPolicy = "Frontend";
     public const string ReadyHealthTag = "ready";
 
-    private static readonly string[] DefaultCorsOrigins = ["http://localhost:5173", "http://localhost:5174"];
-
     public static IServiceCollection AddApi(this IServiceCollection services, IConfiguration configuration)
     {
         services
@@ -38,7 +36,11 @@ public static class ServiceCollectionExtensions
             context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier);
         services.AddExceptionHandler<GlobalExceptionHandler>();
 
-        services.AddOpenApi("v1", options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
+        services.AddOpenApi("v1", options =>
+        {
+            options.AddDocumentTransformer<AuthorizationTransformer>();
+            options.AddOperationTransformer<AuthorizationTransformer>();
+        });
 
         services.AddHealthChecks()
             .AddDbContextCheck<AppDbContext>("database", tags: [ReadyHealthTag])
@@ -112,9 +114,8 @@ public static class ServiceCollectionExtensions
     {
         services.AddCors(options => options.AddPolicy(FrontendCorsPolicy, policy =>
         {
-            var origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() is { Length: > 0 } configured
-                ? configured
-                : DefaultCorsOrigins;
+            // Cross-origin callers only; behind the proxy the SPA is same-origin and needs no entry.
+            var origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
             policy.WithOrigins(origins)
                   .AllowAnyHeader()

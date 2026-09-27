@@ -12,8 +12,8 @@ public static class UserMapper
         return new UserDto
         {
             Id = user.Id,
-            Name = user.Name,
-            Email = user.Email,
+            Name = user.Name.Value,
+            Email = DisplayEmail(user),
             MajorId = user.MajorId,
             ProfilePictureUrl = user.ProfilePictureUrl
         };
@@ -30,19 +30,21 @@ public static class UserMapper
         return new UserDetailsDto
         {
             Id = user.Id,
-            Name = user.Name,
-            Email = user.Email,
+            Name = user.Name.Value,
+            Email = DisplayEmail(user),
             IsActive = user.IsActive,
             IsVerified = user.IsVerified,
             ProfilePictureUrl = user.ProfilePictureUrl,
             MajorId = user.MajorId,
-            MajorName = major is null ? null : $"{major.Id}-{major.Name}",
+            MajorName = major?.Name,
             FacultyId = faculty?.Id,
-            FacultyName = faculty is null ? null : $"{faculty.Id}-{faculty.Name}",
+            FacultyName = faculty?.Name,
             UniversityId = university?.Id,
-            UniversityName = university is null ? null : $"{university.Id}-{university.Name}"
+            UniversityName = university?.Name
         };
     }
+
+    private static string DisplayEmail(User user) => user.Email.Address.ToLowerInvariant();
 
     /// <summary>
     /// Builds the signed-in user's profile. <paramref name="user"/> must be loaded with

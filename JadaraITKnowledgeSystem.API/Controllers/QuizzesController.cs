@@ -31,6 +31,7 @@ public sealed class QuizzesController(ISender sender, ICurrentUserService curren
             quiz => CreatedAtAction(nameof(GetById), new { id = quiz.Id }, quiz));
     }
 
+    /// <summary>Gets a quiz with its questions and choices.</summary>
     [HttpGet("{id:int}")]
     [ProducesResponseType<QuizDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -52,6 +53,7 @@ public sealed class QuizzesController(ISender sender, ICurrentUserService curren
         int courseId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default) =>
         OkOrProblem(await Sender.Send(new GetQuizzesByWriterIdQuery(courseId, pageNumber, pageSize), cancellationToken));
 
+    /// <summary>Likes or dislikes a quiz, or switches the caller's reaction; repeating the same reaction is a 409 Conflict.</summary>
     [HttpPost("{quizId:int}/reactions")]
     [Authorize]
     [ProducesResponseType<ReactionResultDto>(StatusCodes.Status200OK)]

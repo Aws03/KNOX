@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,7 +14,11 @@ public sealed class CreateCourseCommandValidator : AbstractValidator<CreateCours
 
         RuleFor(x => x.CourseName)
             .NotEmpty().WithMessage("Course name is required.")
-            .MaximumLength(150);
+            .MaximumLength(120);
+
+        RuleFor(x => x.CourseCode)
+            .MaximumLength(20)
+            .When(x => !string.IsNullOrWhiteSpace(x.CourseCode));
 
         RuleFor(x => x.MajorId).GreaterThan(0);
 

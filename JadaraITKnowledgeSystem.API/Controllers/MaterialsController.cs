@@ -9,6 +9,7 @@ namespace JadaraITKnowledgeSystem.API.Controllers;
 [Route("api/materials")]
 public sealed class MaterialsController(ISender sender) : ApiControllerBase(sender)
 {
+    /// <summary>Deletes a material; its file is removed from storage once the deletion is committed.</summary>
     [HttpDelete("{id:int}")]
     [Authorize(Roles = Roles.WriterOrAbove)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

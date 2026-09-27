@@ -25,6 +25,10 @@ public sealed class GetCourseByCodeQueryHandler : IRequestHandler<GetCourseByCod
         if (course == null)
             return Error.NotFound("Course.NotFound", $"Course with code '{request.CourseCode}' not found.");
 
-        return course.ToDto();
+        return course.ToDto() with
+        {
+            NumberOfMaterials = await _context.CourseMaterials.CountAsync(m => m.CourseId == course.Id, cancellationToken),
+            NumberOfQuizzes = await _context.Quizzes.CountAsync(q => q.CourseId == course.Id, cancellationToken)
+        };
     }
 }

@@ -7,9 +7,9 @@ public sealed class UpdateUserProfileCommandValidator : AbstractValidator<Update
     public UpdateUserProfileCommandValidator()
     {
         RuleFor(x => x.FullName)
-            .MaximumLength(100)
+            .MaximumLength(200)
             .When(x => !string.IsNullOrWhiteSpace(x.FullName))
-            .WithMessage("Full name cannot exceed 100 characters.");
+            .WithMessage("Full name cannot exceed 200 characters.");
 
         RuleFor(x => x.MajorId)
             .GreaterThan(0)
@@ -18,6 +18,7 @@ public sealed class UpdateUserProfileCommandValidator : AbstractValidator<Update
 
         RuleFor(x => x)
             .Must(x => !string.IsNullOrWhiteSpace(x.FullName) || x.MajorId.HasValue)
-            .WithMessage("At least one field (FullName or MajorId) must be provided.");
+            .WithMessage("At least one field (FullName or MajorId) must be provided.")
+            .OverridePropertyName("FullName"); // a named field, so the error is not keyed by ""
     }
 }

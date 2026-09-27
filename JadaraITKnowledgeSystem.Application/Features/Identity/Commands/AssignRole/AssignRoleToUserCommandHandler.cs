@@ -26,6 +26,10 @@ public sealed class AssignRoleToUserCommandHandler(
         if (target is null)
             return Error.NotFound("Users.NotFound", $"User {request.UserId} not found.");
 
+        // An administrator demoting themselves would lock themselves out of the admin screens.
+        if (currentUser.UserId == target.Id)
+            return Error.Forbidden("Role.CannotChangeOwn", "You cannot change your own role; ask another administrator.");
+
         // Only a SuperAdmin may create another SuperAdmin or change an existing one's role;
         // otherwise any Admin could promote themselves to the top of the hierarchy.
         var callerIsSuperAdmin = currentUser.Roles.Contains(Roles.SuperAdmin, StringComparer.OrdinalIgnoreCase);

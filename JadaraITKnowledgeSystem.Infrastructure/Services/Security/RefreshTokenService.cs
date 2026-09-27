@@ -50,10 +50,10 @@ public sealed class RefreshTokenService(
         return stored.UserId;
     }
 
-    public async Task RevokeAsync(string token, int identityUserId, string ipAddress, CancellationToken cancellationToken = default)
+    public async Task RevokeAsync(string token, string ipAddress, CancellationToken cancellationToken = default)
     {
         var stored = await FindAsync(token, cancellationToken);
-        if (stored is null || stored.UserId != identityUserId)
+        if (stored is null)
             return;
 
         stored.Revoke(ipAddress, UtcNow);

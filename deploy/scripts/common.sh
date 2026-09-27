@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Shared helpers for the deployment scripts (sourced, not executed).
 set -euo pipefail
 

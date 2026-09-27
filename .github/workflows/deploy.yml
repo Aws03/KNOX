@@ -1,0 +1,59 @@
+name: Deploy
+
+# Manual, reviewed deployment to the production host over SSH.
+# Setup: Settings > Environments > "production" (add required reviewers) with
+#   secrets: DEPLOY_SSH_KEY (private key), DEPLOY_KNOWN_HOSTS (ssh-keyscan output)
+#   variables: DEPLOY_HOST, DEPLOY_USER, DEPLOY_PATH (e.g. /opt/knox), DOMAIN
+on:
+  workflow_dispatch:
+    inputs:
+      api_version:
+        description: "API image tag, e.g. sha-1a2b3c4 (empty: keep the current one)"
+        required: false
+      web_version:
+        description: "Web image tag (empty: keep the current one)"
+        required: false
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+    env:
+      API_VERSION: ${{ inputs.api_version }}
+      WEB_VERSION: ${{ inputs.web_version }}
+      DEPLOY_TARGET: ${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate inputs
+        run: |
+          for v in "$API_VERSION" "$WEB_VERSION"; do
+            [[ -z "$v" || "$v" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || { echo "Invalid image tag: $v"; exit 1; }
+          done
+
+      - name: Configure SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          printf 'Host *\n  IdentityFile ~/.ssh/id_deploy\n  IdentitiesOnly yes\n' > ~/.ssh/config
+
+      # The host keeps its own .env (secrets) and backups/; only versioned files are synced.
+      - name: Sync deployment files
+        run: rsync -az --delete --exclude .env --exclude backups/ deploy/ "$DEPLOY_TARGET:$DEPLOY_PATH/"
+
+      - name: Deploy
+        run: ssh "$DEPLOY_TARGET" "cd '$DEPLOY_PATH' && ./scripts/deploy.sh '$API_VERSION' '$WEB_VERSION'"
+
+      - name: Smoke test
+        run: curl --fail --silent --show-error --retry 5 --retry-delay 5 "https://${{ vars.DOMAIN }}/healthz"

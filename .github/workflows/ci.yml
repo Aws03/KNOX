@@ -1,0 +1,146 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  TRIVY_IMAGE: aquasec/trivy:0.74.0
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+
+      - name: Restore
+        run: dotnet restore JadaraITKnowledgeSystem.sln
+
+      # Warnings are errors, and NuGet audit fails the build on packages with known vulnerabilities.
+      - name: Build
+        run: dotnet build JadaraITKnowledgeSystem.sln --no-restore -c Release
+
+      - name: Unit tests
+        run: dotnet test tests/JadaraITKnowledgeSystem.UnitTests --no-build -c Release --logger trx --results-directory TestResults
+
+      # Real SQL Server 2022 and S3-compatible storage via Testcontainers (Docker is available on the runner).
+      # Verifies every migration, the upgrade path with existing data, and the HTTP API end to end.
+      - name: Integration tests
+        run: dotnet test tests/JadaraITKnowledgeSystem.IntegrationTests --no-build -c Release --logger trx --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: TestResults
+
+  deploy-config:
+    name: Validate deployment files
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Lint scripts
+        run: shellcheck -x -P deploy/scripts deploy/scripts/*.sh
+
+      - name: Validate compose files
+        working-directory: deploy
+        run: |
+          cp .env.example .env
+          for key in DB_SA_PASSWORD DB_APP_PASSWORD JWT_SECRET STORAGE_SERVICE_URL STORAGE_PUBLIC_BASE_URL STORAGE_ACCESS_KEY STORAGE_SECRET_KEY; do
+            sed -i "s|^$key=.*|$key=https://ci.invalid|" .env
+          done
+          docker compose -f compose.yml config --quiet
+          docker compose -f compose.yml -f compose.storage.yml config --quiet
+          docker compose -f compose.yml --profile tools config --quiet
+
+  image:
+    name: Container image
+    needs: [test, deploy-config]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Image name
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/knox-api" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      # Scan before anything is published: fail on fixable HIGH/CRITICAL vulnerabilities.
+      - name: Build for scanning
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: knox-api:scan
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Scan image
+        run: >
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE"
+          image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed --no-progress knox-api:scan
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (linux/amd64, linux/arm64)
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            REVISION=${{ github.sha }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api

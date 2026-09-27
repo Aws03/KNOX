@@ -18,7 +18,7 @@ public sealed class ProcessQuizGenerationJobCommandHandler
     private readonly IApplicationDbContext _context;
     private readonly ITextExtractionService _textExtractor;
     private readonly IOpenAIService _openAI;
-    private readonly IStorageService _storage;
+    private readonly IFileManager _files;
     private readonly IMediator _mediator;
     private readonly ILogger<ProcessQuizGenerationJobCommandHandler> _logger;
 
@@ -26,14 +26,14 @@ public sealed class ProcessQuizGenerationJobCommandHandler
         IApplicationDbContext context,
         ITextExtractionService textExtractor,
         IOpenAIService openAI,
-        IStorageService storage,
+        IFileManager files,
         IMediator mediator,
         ILogger<ProcessQuizGenerationJobCommandHandler> logger)
     {
         _context = context;
         _textExtractor = textExtractor;
         _openAI = openAI;
-        _storage = storage;
+        _files = files;
         _mediator = mediator;
         _logger = logger;
     }
@@ -168,46 +168,20 @@ public sealed class ProcessQuizGenerationJobCommandHandler
     {
         try
         {
-            // The ContentUrl is either a CDN URL (e.g. https://jadara-hub.b-cdn.net/permanent/Lesson/file.pdf,
-            // storage path = everything after the domain) or a LocalFileStorage URL
-            // (e.g. http://host/uploads/permanent/Lesson/file.pdf, storage path = everything
-            // after the leading "uploads" segment, since LocalFileStorage's root already is
-            // wwwroot/uploads). Strip that leading segment when present so both shapes resolve
-            // to the same on-disk folder LocalFileStorage.DownloadAsync expects.
-            var uri = new Uri(material.ContentUrl);
+            _logger.LogInformation("Downloading material file {StorageKey}", material.StorageKey);
 
-            // Split the path into segments
-            var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-
-            if (segments.Length > 0 && segments[0].Equals("uploads", StringComparison.OrdinalIgnoreCase))
-            {
-                segments = segments[1..];
-            }
-
-            if (segments.Length == 0)
-            {
-                return Error.Validation("InvalidUrl", "Unable to parse file path from URL");
-            }
-
-            var fileName = segments[^1]; // Last segment is always the file name
-
-            // Everything except the last segment is the folder path
-            // For URL: https://jadara-hub.b-cdn.net/permanent/Lesson/file.pdf
-            // segments = ["permanent", "Lesson", "file.pdf"]
-            // folder should be: "permanent/Lesson"
-            var folder = segments.Length > 1
-                ? string.Join("/", segments[..^1])
-                : null;
-
-            _logger.LogInformation("Downloading file from storage. FileName={FileName}, Folder={Folder}", fileName, folder);
-
-            await using var fileStream = await _storage.DownloadAsync(fileName, folder, cancellationToken);
-            if (fileStream == null)
+            await using var remote = await _files.OpenMaterialAsync(material.StorageKey, cancellationToken);
+            if (remote == null)
             {
                 return Error.NotFound("File.NotFound", "Material file not found in storage");
             }
 
-            var extension = Path.GetExtension(fileName);
+            // Only documents reach this point (SupportsTextExtraction); their readers need a seekable stream.
+            await using var fileStream = new MemoryStream();
+            await remote.CopyToAsync(fileStream, cancellationToken);
+            fileStream.Position = 0;
+
+            var extension = Path.GetExtension(material.StorageKey);
             _logger.LogInformation("Extracting text from file. Extension={Extension}", extension);
 
             return await _textExtractor.ExtractTextAsync(fileStream, extension, cancellationToken);

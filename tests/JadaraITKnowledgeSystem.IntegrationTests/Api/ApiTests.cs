@@ -9,8 +9,8 @@ namespace JadaraITKnowledgeSystem.IntegrationTests.Api;
 /// End-to-end checks of the REST API as the frontend uses it (real SQL Server, real pipeline):
 /// routes, status codes, problem-details errors, authorization and the security rules.
 /// </summary>
-[Collection(SqlServerCollection.Name)]
-public class ApiTests(SqlServerFixture database)
+[Collection(InfrastructureCollection.Name)]
+public class ApiTests(InfrastructureFixture database)
 {
     private HttpClient Anonymous() => database.Api.CreateClient();
 
@@ -199,7 +199,7 @@ public class ApiTests(SqlServerFixture database)
         var response = await (await AsAdminAsync()).PostAsJsonAsync("/api/faculties", new { name = "Orphan", universityId = 999_999 });
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        Assert.Equal("University.NotFound", (await response.ReadJsonAsync()).GetProperty("code").GetString());
+        Assert.Equal("University.NotFound", ErrorCode(await response.ReadJsonAsync()));
     }
 
     [Fact]
@@ -282,44 +282,127 @@ public class ApiTests(SqlServerFixture database)
     }
 
     [Fact]
-    public async Task PermanentUpload_RejectsPathTraversalAndNonWriters()
-    {
-        var admin = await AsAdminAsync();
-        var student = Anonymous().WithBearer((await Anonymous().RegisterAsync(TestData.UniqueEmail())).GetProperty("tokens").AccessToken());
-
-        var traversal = await admin.PostAsync("/api/files/upload/permanent", UploadForm("../../../outside"));
-        var notAWriter = await student.PostAsync("/api/files/upload/permanent", UploadForm("material"));
-        var legitimate = await admin.PostAsync("/api/files/upload/permanent", UploadForm("material"));
-
-        Assert.Equal(HttpStatusCode.BadRequest, traversal.StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, notAWriter.StatusCode);
-        Assert.Equal(HttpStatusCode.OK, legitimate.StatusCode);
-        var fileUrl = (await legitimate.ReadJsonAsync()).GetProperty("fileUrl").GetString()!;
-        Assert.StartsWith("http://localhost/uploads/permanent/material/", fileUrl);
-
-        var served = await Anonymous().GetAsync(new Uri(fileUrl).AbsolutePath);
-        Assert.Equal(HttpStatusCode.OK, served.StatusCode);
-    }
-
-    [Fact]
-    public async Task CourseMaterials_CanBeCreatedInFoldersAndListed()
+    public async Task MaterialUpload_GoesStraightToStorage_AndIsServedOnlyThroughSignedUrls()
     {
         var admin = await AsAdminAsync();
         var courseId = (await CreateCourseAsync(admin)).GetProperty("id").GetInt32();
-        var folder = await (await admin.PostAsJsonAsync($"/api/courses/{courseId}/folders", new { name = "Week 1" })).ReadJsonAsync();
-        var folderId = folder.GetProperty("id").GetInt32();
+        var folderId = (await (await admin.PostAsJsonAsync($"/api/courses/{courseId}/folders", new { name = "Week 1" })).ReadJsonAsync())
+            .GetProperty("id").GetInt32();
+        var video = RandomBytes(300_000);
 
-        var material = await admin.PostAsJsonAsync($"/api/courses/{courseId}/materials", new
+        var uploadKey = await UploadMaterialAsync(admin, "lecture.mp4", video);
+        var created = await admin.PostAsJsonAsync($"/api/courses/{courseId}/materials",
+            new { title = "Lecture 1", uploadKey, folderId, tags = new[] { "week1" } });
+        var reused = await admin.PostAsJsonAsync($"/api/courses/{courseId}/materials", new { title = "Again", uploadKey });
+
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        Assert.Equal("Upload.NotFound", ErrorCode(await reused.ReadJsonAsync()));
+
+        // Any signed-in user can list the course; each listing hands out a fresh short-lived URL.
+        var student = Anonymous().WithBearer((await Anonymous().RegisterAsync(TestData.UniqueEmail())).GetProperty("tokens").AccessToken());
+        var contents = await (await student.GetAsync($"/api/courses/{courseId}/contents?folderId={folderId}")).ReadJsonAsync();
+        var material = Assert.Single(contents.GetProperty("materials").EnumerateArray());
+        Assert.Equal("video/mp4", material.GetProperty("contentType").GetString());
+        Assert.Equal(video.Length, material.GetProperty("sizeBytes").GetInt64());
+
+        var signedUrl = new Uri(material.GetProperty("contentUrl").GetString()!);
+        using var storageClient = new HttpClient();
+        var download = await storageClient.GetAsync(signedUrl);
+        var ranged = new HttpRequestMessage(HttpMethod.Get, signedUrl) { Headers = { Range = new System.Net.Http.Headers.RangeHeaderValue(0, 99) } };
+        var partial = await storageClient.SendAsync(ranged);
+        var unsigned = await storageClient.GetAsync(signedUrl.GetLeftPart(UriPartial.Path));
+
+        Assert.Equal(HttpStatusCode.OK, download.StatusCode);
+        Assert.Equal(video, await download.Content.ReadAsByteArrayAsync());
+        Assert.Equal("max-age=31536000, immutable", download.Headers.CacheControl?.ToString());
+        Assert.Equal(HttpStatusCode.PartialContent, partial.StatusCode); // video players seek with range requests
+        Assert.Equal(100, (await partial.Content.ReadAsByteArrayAsync()).Length);
+        Assert.Equal(HttpStatusCode.Forbidden, unsigned.StatusCode);
+    }
+
+    [Fact]
+    public async Task MaterialUpload_RejectsBadTypesOversizedFilesForgedKeysAndNonWriters()
+    {
+        var admin = await AsAdminAsync();
+        var student = Anonymous().WithBearer((await Anonymous().RegisterAsync(TestData.UniqueEmail())).GetProperty("tokens").AccessToken());
+        var courseId = (await CreateCourseAsync(admin)).GetProperty("id").GetInt32();
+
+        var executable = await admin.PostAsJsonAsync("/api/files/material-uploads", new { fileName = "setup.exe", size = 10 });
+        var tooBig = await admin.PostAsJsonAsync("/api/files/material-uploads", new { fileName = "a.mp4", size = KnoxApiFactory.MaxMaterialBytes + 1 });
+        var notAWriter = await student.PostAsJsonAsync("/api/files/material-uploads", new { fileName = "a.pdf", size = 10 });
+        var forged = await admin.PostAsJsonAsync($"/api/courses/{courseId}/materials", new { title = "x", uploadKey = "materials/1/../../secret.pdf" });
+
+        Assert.Equal("File.TypeNotAllowed", ErrorCode(await executable.ReadJsonAsync()));
+        Assert.Equal("File.TooLarge", ErrorCode(await tooBig.ReadJsonAsync()));
+        Assert.Equal(HttpStatusCode.Forbidden, notAWriter.StatusCode);
+        Assert.Equal("Upload.Invalid", ErrorCode(await forged.ReadJsonAsync()));
+
+        // A presigned PUT cannot cap the body, so a file larger than announced is rejected (and removed) on claim.
+        var uploadKey = await UploadMaterialAsync(admin, "big.pdf", RandomBytes((int)KnoxApiFactory.MaxMaterialBytes + 1), announcedSize: 10);
+        var oversized = await admin.PostAsJsonAsync($"/api/courses/{courseId}/materials", new { title = "x", uploadKey });
+
+        Assert.Equal("File.TooLarge", ErrorCode(await oversized.ReadJsonAsync()));
+        using var s3 = database.CreateS3Client();
+        var leftover = await s3.ListObjectsV2Async(new() { BucketName = InfrastructureFixture.PrivateBucket, Prefix = uploadKey });
+        Assert.Empty(leftover.S3Objects ?? []);
+    }
+
+    [Fact]
+    public async Task DeletingAMaterial_DeletesItsFile()
+    {
+        var admin = await AsAdminAsync();
+        var courseId = (await CreateCourseAsync(admin)).GetProperty("id").GetInt32();
+        var uploadKey = await UploadMaterialAsync(admin, "notes.pdf", RandomBytes(2_000));
+        var material = await (await admin.PostAsJsonAsync($"/api/courses/{courseId}/materials", new { title = "Notes", uploadKey })).ReadJsonAsync();
+        var signedUrl = material.GetProperty("contentUrl").GetString()!;
+
+        var delete = await admin.DeleteAsync($"/api/materials/{material.GetProperty("id").GetInt32()}");
+        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
+
+        // The file is removed after the transaction commits, on the background queue.
+        using var storageClient = new HttpClient();
+        var status = HttpStatusCode.OK;
+        for (var i = 0; i < 40 && status == HttpStatusCode.OK; i++)
         {
-            title = "Lecture notes",
-            contentUrl = "http://localhost/uploads/permanent/material/notes.pdf",
-            folderId,
-            tags = new[] { "week1" }
-        });
-        var contents = await (await Anonymous().GetAsync($"/api/courses/{courseId}/contents?folderId={folderId}")).ReadJsonAsync();
+            await Task.Delay(100);
+            status = (await storageClient.GetAsync(signedUrl)).StatusCode;
+        }
+        Assert.Equal(HttpStatusCode.NotFound, status);
+    }
 
-        Assert.Equal(HttpStatusCode.Created, material.StatusCode);
-        Assert.Equal("Lecture notes", Assert.Single(contents.GetProperty("materials").EnumerateArray()).GetProperty("title").GetString());
+    [Fact]
+    public async Task QuizImages_MoveFromTemporaryToPermanentPublicStorage()
+    {
+        var admin = await AsAdminAsync();
+        var courseId = (await CreateCourseAsync(admin)).GetProperty("id").GetInt32();
+        var image = new ByteArrayContent(RandomBytes(5_000));
+        image.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
+        var temp = await (await admin.PostAsync("/api/files/upload/temporary", new MultipartFormDataContent { { image, "file", "diagram.png" } }))
+            .ReadJsonAsync();
+        var tempUrl = temp.GetProperty("fileUrl").GetString()!;
+
+        var quiz = await admin.PostAsJsonAsync("/api/quizzes", new
+        {
+            title = "Diagrams",
+            courseId,
+            questions = new[] { new { text = "Which?", type = "SingleChoice", imageUrl = tempUrl, choices = new[] { new { text = "A", isCorrect = true } } } }
+        });
+        var forged = await admin.PostAsJsonAsync("/api/quizzes", new
+        {
+            title = "Forged",
+            courseId,
+            questions = new[] { new { text = "Which?", type = "SingleChoice", imageUrl = "https://evil.example/x.png", choices = new[] { new { text = "A", isCorrect = true } } } }
+        });
+
+        Assert.Equal(HttpStatusCode.Created, quiz.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, forged.StatusCode);
+        var permanentUrl = (await quiz.ReadJsonAsync()).GetProperty("questions")[0].GetProperty("imageUrl").GetString()!;
+        Assert.DoesNotContain("/temp/", permanentUrl);
+
+        // Public images are readable without credentials; the temporary copy is gone.
+        using var browser = new HttpClient();
+        Assert.Equal(HttpStatusCode.OK, (await browser.GetAsync(permanentUrl)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await browser.GetAsync(tempUrl)).StatusCode);
     }
 
     [Fact]
@@ -405,12 +488,9 @@ public class ApiTests(SqlServerFixture database)
     {
         var admin = await AsAdminAsync();
         var courseId = (await CreateCourseAsync(admin)).GetProperty("id").GetInt32();
-        var upload = await (await admin.PostAsync("/api/files/upload/permanent", UploadForm("material"))).ReadJsonAsync();
-        var material = await (await admin.PostAsJsonAsync($"/api/courses/{courseId}/materials", new
-        {
-            title = "AI source",
-            contentUrl = upload.GetProperty("fileUrl").GetString()
-        })).ReadJsonAsync();
+        var uploadKey = await UploadMaterialAsync(admin, "notes.pdf", "%PDF-1.4 not really a pdf"u8.ToArray());
+        var material = await (await admin.PostAsJsonAsync($"/api/courses/{courseId}/materials", new { title = "AI source", uploadKey }))
+            .ReadJsonAsync();
 
         var accepted = await admin.PostAsJsonAsync($"/api/quiz-generation/materials/{material.GetProperty("id").GetInt32()}",
             new { questionsPerQuiz = 5, difficulty = "Easy", maxQuizzes = 1 });
@@ -449,14 +529,33 @@ public class ApiTests(SqlServerFixture database)
         return body;
     }
 
-    private static MultipartFormDataContent UploadForm(string category)
+    /// <summary>The browser flow: ask the API for an upload URL, then PUT the bytes straight to object storage.</summary>
+    private static async Task<string> UploadMaterialAsync(HttpClient api, string fileName, byte[] content, long? announcedSize = null)
     {
-        var file = new ByteArrayContent("%PDF-1.4 not really a pdf"u8.ToArray());
-        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
-        return new MultipartFormDataContent
-        {
-            { file, "file", "notes.pdf" },
-            { new StringContent(category), "fileCategory" }
-        };
+        var ticket = await (await api.PostAsJsonAsync("/api/files/material-uploads", new { fileName, size = announcedSize ?? content.Length }))
+            .ReadJsonAsync();
+
+        var put = new HttpRequestMessage(HttpMethod.Put, ticket.GetProperty("url").GetString()) { Content = new ByteArrayContent(content) };
+        foreach (var header in ticket.GetProperty("headers").EnumerateObject())
+            put.Content.Headers.TryAddWithoutValidation(header.Name, header.Value.GetString());
+
+        using var storageClient = new HttpClient();
+        var response = await storageClient.SendAsync(put);
+        Assert.True(response.IsSuccessStatusCode, $"Direct upload failed: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync()}");
+
+        return ticket.GetProperty("key").GetString()!;
+    }
+
+    /// <summary>Business errors carry a "code"; validation errors are keyed by code under "errors".</summary>
+    private static string? ErrorCode(JsonElement problem) =>
+        problem.TryGetProperty("code", out var code) ? code.GetString()
+        : problem.TryGetProperty("errors", out var errors) ? errors.EnumerateObject().First().Name
+        : null;
+
+    private static byte[] RandomBytes(int length)
+    {
+        var bytes = new byte[length];
+        Random.Shared.NextBytes(bytes);
+        return bytes;
     }
 }

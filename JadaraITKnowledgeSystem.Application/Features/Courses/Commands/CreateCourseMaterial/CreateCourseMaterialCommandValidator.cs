@@ -10,12 +10,9 @@ public sealed class CreateCourseMaterialCommandValidator : AbstractValidator<Cre
             .NotEmpty().WithMessage("Title is required.")
             .MaximumLength(250).WithMessage("Title must not exceed 250 characters.");
 
-        RuleFor(x => x.ContentUrl)
-            .NotEmpty().WithMessage("Content URL is required.")
-            .MaximumLength(500).WithMessage("Content URL must not exceed 500 characters.")
-            .Must(url => Uri.TryCreate(url, UriKind.Absolute, out var uriResult)
-                         && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
-            .WithMessage("Content URL must be a valid HTTP/HTTPS URL.");
+        RuleFor(x => x.UploadKey)
+            .NotEmpty().WithMessage("Upload the file first; the upload key is required.")
+            .MaximumLength(200);
 
         RuleFor(x => x.CourseId)
             .GreaterThan(0).WithMessage("CourseId must be greater than zero.");

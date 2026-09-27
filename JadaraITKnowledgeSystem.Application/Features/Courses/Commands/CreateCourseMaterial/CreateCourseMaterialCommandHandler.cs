@@ -18,6 +18,7 @@ public sealed class CreateCourseMaterialCommandHandler(
     IFeatureFlagService featureFlagService,
     ICurrentUserService currentUserService,
     IPostCommitDispatcher postCommitDispatcher,
+    IFileManager files,
     ILogger<CreateCourseMaterialCommandHandler> logger)
     : IRequestHandler<CreateCourseMaterialCommand, Result<CourseMaterialDto>>
 {
@@ -59,10 +60,18 @@ public sealed class CreateCourseMaterialCommandHandler(
             }
         }
 
+        // The browser uploaded the file straight to storage; verify it and move it under the course.
+        var claimed = await files.ClaimMaterialUploadAsync(request.UploadKey, request.CourseId, cancellationToken);
+        if (claimed.IsError)
+            return claimed.Errors;
+        var file = claimed.Value;
+
         // Create material (root if FolderId is null)
         var materialResult = CourseMaterial.Create(
             request.Title,
-            request.ContentUrl,
+            file.Key,
+            file.ContentType,
+            file.Size,
             request.CourseId,
             request.FolderId,
             request.Description,
@@ -70,6 +79,7 @@ public sealed class CreateCourseMaterialCommandHandler(
 
         if (materialResult.IsError)
         {
+            await files.DeleteMaterialAsync(file.Key, CancellationToken.None);
             _logger.LogWarning("Validation errors creating material for CourseId={CourseId}: {Errors}", request.CourseId, materialResult.Errors);
             return materialResult.Errors;
         }
@@ -83,7 +93,7 @@ public sealed class CreateCourseMaterialCommandHandler(
         if (request.GenerateQuiz)
             StageQuizGeneration(material.Id, request.QuizOptions ?? new QuizGenerationOptionsDto());
 
-        return material.ToDto();
+        return material.ToDto(files);
     }
 
     private void StageQuizGeneration(int materialId, QuizGenerationOptionsDto quizOptions)

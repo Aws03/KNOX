@@ -11,9 +11,16 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
         [MaxLength(250)]
         public string Title { get; private set; } = string.Empty;
 
+        /// <summary>Object-storage key of the file (private bucket), e.g. "materials/12/abc.mp4". Never a URL.</summary>
         [Required]
         [MaxLength(500)]
-        public string ContentUrl { get; private set; } = string.Empty;
+        public string StorageKey { get; private set; } = string.Empty;
+
+        [Required]
+        [MaxLength(100)]
+        public string ContentType { get; private set; } = string.Empty;
+
+        public long SizeBytes { get; private set; }
 
         [ForeignKey(nameof(Course))]
         public int CourseId { get; private set; }
@@ -35,16 +42,18 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
 
         private CourseMaterial() { }
 
-        private CourseMaterial(string title, string contentUrl, int courseId, int? folderId = null, string? description = null)
+        private CourseMaterial(string title, string storageKey, string contentType, long sizeBytes, int courseId, int? folderId = null, string? description = null)
         {
             SetTitle(title);
-            SetContentUrl(contentUrl);
+            StorageKey = storageKey.Trim();
+            ContentType = contentType;
+            SizeBytes = sizeBytes;
             SetCourseId(courseId);
             SetFolderId(folderId);
             SetDescription(description);
         }
 
-        public static Result<CourseMaterial> Create(string title, string contentUrl, int courseId, int? folderId = null, string? description = null, IEnumerable<string>? tags = null)
+        public static Result<CourseMaterial> Create(string title, string storageKey, string contentType, long sizeBytes, int courseId, int? folderId = null, string? description = null, IEnumerable<string>? tags = null)
         {
             // Validate title
             if (string.IsNullOrWhiteSpace(title))
@@ -53,12 +62,17 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
             if (title.Length > 250)
                 return Error.Validation("CourseMaterial.Title.TooLong", "Title cannot exceed 250 characters.");
 
-            // Validate contentUrl
-            if (string.IsNullOrWhiteSpace(contentUrl))
-                return Error.Validation("CourseMaterial.ContentUrl.Required", "Content URL is required.");
+            if (string.IsNullOrWhiteSpace(storageKey))
+                return Error.Validation("CourseMaterial.StorageKey.Required", "The material file is required.");
 
-            if (contentUrl.Length > 500)
-                return Error.Validation("CourseMaterial.ContentUrl.TooLong", "Content URL cannot exceed 500 characters.");
+            if (storageKey.Length > 500)
+                return Error.Validation("CourseMaterial.StorageKey.TooLong", "Storage key cannot exceed 500 characters.");
+
+            if (string.IsNullOrWhiteSpace(contentType) || contentType.Length > 100)
+                return Error.Validation("CourseMaterial.ContentType.Invalid", "Content type is required (at most 100 characters).");
+
+            if (sizeBytes < 0)
+                return Error.Validation("CourseMaterial.Size.Invalid", "Size cannot be negative.");
 
             // Validate courseId
             if (courseId <= 0)
@@ -68,7 +82,7 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
             if (folderId.HasValue && folderId.Value <= 0)
                 return Error.Validation("CourseMaterial.FolderId.Invalid", "FolderId must be a positive integer.");
 
-            var material = new CourseMaterial(title, contentUrl, courseId, folderId, description);
+            var material = new CourseMaterial(title, storageKey, contentType, sizeBytes, courseId, folderId, description);
             var tagResult = material.UpdateTags(tags);
             if (tagResult.IsError)
                 return tagResult.Errors;
@@ -85,17 +99,6 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
                 throw new ArgumentException("Title cannot exceed 250 characters.", nameof(title));
 
             Title = title.Trim();
-        }
-
-        public void SetContentUrl(string contentUrl)
-        {
-            if (string.IsNullOrWhiteSpace(contentUrl))
-                throw new ArgumentException("Content URL is required.", nameof(contentUrl));
-
-            if (contentUrl.Length > 500)
-                throw new ArgumentException("Content URL cannot exceed 500 characters.", nameof(contentUrl));
-
-            ContentUrl = contentUrl.Trim();
         }
 
         public void SetCourseId(int courseId)
@@ -177,10 +180,10 @@ namespace JadaraITKnowledgeSystem.Domain.Courses.Entites
 
         public bool SupportsTextExtraction()
         {
-            if (string.IsNullOrEmpty(ContentUrl))
+            if (string.IsNullOrEmpty(StorageKey))
                 return false;
 
-            var extension = Path.GetExtension(ContentUrl).ToLowerInvariant();
+            var extension = Path.GetExtension(StorageKey).ToLowerInvariant();
             return extension == ".pdf" || extension == ".docx" || extension == ".pptx";
         }
 

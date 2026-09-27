@@ -1,4 +1,4 @@
-﻿using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
+using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
 using JadaraITKnowledgeSystem.Application.Features.Courses.Mappers;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace JadaraITKnowledgeSystem.Application.Features.Courses.Queries.GetCourseContents
 {
     public class GetCourseContentsQueryHandler
-        (IApplicationDbContext context, ILogger<GetCourseContentsQueryHandler> logger)
+        (IApplicationDbContext context, IFileManager files, ILogger<GetCourseContentsQueryHandler> logger)
         : IRequestHandler<GetCourseContentsQuery, Result<CourseContentsDto>>
     {
         private readonly IApplicationDbContext _context = context;
@@ -34,11 +34,13 @@ namespace JadaraITKnowledgeSystem.Application.Features.Courses.Queries.GetCourse
                 .ToListAsync(ct);
 
             // Load materials for this level
-            var materials = await _context.CourseMaterials
+            var materials = (await _context.CourseMaterials
+                .AsNoTracking()
                 .Where(m => m.CourseId == request.CourseId &&
                             m.FolderId == request.FolderId)
-                .Select(m => m.ToDto())
-                .ToListAsync(ct);
+                .ToListAsync(ct))
+                .Select(m => m.ToDto(files))
+                .ToList();
 
             var result = new CourseContentsDto(
                 CourseId: request.CourseId,

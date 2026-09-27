@@ -11,8 +11,8 @@ using NSubstitute;
 namespace JadaraITKnowledgeSystem.IntegrationTests.Application;
 
 /// <summary>Transaction and post-commit dispatch semantics on SQL Server with the production retry strategy.</summary>
-[Collection(SqlServerCollection.Name)]
-public class TransactionBehaviorTests(SqlServerFixture database)
+[Collection(InfrastructureCollection.Name)]
+public class TransactionBehaviorTests(InfrastructureFixture database)
 {
     public sealed record SampleCommand(string Name) : IRequest<Result<int>>;
     public sealed record LongRunningCommand : IRequest<Result<int>>, INonTransactionalCommand;

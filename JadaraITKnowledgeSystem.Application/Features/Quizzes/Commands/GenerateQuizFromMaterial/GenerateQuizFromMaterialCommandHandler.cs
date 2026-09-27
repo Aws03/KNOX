@@ -69,8 +69,8 @@ public sealed class GenerateQuizFromMaterialCommandHandler
         if (!material.SupportsTextExtraction())
         {
             _logger.LogWarning(
-                "Material does not support text extraction. MaterialId={MaterialId}, ContentUrl={ContentUrl}",
-                request.MaterialId, material.ContentUrl);
+                "Material does not support text extraction. MaterialId={MaterialId}, StorageKey={StorageKey}",
+                request.MaterialId, material.StorageKey);
             return Error.Validation(
                 "QuizGeneration.UnsupportedFile",
                 "File type does not support text extraction. Supported types: PDF, DOCX, PPTX");

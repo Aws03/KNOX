@@ -1,322 +1,213 @@
+using System.Text.RegularExpressions;
 using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Application.Interfaces.Services;
+using JadaraITKnowledgeSystem.Domain.Common.Results;
+using JadaraITKnowledgeSystem.Infrastructure.Options;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace JadaraITKnowledgeSystem.Infrastructure.Services.FileManagement;
 
-public class FileManager : IFileManager
+public sealed partial class FileManager(
+    IStorageService storage,
+    IOptions<StorageOptions> options,
+    TimeProvider timeProvider,
+    ILogger<FileManager> logger) : IFileManager
 {
-    private readonly IStorageService _storage;
-    private readonly ILogger<FileManager> _logger;
+    private const string TempPrefix = "temp/";
+    private const string MaterialUploadPrefix = "temp/materials/";
 
-    private static readonly HashSet<string> _allowedExtensions = new()
+    private static readonly Dictionary<string, string> ImageTypes = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".mp4",
-        ".docx", ".pptx", ".pptm", ".xlsx", ".xlsm"
+        [".jpg"] = "image/jpeg",
+        [".jpeg"] = "image/jpeg",
+        [".png"] = "image/png",
+        [".gif"] = "image/gif",
+        [".webp"] = "image/webp"
     };
 
-    public FileManager(
-        IStorageService storage,
-        ILogger<FileManager> logger)
+    private static readonly Dictionary<string, string> MaterialTypes = new(StringComparer.OrdinalIgnoreCase)
     {
-        _storage = storage;
-        _logger = logger;
+        [".pdf"] = "application/pdf",
+        [".docx"] = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        [".pptx"] = "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        [".jpg"] = "image/jpeg",
+        [".jpeg"] = "image/jpeg",
+        [".png"] = "image/png",
+        [".mp4"] = "video/mp4",
+        [".webm"] = "video/webm"
+    };
+
+    private readonly StorageOptions _options = options.Value;
+
+    public static IReadOnlyCollection<string> MaterialExtensions => MaterialTypes.Keys;
+
+    // ---------- Public images ----------
+
+    public async Task<string> UploadAsync(Stream fileStream, string extension, string folder, CancellationToken cancellationToken = default)
+    {
+        var contentType = ImageContentType(extension);
+        if (!fileStream.CanRead || (fileStream.CanSeek && fileStream.Length == 0))
+            throw new ArgumentException("The file is empty.", nameof(fileStream));
+
+        var key = $"{folder.Trim('/')}/{NewName(extension)}";
+        await storage.PutAsync(StorageBucket.Public, key, fileStream, contentType, cancellationToken);
+
+        logger.LogInformation("Stored public file {Key}", key);
+        return storage.GetPublicUrl(key);
     }
 
-    public async Task<string> UploadAsync(
-        Stream fileStream,
-        string extension,
-        string folder,
-        CancellationToken cancellationToken = default)
+    public async Task<string> UpdateAsync(string? oldFileUrl, Stream fileStream, string extension, string folder, CancellationToken cancellationToken = default)
     {
-        ValidateExtension(extension);
-        ValidateStream(fileStream);
+        var newUrl = await UploadAsync(fileStream, extension, folder, cancellationToken);
 
-        string fileName = GenerateFileName(extension);
-
-        _logger.LogInformation(
-            "Uploading file {FileName} to folder {Folder}",
-            fileName, folder);
-
-        string fileUrl = await _storage.UploadAsync(
-            fileStream,
-            fileName,
-            folder,
-            cancellationToken);
-
-        _logger.LogInformation(
-            "Successfully uploaded file to {FileUrl}",
-            fileUrl);
-
-        return fileUrl;
-    }
-
-    public async Task<string> UpdateAsync(
-        string? oldFileUrl,
-        Stream newFileStream,
-        string extension,
-        string folder,
-        CancellationToken cancellationToken = default)
-    {
-        ValidateExtension(extension);
-        ValidateStream(newFileStream);
-
-        _logger.LogInformation(
-            "Updating file. Old: {OldUrl}, Folder: {Folder}",
-            oldFileUrl, folder);
-
-        // Upload new file first
-        string newUrl = await UploadAsync(
-            newFileStream,
-            extension,
-            folder,
-            cancellationToken);
-
-        // Best effort: the update has succeeded once the new file is stored.
         if (!string.IsNullOrWhiteSpace(oldFileUrl))
-            await TryDeleteAsync(oldFileUrl);
+            await TryDeletePublicAsync(oldFileUrl);
 
         return newUrl;
     }
 
-    public async Task<bool> DeleteAsync(
-        string? fileUrl,
-        CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(string? fileUrl, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(fileUrl))
+        var key = string.IsNullOrWhiteSpace(fileUrl) ? null : storage.GetPublicKey(fileUrl);
+        if (key is null)
         {
-            _logger.LogWarning("Attempted to delete null or empty file URL");
+            logger.LogWarning("Not deleting {FileUrl}: it is not a file in this storage", fileUrl);
             return false;
         }
 
-        var (fileName, folder) = ExtractFileNameAndFolder(fileUrl);
-
-        if (string.IsNullOrEmpty(fileName))
-        {
-            _logger.LogWarning("Could not extract filename from URL: {FileUrl}", fileUrl);
-            return false;
-        }
-
-        _logger.LogInformation(
-            "Deleting file {FileName} from folder {Folder}",
-            fileName, folder);
-
-        bool result = await _storage.DeleteAsync(fileName, folder, cancellationToken);
-
-        if (result)
-        {
-            _logger.LogInformation("Successfully deleted file {FileUrl}", fileUrl);
-        }
-        else
-        {
-            _logger.LogWarning("File deletion returned false for {FileUrl}", fileUrl);
-        }
-
-        return result;
+        await storage.DeleteAsync(StorageBucket.Public, key, cancellationToken);
+        return true;
     }
 
-    public async Task<string> MoveFromTempToPermanentAsync(
-        string tempFileUrl,
-        string permanentFolder,
-        CancellationToken cancellationToken = default)
+    public async Task<string> MoveFromTempToPermanentAsync(string tempFileUrl, string permanentFolder, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(tempFileUrl))
-        {
-            throw new ArgumentException("Temp file URL cannot be null or empty", nameof(tempFileUrl));
-        }
+        var tempKey = storage.GetPublicKey(tempFileUrl);
+        if (tempKey is null || !tempKey.StartsWith(TempPrefix, StringComparison.Ordinal))
+            throw new ArgumentException("The image URL is not a temporary upload.", nameof(tempFileUrl));
 
-        _logger.LogInformation(
-            "Moving file from temp {TempUrl} to permanent folder {PermanentFolder}",
-            tempFileUrl, permanentFolder);
+        var extension = Path.GetExtension(tempKey);
+        var contentType = ImageContentType(extension);
 
-        // Extract file info from temp URL
-        var (tempFileName, tempFolder) = ExtractFileNameAndFolder(tempFileUrl);
+        if (await storage.GetAsync(StorageBucket.Public, tempKey, cancellationToken) is null)
+            throw new FileNotFoundException("The uploaded image no longer exists; upload it again.");
 
-        if (string.IsNullOrEmpty(tempFileName))
-        {
-            throw new ArgumentException("The temporary file URL is not a valid upload URL.", nameof(tempFileUrl));
-        }
+        var permanentKey = $"{permanentFolder.Trim('/')}/{NewName(extension)}";
+        await storage.CopyAsync(StorageBucket.Public, tempKey, permanentKey, contentType, cancellationToken);
+        await TryDeleteAsync(StorageBucket.Public, tempKey);
 
-        using var tempStream = await DownloadFileFromStorageAsync(
-            tempFileName,
-            tempFolder,
-            cancellationToken);
-
-        // Upload to permanent location
-        string extension = Path.GetExtension(tempFileName);
-        var permanentUrl = await UploadAsync(
-            tempStream,
-            extension,
-            permanentFolder,
-            cancellationToken);
-
-        // Best effort: anything left behind is swept up by TempFileCleanupJob.
-        await TryDeleteAsync(tempFileUrl);
-
-        _logger.LogInformation(
-            "Successfully moved file from temp to permanent: {PermanentUrl}",
-            permanentUrl);
-
-        return permanentUrl;
+        return storage.GetPublicUrl(permanentKey);
     }
 
-    public async Task<int> DeleteOldTempFilesAsync(
-    TimeSpan olderThan,
-    CancellationToken cancellationToken = default)
+    /// <summary>Removes abandoned temporary uploads (quiz images never saved, materials never created).</summary>
+    public async Task<int> DeleteOldTempFilesAsync(TimeSpan olderThan, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
-            "Starting cleanup of temp files older than {TimeSpan}",
-            olderThan);
+        var cutoff = timeProvider.GetUtcNow() - olderThan;
+        var deleted = 0;
 
-        // Get list of temp files from storage (recursive to include all subfolders)
-        var tempFiles = await _storage.ListFilesAsync("temp", cancellationToken);
-
-        var cutoffDate = DateTime.UtcNow - olderThan;
-        var deletedCount = 0;
-
-        foreach (var file in tempFiles)
+        foreach (var bucket in new[] { StorageBucket.Public, StorageBucket.Private })
         {
-            if (file.IsDirectory || file.DateCreated >= cutoffDate)
-                continue;
-
-            try
+            await foreach (var item in storage.ListAsync(bucket, TempPrefix, cancellationToken))
             {
-                // Build the file URL for deletion
-                var fileUrl = _storage.GetFileUrl(file.ObjectName, file.Path);
-                var deleted = await DeleteAsync(fileUrl, cancellationToken);
+                if (item.LastModified >= cutoff)
+                    continue;
 
-                if (deleted)
-                {
-                    deletedCount++;
-                    _logger.LogDebug(
-                        "Deleted temp file: {FileName} from {Path} (Created: {Created})",
-                        file.ObjectName,
-                        file.Path,
-                        file.DateCreated);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    "Failed to delete temp file {FileName} during cleanup",
-                    file.ObjectName);
+                if (await TryDeleteAsync(bucket, item.Key))
+                    deleted++;
             }
         }
 
-        _logger.LogInformation(
-            "Temp file cleanup completed. Deleted {Count} files",
-            deletedCount);
-
-        return deletedCount;
+        return deleted;
     }
 
-    // =============================
-    // Private Helper Methods
-    // =============================
+    // ---------- Private course materials ----------
 
-    private async Task<Stream> DownloadFileFromStorageAsync(
-        string fileName,
-        string? folder,
-        CancellationToken cancellationToken)
+    public Result<DirectUpload> CreateMaterialUpload(string fileName, long size)
     {
-        _logger.LogInformation("Downloading file from storage: {Folder}/{FileName}", folder, fileName);
+        var extension = Path.GetExtension(fileName ?? string.Empty);
+        if (!MaterialTypes.TryGetValue(extension, out var contentType))
+            return Error.Validation("File.TypeNotAllowed",
+                $"Allowed file types: {string.Join(", ", MaterialTypes.Keys)}.");
 
-        var stream = await _storage.DownloadAsync(fileName, folder, cancellationToken);
+        if (size <= 0)
+            return Error.Validation("File.Empty", "The file is empty.");
 
-        if (stream == null)
+        if (size > _options.MaxMaterialBytes)
+            return Error.Validation("File.TooLarge", $"Files may be at most {_options.MaxMaterialBytes / (1024 * 1024)} MB.");
+
+        var key = MaterialUploadPrefix + NewName(extension);
+        var expiresAt = timeProvider.GetUtcNow().AddMinutes(_options.UploadUrlMinutes);
+        var url = storage.CreateUploadUrl(StorageBucket.Private, key, contentType, expiresAt);
+
+        return new DirectUpload(key, url, "PUT", new Dictionary<string, string> { ["Content-Type"] = contentType }, expiresAt);
+    }
+
+    public async Task<Result<MaterialFile>> ClaimMaterialUploadAsync(string uploadKey, int courseId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(uploadKey) || !MaterialUploadKeyPattern().IsMatch(uploadKey))
+            return Error.Validation("Upload.Invalid", "The upload key is not valid.");
+
+        var extension = Path.GetExtension(uploadKey);
+        if (!MaterialTypes.TryGetValue(extension, out var contentType))
+            return Error.Validation("File.TypeNotAllowed", "The uploaded file type is not allowed.");
+
+        var uploaded = await storage.GetAsync(StorageBucket.Private, uploadKey, cancellationToken);
+        if (uploaded is null)
+            return Error.Validation("Upload.NotFound", "The file was not uploaded or the upload expired; upload it again.");
+
+        // A presigned PUT cannot limit the body size, so the limit is enforced here.
+        if (uploaded.Size <= 0 || uploaded.Size > _options.MaxMaterialBytes)
         {
-            _logger.LogWarning("File not found in storage: {Folder}/{FileName}", folder, fileName);
-                throw new FileNotFoundException($"File '{fileName}' not found in folder '{folder}'.");
+            await TryDeleteAsync(StorageBucket.Private, uploadKey);
+            return Error.Validation("File.TooLarge", $"Files may be at most {_options.MaxMaterialBytes / (1024 * 1024)} MB.");
         }
 
-        // Copy to a seekable MemoryStream so it works with ASP.NET File() results
-        var memory = new MemoryStream();
-        await stream.CopyToAsync(memory, cancellationToken);
-        memory.Position = 0; // reset pointer
+        var key = $"materials/{courseId}/{NewName(extension)}";
+        await storage.CopyAsync(StorageBucket.Private, uploadKey, key, contentType, cancellationToken);
+        await TryDeleteAsync(StorageBucket.Private, uploadKey);
 
-        return memory;
+        logger.LogInformation("Stored material {Key} ({Size} bytes)", key, uploaded.Size);
+        return new MaterialFile(key, contentType, uploaded.Size);
     }
 
-    private async Task TryDeleteAsync(string fileUrl)
+    public string GetMaterialUrl(string key) =>
+        storage.CreateDownloadUrl(key, timeProvider.GetUtcNow().AddMinutes(_options.DownloadUrlMinutes)).ToString();
+
+    public Task<Stream?> OpenMaterialAsync(string key, CancellationToken cancellationToken = default) =>
+        storage.OpenReadAsync(StorageBucket.Private, key, cancellationToken);
+
+    public Task DeleteMaterialAsync(string key, CancellationToken cancellationToken = default) =>
+        storage.DeleteAsync(StorageBucket.Private, key, cancellationToken);
+
+    // ---------- Helpers ----------
+
+    private static string ImageContentType(string extension) =>
+        ImageTypes.TryGetValue(extension, out var contentType)
+            ? contentType
+            : throw new ArgumentException($"File type '{extension}' is not an allowed image type.", nameof(extension));
+
+    private static string NewName(string extension) => $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
+
+    private async Task TryDeletePublicAsync(string url)
+    {
+        if (storage.GetPublicKey(url) is { } key)
+            await TryDeleteAsync(StorageBucket.Public, key);
+    }
+
+    private async Task<bool> TryDeleteAsync(StorageBucket bucket, string key)
     {
         try
         {
-            await DeleteAsync(fileUrl, CancellationToken.None);
+            await storage.DeleteAsync(bucket, key, CancellationToken.None);
+            return true;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Best-effort delete of {FileUrl} failed", fileUrl);
+            logger.LogWarning(ex, "Best-effort delete of {Bucket}/{Key} failed", bucket, key);
+            return false;
         }
     }
 
-    private static (string fileName, string? folder) ExtractFileNameAndFolder(string fileUrl)
-    {
-        if (!Uri.TryCreate(fileUrl, UriKind.Absolute, out var uri))
-            return (string.Empty, null);
-
-        var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-
-        if (segments.Length == 0)
-            return (string.Empty, null);
-
-        var fileName = segments[^1];
-
-        // Local storage URL format: /uploads/folder.../file
-        if (segments.Length > 1 && segments[0].Equals("uploads", StringComparison.OrdinalIgnoreCase))
-        {
-            if (segments.Length > 2)
-            {
-                var folderSegments = segments[1..^1];
-                return (fileName, string.Join("/", folderSegments));
-            }
-
-            return (fileName, null);
-        }
-
-        return (fileName, null);
-    }
-
-
-    private static string GenerateFileName(string extension)
-    {
-        return $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
-    }
-
-    private static void ValidateExtension(string extension)
-    {
-        if (string.IsNullOrWhiteSpace(extension))
-        {
-            throw new ArgumentException("File extension cannot be null or empty", nameof(extension));
-        }
-
-        var normalizedExtension = extension.ToLowerInvariant();
-        if (!normalizedExtension.StartsWith("."))
-        {
-            normalizedExtension = "." + normalizedExtension;
-        }
-
-        if (!_allowedExtensions.Contains(normalizedExtension))
-        {
-            throw new ArgumentException(
-                $"File extension '{extension}' is not allowed. Allowed extensions: {string.Join(", ", _allowedExtensions)}");
-        }
-    }
-
-    private static void ValidateStream(Stream stream)
-    {
-        if (stream == null)
-        {
-            throw new ArgumentNullException(nameof(stream), "File stream cannot be null");
-        }
-
-        if (!stream.CanRead)
-        {
-            throw new ArgumentException("File stream must be readable", nameof(stream));
-        }
-
-        if (stream.Length == 0)
-        {
-            throw new ArgumentException("File stream cannot be empty", nameof(stream));
-        }
-    }
+    [GeneratedRegex("^temp/materials/[0-9a-f]{32}\\.[a-z0-9]{2,5}$")]
+    private static partial Regex MaterialUploadKeyPattern();
 }

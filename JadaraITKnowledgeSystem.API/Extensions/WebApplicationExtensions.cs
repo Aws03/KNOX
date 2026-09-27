@@ -1,8 +1,5 @@
-using JadaraITKnowledgeSystem.Infrastructure.Options;
 using JadaraITKnowledgeSystem.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Options;
 
 namespace JadaraITKnowledgeSystem.API.Extensions;
 
@@ -25,7 +22,6 @@ public static class WebApplicationExtensions
             return next(context);
         });
 
-        app.UseUploadedFiles();
         app.UseCors(ServiceCollectionExtensions.FrontendCorsPolicy);
         app.UseRateLimiter();
         app.UseAuthentication();
@@ -51,23 +47,15 @@ public static class WebApplicationExtensions
         return app;
     }
 
-    /// <summary>Serves uploaded files from the storage root at /uploads (independent of wwwroot existing).</summary>
-    private static void UseUploadedFiles(this WebApplication app)
-    {
-        var storage = app.Services.GetRequiredService<IOptions<StorageOptions>>().Value;
-        var root = storage.ResolveRootPath(app.Environment.ContentRootPath);
-        Directory.CreateDirectory(root);
-
-        app.UseStaticFiles(new StaticFileOptions
-        {
-            FileProvider = new PhysicalFileProvider(root),
-            RequestPath = StorageOptions.RequestPath
-        });
-    }
-
     public static async Task InitializeDatabaseAsync(this WebApplication app)
     {
         await using var scope = app.Services.CreateAsyncScope();
         await scope.ServiceProvider.GetRequiredService<DatabaseInitializer>().InitializeAsync(app.Lifetime.ApplicationStopping);
+    }
+
+    public static async Task MigrateDatabaseAsync(this WebApplication app)
+    {
+        await using var scope = app.Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<DatabaseInitializer>().MigrateAsync();
     }
 }

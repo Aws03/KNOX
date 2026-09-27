@@ -364,9 +364,7 @@ FodyWeavers.xsd
 
 # Secrets - never commit real app settings
 
-# Locally-stored uploads (local file storage backend) - keep the folder, not its contents
-JadaraITKnowledgeSystem.API/wwwroot/uploads/*
-!JadaraITKnowledgeSystem.API/wwwroot/uploads/.gitkeepnode_modules/
+node_modules/
 
 # macOS
 .DS_Store

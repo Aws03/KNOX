@@ -135,7 +135,7 @@ public sealed class CoursesController(ISender sender) : ApiControllerBase(sender
     [ProducesResponseType<CourseMaterialDto>(StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateMaterial(int courseId, [FromBody] CreateMaterialRequest request, CancellationToken cancellationToken) =>
         ResultOrProblem(
-            await Sender.Send(new CreateCourseMaterialCommand(request.Title, request.ContentUrl, courseId, request.FolderId,
+            await Sender.Send(new CreateCourseMaterialCommand(request.Title, request.UploadKey, courseId, request.FolderId,
                 request.Description, request.Tags), cancellationToken),
             material => CreatedAtAction(nameof(GetContents), new { courseId, folderId = material.FolderId }, material));
 

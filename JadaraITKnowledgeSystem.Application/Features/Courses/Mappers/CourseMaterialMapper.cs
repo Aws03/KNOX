@@ -1,28 +1,27 @@
 using JadaraITKnowledgeSystem.Application.Features.Courses.Dtos;
+using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Courses.Entites;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Courses.Mappers;
 
 public static class CourseMaterialMapper
 {
-    public static CourseMaterialDto ToDto(this CourseMaterial courseMaterial)
+    /// <summary>Maps a material with a freshly signed URL: materials are private, their files are never public.</summary>
+    public static CourseMaterialDto ToDto(this CourseMaterial courseMaterial, IFileManager files)
     {
         ArgumentNullException.ThrowIfNull(courseMaterial);
 
         return new CourseMaterialDto
         {
             Id = courseMaterial.Id,
-            ContentUrl = courseMaterial.ContentUrl,
+            ContentUrl = files.GetMaterialUrl(courseMaterial.StorageKey),
+            ContentType = courseMaterial.ContentType,
+            SizeBytes = courseMaterial.SizeBytes,
             Title = courseMaterial.Title,
             Description = courseMaterial.Description,
             CourseId = courseMaterial.CourseId,
             FolderId = courseMaterial.FolderId,
             Tags = courseMaterial.Tags.ToList()
         };
-    }
-
-    public static List<CourseMaterialDto> ToDtos(this IEnumerable<CourseMaterial> courseMaterials)
-    {
-        return courseMaterials.Select(cm => cm.ToDto()).ToList();
     }
 }

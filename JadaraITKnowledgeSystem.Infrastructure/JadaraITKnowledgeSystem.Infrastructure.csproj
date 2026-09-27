@@ -6,6 +6,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" />
     <PackageReference Include="DocumentFormat.OpenXml" />
     <PackageReference Include="itext" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />

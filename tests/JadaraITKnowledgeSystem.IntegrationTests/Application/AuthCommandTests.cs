@@ -19,12 +19,12 @@ using MsOptions = Microsoft.Extensions.Options.Options;
 namespace JadaraITKnowledgeSystem.IntegrationTests.Application;
 
 /// <summary>Login/refresh/logout rules with the real token store; Identity itself is substituted.</summary>
-[Collection(SqlServerCollection.Name)]
+[Collection(InfrastructureCollection.Name)]
 public sealed class AuthCommandTests : IAsyncLifetime
 {
     private const string Password = "Correct#123";
 
-    private readonly SqlServerFixture _database;
+    private readonly InfrastructureFixture _database;
     private readonly AppDbContext _context;
     private readonly IIdentityUserService _identity = Substitute.For<IIdentityUserService>();
     private readonly IJwtTokenService _jwt = Substitute.For<IJwtTokenService>();
@@ -32,7 +32,7 @@ public sealed class AuthCommandTests : IAsyncLifetime
     private readonly int _identityUserId = Random.Shared.Next(1_000_000, int.MaxValue);
     private string _email = string.Empty;
 
-    public AuthCommandTests(SqlServerFixture database)
+    public AuthCommandTests(InfrastructureFixture database)
     {
         _database = database;
         _context = database.CreateContext();

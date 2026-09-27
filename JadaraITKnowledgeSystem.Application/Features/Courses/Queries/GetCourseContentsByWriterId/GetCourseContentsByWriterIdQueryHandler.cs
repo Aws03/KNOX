@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace JadaraITKnowledgeSystem.Application.Features.Courses.Queries.GetCourseContentsByWriterId
 {
     public class GetCourseContentsByWriterIdQueryHandler
-        (IApplicationDbContext context, ICurrentUserService currentUser, ILogger<GetCourseContentsByWriterIdQueryHandler> logger)
+        (IApplicationDbContext context, ICurrentUserService currentUser, IFileManager files, ILogger<GetCourseContentsByWriterIdQueryHandler> logger)
         : IRequestHandler<GetCourseContentsByWriterIdQuery, Result<CourseContentsDto>>
     {
         private readonly IApplicationDbContext _context = context;
@@ -47,12 +47,14 @@ namespace JadaraITKnowledgeSystem.Application.Features.Courses.Queries.GetCourse
                 .ToListAsync(ct);
 
             // Load materials for this level created by current user
-            var materials = await _context.CourseMaterials
+            var materials = (await _context.CourseMaterials
+                .AsNoTracking()
                 .Where(m => m.CourseId == request.CourseId &&
                             m.FolderId == request.FolderId &&
                             m.CreatedBy == userEmail)
-                .Select(m => m.ToDto())
-                .ToListAsync(ct);
+                .ToListAsync(ct))
+                .Select(m => m.ToDto(files))
+                .ToList();
 
             var result = new CourseContentsDto(
                 CourseId: request.CourseId,

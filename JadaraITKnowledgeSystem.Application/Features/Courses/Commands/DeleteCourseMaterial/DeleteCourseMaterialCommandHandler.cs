@@ -2,12 +2,13 @@ using JadaraITKnowledgeSystem.Application.Interfaces;
 using JadaraITKnowledgeSystem.Domain.Common.Results;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace JadaraITKnowledgeSystem.Application.Features.Courses.Commands.DeleteCourseMaterial;
 
 public sealed class DeleteCourseMaterialCommandHandler
-    (IApplicationDbContext context, ILogger<DeleteCourseMaterialCommandHandler> logger)
+    (IApplicationDbContext context, IPostCommitDispatcher postCommit, ILogger<DeleteCourseMaterialCommandHandler> logger)
     : IRequestHandler<DeleteCourseMaterialCommand, Result<Success>>
 {
     private readonly IApplicationDbContext _context = context;
@@ -28,6 +29,10 @@ public sealed class DeleteCourseMaterialCommandHandler
 
         _context.CourseMaterials.Remove(material);
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Only delete the file once the row is gone for good; a rollback must not leave a dangling key.
+        var key = material.StorageKey;
+        postCommit.Enqueue((services, ct) => services.GetRequiredService<IFileManager>().DeleteMaterialAsync(key, ct));
 
         _logger.LogInformation("CourseMaterial {MaterialId} deleted successfully.", request.MaterialId);
 

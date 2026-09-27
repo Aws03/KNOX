@@ -21,8 +21,8 @@ using NSubstitute;
 
 namespace JadaraITKnowledgeSystem.IntegrationTests.Application;
 
-[Collection(SqlServerCollection.Name)]
-public class HandlerTests(SqlServerFixture database)
+[Collection(InfrastructureCollection.Name)]
+public class HandlerTests(InfrastructureFixture database)
 {
     [Fact]
     public async Task GetFacultiesByUniversityId_ReturnsOnlyThatUniversitysFaculties()
@@ -106,7 +106,7 @@ public class HandlerTests(SqlServerFixture database)
         context.Courses.Add(course);
         await context.SaveChangesAsync();
         // The audit interceptor stamps CreatedBy with the caller's email (as typed, lower-case here).
-        context.CourseMaterials.Add(CourseMaterial.Create("Notes", "https://h/uploads/a.pdf", course.Id).Value);
+        context.CourseMaterials.Add(CourseMaterial.Create("Notes", "materials/1/a.pdf", "application/pdf", 10, course.Id).Value);
         context.Quizzes.Add(QuizWithOneQuestion(course.Id, writer.Id, choices: 3));
         context.Quizzes.Add(QuizWithOneQuestion(course.Id, otherWriter.Id, choices: 5));
         await context.SaveChangesAsync();

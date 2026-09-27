@@ -17,9 +17,13 @@ namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Configurations
                    .IsRequired()
                    .HasMaxLength(250);
 
-            builder.Property(m => m.ContentUrl)
+            builder.Property(m => m.StorageKey)
                    .IsRequired()
                    .HasMaxLength(500);
+
+            builder.Property(m => m.ContentType)
+                   .IsRequired()
+                   .HasMaxLength(100);
 
             builder.Property(m => m.Description)
                    .HasMaxLength(500)

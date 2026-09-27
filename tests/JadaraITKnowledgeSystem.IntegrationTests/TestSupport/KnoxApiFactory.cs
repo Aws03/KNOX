@@ -10,9 +10,12 @@ namespace JadaraITKnowledgeSystem.IntegrationTests.TestSupport;
 
 /// <summary>
 /// Boots the real API (Program.cs: middleware, auth, controllers, migrations, seeding) against a
-/// dedicated SQL Server database and a throwaway content root for uploaded files.
+/// dedicated SQL Server database and the test object store.
 /// </summary>
-public sealed class KnoxApiFactory(string connectionString) : WebApplicationFactory<Program>
+public sealed class KnoxApiFactory(
+    InfrastructureFixture infrastructure,
+    string connectionString,
+    IEnumerable<KeyValuePair<string, string?>>? overrides = null) : WebApplicationFactory<Program>
 {
     private readonly string _contentRoot = Directory.CreateTempSubdirectory("knox-api-tests-").FullName;
 
@@ -23,17 +26,21 @@ public sealed class KnoxApiFactory(string connectionString) : WebApplicationFact
 
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
         {
+            ["Seed:AdminPassword"] = ApiClient.AdminPassword,
+            // Small enough that a test can exceed it after a legitimate-looking upload request.
+            ["Storage:MaxMaterialBytes"] = MaxMaterialBytes.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["ConnectionStrings:DefaultConnection"] = connectionString,
             ["Database:MigrateOnStartup"] = "true",
             ["JwtSettings:Secret"] = "integration-test-signing-key-0123456789abcdef",
             ["JwtSettings:Issuer"] = "knox-tests",
             ["JwtSettings:Audience"] = "knox-tests",
-            ["Storage:BaseUrl"] = "http://localhost",
             ["OpenApi:Enabled"] = "true",
-        }));
+        }.Concat(infrastructure.StorageSettings()).Concat(overrides ?? [])));
 
         builder.ConfigureTestServices(services => services.AddTransient<IStartupFilter, DistinctClientIpStartupFilter>());
     }
+
+    public const long MaxMaterialBytes = 1024 * 1024;
 
     protected override void Dispose(bool disposing)
     {

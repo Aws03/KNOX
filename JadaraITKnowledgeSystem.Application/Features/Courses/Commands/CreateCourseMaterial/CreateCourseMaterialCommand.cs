@@ -7,7 +7,7 @@ namespace JadaraITKnowledgeSystem.Application.Features.Courses.Commands.CreateCo
 
 public sealed record CreateCourseMaterialCommand(
     string Title,
-    string ContentUrl,
+    string UploadKey,
     int CourseId,
     int? FolderId,
     string? Description,

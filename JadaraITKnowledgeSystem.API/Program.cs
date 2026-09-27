@@ -11,6 +11,14 @@ builder.Services
 
 var app = builder.Build();
 
+// Deployment step: "dotnet JadaraITKnowledgeSystem.API.dll migrate" applies migrations, provisions the
+// API's SQL login and seeds, then exits. Run it with an owner connection before starting the new version.
+if (args.Contains("migrate", StringComparer.OrdinalIgnoreCase))
+{
+    await app.MigrateDatabaseAsync();
+    return;
+}
+
 app.UseApiPipeline();
 await app.InitializeDatabaseAsync();
 await app.RunAsync();

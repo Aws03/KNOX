@@ -38,7 +38,8 @@ namespace JadaraITKnowledgeSystem.Infrastructure
             services.AddOptions<OpenAIOptions>().BindConfiguration(OpenAIOptions.SectionName);
             services.AddOptions<BrevoOptions>().BindConfiguration(BrevoOptions.SectionName);
             services.AddOptions<AhaSendOptions>().BindConfiguration(AhaSendOptions.SectionName);
-            services.AddOptions<DatabaseOptions>().BindConfiguration(DatabaseOptions.SectionName);
+            services.AddValidatedOptions<DatabaseOptions>(DatabaseOptions.SectionName);
+            services.AddOptions<SeedOptions>().BindConfiguration(SeedOptions.SectionName);
 
             AddPersistence(services);
 
@@ -54,7 +55,9 @@ namespace JadaraITKnowledgeSystem.Infrastructure
             AddEmail(services);
 
             // Files
-            services.AddScoped<IStorageService, LocalFileStorage>();
+            // The S3 client is thread-safe and pools connections: one per process.
+            services.AddSingleton<S3StorageService>();
+            services.AddSingleton<IStorageService>(sp => sp.GetRequiredService<S3StorageService>());
             services.AddScoped<IFileManager, FileManager>();
             services.AddHostedService<TempFileCleanupJob>();
 

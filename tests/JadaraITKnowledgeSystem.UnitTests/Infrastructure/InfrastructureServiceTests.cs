@@ -7,59 +7,123 @@ using JadaraITKnowledgeSystem.Domain.Quizzes.Enums;
 using JadaraITKnowledgeSystem.Infrastructure.Services.AI;
 using JadaraITKnowledgeSystem.Infrastructure.Services.JWT;
 using JadaraITKnowledgeSystem.Infrastructure.Services.Security;
+using JadaraITKnowledgeSystem.Infrastructure.Services.FileManagement;
 using JadaraITKnowledgeSystem.Infrastructure.Services.Storage;
 using Microsoft.AspNetCore.Http;
 using JadaraITKnowledgeSystem.Infrastructure.Options;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using MsOptions = Microsoft.Extensions.Options.Options;
 
 namespace JadaraITKnowledgeSystem.UnitTests.Infrastructure;
 
-public sealed class LocalFileStorageTests : IDisposable
+public class StorageTests
 {
-    private readonly string _contentRoot = Directory.CreateTempSubdirectory("knox-storage-").FullName;
-    private readonly LocalFileStorage _storage;
+    private static readonly DateTimeOffset Now = new(2026, 9, 27, 12, 0, 0, TimeSpan.Zero);
 
-    public LocalFileStorageTests()
+    private static StorageOptions Options(Action<StorageOptions>? configure = null)
     {
-        var env = Substitute.For<IHostEnvironment>();
-        env.ContentRootPath.Returns(_contentRoot);
-        _storage = new LocalFileStorage(env, MsOptions.Create(new StorageOptions { BaseUrl = "http://files.test/" }));
+        var options = new StorageOptions
+        {
+            ServiceUrl = "http://s3.internal:8333",
+            PublicServiceUrl = "https://files.example.com",
+            AccessKey = "key",
+            SecretKey = "secret",
+            PublicBucket = "knox-public",
+            PrivateBucket = "knox-private",
+            PublicBaseUrl = "https://cdn.example.com/",
+            MaxMaterialBytes = 1_000
+        };
+        configure?.Invoke(options);
+        return options;
     }
-
-    public void Dispose() => Directory.Delete(_contentRoot, recursive: true);
 
     [Fact]
-    public async Task Upload_ThenDownload_RoundTripsInsideTheUploadsFolder()
+    public void BunnyToken_MatchesTheDocumentedAlgorithm()
     {
-        var url = await _storage.UploadAsync(new MemoryStream("hello"u8.ToArray()), "a.txt", "permanent/material");
+        var expires = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
 
-        await using var downloaded = await _storage.DownloadAsync("a.txt", "permanent/material");
+        var url = BunnyTokenSigner.Sign("https://knox.b-cdn.net/", "materials/1/a b.mp4", "secret-key", expires);
 
-        Assert.Equal("http://files.test/uploads/permanent/material/a.txt", url);
-        Assert.Equal("hello", await new StreamReader(downloaded!).ReadToEndAsync());
-        Assert.True(File.Exists(Path.Combine(_contentRoot, "wwwroot", "uploads", "permanent", "material", "a.txt")));
+        // base64url(sha256("secret-key" + "/materials/1/a%20b.mp4" + "1800000000")), padding removed.
+        var expected = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(
+            Encoding.UTF8.GetBytes("secret-key/materials/1/a%20b.mp41800000000"))).Replace('+', '-').Replace('/', '_').TrimEnd('=');
+        Assert.Equal($"https://knox.b-cdn.net/materials/1/a%20b.mp4?token={expected}&expires=1800000000", url.AbsoluteUri);
+    }
+
+    [Fact]
+    public void PrivateDownloads_UseTheCdnWhenConfigured_OtherwiseAPresignedUrl()
+    {
+        using var viaCdn = new S3StorageService(MsOptions.Create(Options(o => { o.CdnBaseUrl = "https://knox.b-cdn.net"; o.CdnTokenKey = "k"; })));
+        using var direct = new S3StorageService(MsOptions.Create(Options()));
+
+        var cdnUrl = viaCdn.CreateDownloadUrl("materials/1/a.mp4", Now.AddHours(1));
+        var presigned = direct.CreateDownloadUrl("materials/1/a.mp4", Now.AddHours(1));
+
+        Assert.StartsWith("https://knox.b-cdn.net/materials/1/a.mp4?token=", cdnUrl.AbsoluteUri);
+        // Presigned URLs are signed for the browser-facing endpoint, never the internal one.
+        Assert.StartsWith("https://files.example.com/knox-private/materials/1/a.mp4?", presigned.AbsoluteUri);
+        Assert.Contains("X-Amz-Signature=", presigned.Query);
     }
 
     [Theory]
-    [InlineData("permanent/../../../escape")]
-    [InlineData("../outside")]
-    [InlineData("/etc")]
-    public async Task Upload_WithAFolderOutsideTheUploadsRoot_IsRejected(string folder)
+    [InlineData("https://cdn.example.com/profile-pictures/1/a.png", "profile-pictures/1/a.png")]
+    [InlineData("https://cdn.example.com/../knox-private/x.pdf", null)]
+    [InlineData("https://elsewhere.example.com/profile-pictures/1/a.png", null)]
+    [InlineData("https://cdn.example.com/a b.png", null)]
+    public void PublicKeys_AreOnlyRecognisedForThisStoragesUrls(string url, string? expected)
     {
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            _storage.UploadAsync(new MemoryStream([1]), "x.pdf", folder));
+        using var storage = new S3StorageService(MsOptions.Create(Options()));
+
+        Assert.Equal(expected, storage.GetPublicKey(url));
     }
 
     [Theory]
-    [InlineData("../x.pdf")]
-    [InlineData("sub/x.pdf")]
-    [InlineData("..")]
-    public async Task Delete_WithAFileNameContainingPathSegments_IsRejected(string fileName)
+    [InlineData("../escape.pdf")]
+    [InlineData("/absolute.pdf")]
+    [InlineData("materials/../../x")]
+    public void Keys_WithPathTricks_AreRejected(string key)
     {
-        await Assert.ThrowsAsync<ArgumentException>(() => _storage.DeleteAsync(fileName, "temp"));
+        using var storage = new S3StorageService(MsOptions.Create(Options()));
+
+        Assert.Throws<ArgumentException>(() => storage.GetPublicUrl(key));
+    }
+
+    [Theory]
+    [InlineData("movie.exe", 10, "File.TypeNotAllowed")]
+    [InlineData("movie.mp4", 0, "File.Empty")]
+    [InlineData("movie.mp4", 1_001, "File.TooLarge")]
+    public void MaterialUploads_AreValidatedBeforeAnythingIsSigned(string fileName, long size, string error)
+    {
+        var storage = Substitute.For<IStorageService>();
+        var files = new FileManager(storage, MsOptions.Create(Options()), TimeProvider.System, NullLogger<FileManager>.Instance);
+
+        Assert.Equal(error, files.CreateMaterialUpload(fileName, size).TopError.Code);
+        storage.DidNotReceiveWithAnyArgs().CreateUploadUrl(default, default!, default!, default);
+    }
+
+    [Fact]
+    public void MaterialUploads_AreSignedForTheExactContentTypeUnderTemp()
+    {
+        var storage = Substitute.For<IStorageService>();
+        storage.CreateUploadUrl(default, default!, default!, default).ReturnsForAnyArgs(new Uri("https://files.example.com/put"));
+        var files = new FileManager(storage, MsOptions.Create(Options()), TimeProvider.System, NullLogger<FileManager>.Instance);
+
+        var upload = files.CreateMaterialUpload("Lecture 1.MP4", 500).Value;
+
+        Assert.Matches("^temp/materials/[0-9a-f]{32}\\.mp4$", upload.Key);
+        Assert.Equal("video/mp4", upload.Headers["Content-Type"]);
+        storage.Received(1).CreateUploadUrl(StorageBucket.Private, upload.Key, "video/mp4", Arg.Any<DateTimeOffset>());
+    }
+
+    [Fact]
+    public void Options_RequireCdnSettingsAndCredentialsInPairs()
+    {
+        var options = Options(o => { o.CdnBaseUrl = "https://knox.b-cdn.net"; o.SecretKey = null; });
+
+        var errors = options.Validate(new System.ComponentModel.DataAnnotations.ValidationContext(options)).ToList();
+
+        Assert.Equal(2, errors.Count);
     }
 }
 

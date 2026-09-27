@@ -9,7 +9,9 @@ using JadaraITKnowledgeSystem.Domain.Users.ValueObjects;
 using JadaraITKnowledgeSystem.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using JadaraITKnowledgeSystem.Infrastructure.Options;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace JadaraITKnowledgeSystem.Infrastructure.Persistence.Seed;
 
@@ -22,10 +24,9 @@ public class DataSeeder(
     IApplicationDbContext context,
     IIdentityUserService identityService,
     UserManager<ApplicationUser> userManager,
+    IOptions<SeedOptions> seedOptions,
     ILogger<DataSeeder> logger)
 {
-    private const string SuperAdminEmail = "admin@knox.com";
-    private const string SuperAdminPassword = "Admin@123456";
     private const string SuperAdminFullName = "System Administrator";
     private const string SuperAdminRole = Roles.SuperAdmin;
 
@@ -106,14 +107,23 @@ public class DataSeeder(
 
     private async Task GetOrCreateSuperAdminAsync(int majorId, CancellationToken ct)
     {
-        var existingIdentityUser = await userManager.FindByEmailAsync(SuperAdminEmail);
+        var adminEmail = seedOptions.Value.AdminEmail;
+        var adminPassword = seedOptions.Value.AdminPassword;
+
+        var existingIdentityUser = await userManager.FindByEmailAsync(adminEmail);
         if (existingIdentityUser is not null)
         {
-            logger.LogInformation("[DataSeeder] SuperAdmin '{Email}' already exists, skipping", SuperAdminEmail);
+            logger.LogInformation("[DataSeeder] SuperAdmin '{Email}' already exists, skipping", adminEmail);
             return;
         }
 
-        var domainUserResult = User.Create(new FullName(SuperAdminFullName), new Email(SuperAdminEmail), majorId);
+        if (string.IsNullOrWhiteSpace(adminPassword))
+        {
+            logger.LogWarning("[DataSeeder] Seed:AdminPassword is not set; no SuperAdmin account was created");
+            return;
+        }
+
+        var domainUserResult = User.Create(new FullName(SuperAdminFullName), new Email(adminEmail), majorId);
         ThrowIfFailed(domainUserResult, "seed SuperAdmin domain user");
 
         var domainUser = domainUserResult.Value;
@@ -125,7 +135,7 @@ public class DataSeeder(
         await context.SaveChangesAsync(ct);
 
         var identityCreate = await identityService.CreateAsync(
-            SuperAdminEmail, SuperAdminFullName, domainUser.Id, SuperAdminPassword);
+            adminEmail, SuperAdminFullName, domainUser.Id, adminPassword);
 
         if (identityCreate.IsError)
         {
@@ -151,7 +161,7 @@ public class DataSeeder(
 
         logger.LogInformation(
             "[DataSeeder] Created SuperAdmin account '{Email}' with role '{Role}'",
-            SuperAdminEmail, SuperAdminRole);
+            adminEmail, SuperAdminRole);
     }
 
     private static void ThrowIfFailed<T>(Result<T> result, string what)

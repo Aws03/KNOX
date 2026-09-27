@@ -30,7 +30,8 @@ public sealed record UpdateCourseResourceRequest(
     string? Description = null,
     string? DemonstrationVideoUrl = null);
 
-public sealed record CreateMaterialRequest(string Title, string ContentUrl, int? FolderId, string? Description, List<string>? Tags);
+/// <summary>Creates a material from a finished upload: UploadKey is the key returned by POST api/files/material-uploads.</summary>
+public sealed record CreateMaterialRequest(string Title, string UploadKey, int? FolderId, string? Description, List<string>? Tags);
 
 public sealed record CreateFolderRequest(string Name, int? ParentFolderId, string? Description);
 

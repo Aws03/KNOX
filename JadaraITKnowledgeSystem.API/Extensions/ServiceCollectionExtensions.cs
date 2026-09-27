@@ -6,6 +6,7 @@ using JadaraITKnowledgeSystem.Application.Common.Options;
 using JadaraITKnowledgeSystem.Infrastructure.Identity;
 using JadaraITKnowledgeSystem.Infrastructure.Options;
 using JadaraITKnowledgeSystem.Infrastructure.Persistence.Context;
+using JadaraITKnowledgeSystem.Infrastructure.Services.Storage;
 using JadaraITKnowledgeSystem.Infrastructure.Services.JWT;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -39,7 +40,9 @@ public static class ServiceCollectionExtensions
 
         services.AddOpenApi("v1", options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 
-        services.AddHealthChecks().AddDbContextCheck<AppDbContext>("database", tags: [ReadyHealthTag]);
+        services.AddHealthChecks()
+            .AddDbContextCheck<AppDbContext>("database", tags: [ReadyHealthTag])
+            .AddCheck<StorageHealthCheck>("storage", tags: [ReadyHealthTag]);
 
         services.AddIdentityAndJwt(configuration);
         services.AddFrontendCors(configuration);

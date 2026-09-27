@@ -93,15 +93,24 @@ public class CourseTests
     }
 
     [Theory]
-    [InlineData("https://host/uploads/permanent/material/notes.pdf", true)]
-    [InlineData("https://host/uploads/permanent/material/slides.PPTX", true)]
-    [InlineData("https://host/uploads/permanent/material/intro.docx", true)]
-    [InlineData("https://host/uploads/permanent/material/video.mp4", false)]
-    public void CourseMaterial_SupportsTextExtraction_OnlyForDocumentFormats(string url, bool expected)
+    [InlineData("materials/1/notes.pdf", true)]
+    [InlineData("materials/1/slides.PPTX", true)]
+    [InlineData("materials/1/intro.docx", true)]
+    [InlineData("materials/1/video.mp4", false)]
+    public void CourseMaterial_SupportsTextExtraction_OnlyForDocumentFormats(string key, bool expected)
     {
-        var material = CourseMaterial.Create("Notes", url, courseId: 1).Value;
+        var material = CourseMaterial.Create("Notes", key, "application/octet-stream", 10, courseId: 1).Value;
 
         Assert.Equal(expected, material.SupportsTextExtraction());
+    }
+
+    [Theory]
+    [InlineData("", "application/pdf", 1, "CourseMaterial.StorageKey.Required")]
+    [InlineData("materials/1/a.pdf", "", 1, "CourseMaterial.ContentType.Invalid")]
+    [InlineData("materials/1/a.pdf", "application/pdf", -1, "CourseMaterial.Size.Invalid")]
+    public void CourseMaterial_RequiresAFile(string key, string contentType, long size, string error)
+    {
+        Assert.Equal(error, CourseMaterial.Create("Notes", key, contentType, size, courseId: 1).TopError.Code);
     }
 
     [Fact]

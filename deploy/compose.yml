@@ -54,7 +54,7 @@ x-api-environment: &api-environment
 
 services:
   proxy:
-    image: caddy:2.11.4-alpine
+    image: caddy:2.11.6-alpine
     restart: unless-stopped
     <<: *hardened
     cap_add: [NET_BIND_SERVICE]

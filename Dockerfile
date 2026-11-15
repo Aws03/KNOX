@@ -23,7 +23,7 @@ RUN dotnet publish JadaraITKnowledgeSystem.API/JadaraITKnowledgeSystem.API.cspro
       -c Release -a $TARGETARCH -o /app/publish --no-restore -p:UseAppHost=false
 
 # ---- Runtime ----
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS runtime
 ARG VERSION=dev
 ARG REVISION=unknown
 LABEL org.opencontainers.image.title="knox-api" \

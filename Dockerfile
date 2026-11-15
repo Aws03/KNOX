@@ -3,7 +3,7 @@
 # ---- Build ----
 # The SDK runs natively on the build machine and cross-compiles for the target architecture,
 # so multi-arch images (linux/amd64, linux/arm64) build without emulation.
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 ARG TARGETARCH
 WORKDIR /src
 
